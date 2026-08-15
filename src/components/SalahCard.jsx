@@ -1,6 +1,7 @@
 import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
+import { nextSalah } from '../lib/gesture.js'
 import { SALAH_PRAYERS, SALAH_LABELS, salahSummary } from '../lib/logic.js'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { fmtDuration } from '../lib/prayerTimes.js'
@@ -66,11 +67,10 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
   const toast = useToast()
 
   const onTap = () => {
-    const next = value === 'ontime' ? 'late' : value === 'late' ? null : 'ontime'
+    const next = nextSalah(value)
     setSalah(dayKey, p, next)
-    if (next) {
-      toast(`${SALAH_LABELS[p]} · ${next === 'ontime' ? 'on time' : 'late'}`, () => setSalah(dayKey, p, value ?? null))
-    }
+    const label = next === 'ontime' ? 'on time' : next === 'late' ? 'late' : 'cleared'
+    toast(`${SALAH_LABELS[p]} · ${label}`, () => setSalah(dayKey, p, value ?? null))
   }
   const press = useLongPress(onTap)
 

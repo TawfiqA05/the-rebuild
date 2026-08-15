@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { movedTooFar, shouldCountTap, MOVE_THRESHOLD } from './gesture.js'
+import {
+  movedTooFar, shouldCountTap, MOVE_THRESHOLD,
+  nextOnTap, nextOnHold, nextSalah,
+} from './gesture.js'
 
 describe('scroll vs tap', () => {
   const origin = { x: 100, y: 200 }
@@ -32,5 +35,26 @@ describe('scroll vs tap', () => {
     expect(shouldCountTap({ moved: false, longFired: false })).toBe(true)
     expect(shouldCountTap({ moved: true, longFired: false })).toBe(false)  // scrolled
     expect(shouldCountTap({ moved: false, longFired: true })).toBe(false)  // was a long-press
+  })
+})
+
+describe('completion cycles both ways', () => {
+  it('tapping walks full → min → unchecked and wraps back', () => {
+    expect(nextOnTap(null)).toBe('full')
+    expect(nextOnTap('full')).toBe('min')
+    expect(nextOnTap('min')).toBe(null)
+    expect(nextOnTap(null)).toBe('full') // wraps
+  })
+
+  it('long-press sets min from pending, clears any completion in one go', () => {
+    expect(nextOnHold(null)).toBe('min')
+    expect(nextOnHold('full')).toBe(null)
+    expect(nextOnHold('min')).toBe(null)
+  })
+
+  it('salah sub-checks cycle on time → late → unchecked', () => {
+    expect(nextSalah(undefined)).toBe('ontime')
+    expect(nextSalah('ontime')).toBe('late')
+    expect(nextSalah('late')).toBe(null)
   })
 })

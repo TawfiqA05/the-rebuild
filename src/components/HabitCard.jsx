@@ -1,6 +1,7 @@
 import { useLongPress } from './useLongPress.js'
 import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
+import { nextOnTap, nextOnHold } from '../lib/gesture.js'
 import { habitStatusOn, weekProgress, riskSignals } from '../lib/logic.js'
 
 /**
@@ -21,15 +22,16 @@ export default function HabitCard({ habit, dayKey }) {
   const risk = riskSignals(state, habit, dayKey)
   const done = status === 'full' || status === 'min'
 
+  // Every change — including clearing one — drops an Undo toast, so a mistake in
+  // either direction is one tap to reverse.
   const set = (next) => {
+    const prev = status
     setHabitStatus(dayKey, habit.id, next)
-    if (next) {
-      const label = next === 'full' ? 'full rep' : 'min rep'
-      toast(`${habit.name} · ${label}`, () => setHabitStatus(dayKey, habit.id, status))
-    }
+    const label = next === 'full' ? 'full rep' : next === 'min' ? 'min rep' : 'cleared'
+    toast(`${habit.name} · ${label}`, () => setHabitStatus(dayKey, habit.id, prev))
   }
-  const onTap = () => set(status === null ? 'full' : status === 'full' ? 'min' : null)
-  const onHold = () => set(status === 'min' ? null : 'min')
+  const onTap = () => set(nextOnTap(status))
+  const onHold = () => set(nextOnHold(status))
   const press = useLongPress(onTap, onHold)
 
   const surface =

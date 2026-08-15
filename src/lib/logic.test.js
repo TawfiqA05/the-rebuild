@@ -198,3 +198,23 @@ describe('daily score respects the active phase', () => {
     expect(total).toBe(3)
   })
 })
+
+describe('un-checking today recalculates the derived state', () => {
+  const read = daily('read')
+
+  it('drops the score, un-counts the streak, and re-opens the at-risk state', () => {
+    // yesterday done, today done
+    const checked = makeState({ '2026-01-14': { read: 'full' }, '2026-01-15': { read: 'full' } }, [read])
+    expect(dayScore(checked, '2026-01-15').done).toBe(1)
+    expect(currentStreak(checked, read, '2026-01-15')).toBe(2)
+
+    // same history but today is cleared (the entry is gone)
+    const cleared = makeState({ '2026-01-14': { read: 'full' } }, [read])
+    expect(dayScore(cleared, '2026-01-15').done).toBe(0)         // score drops
+    expect(currentStreak(cleared, read, '2026-01-15')).toBe(1)   // today no longer counts
+
+    // and if yesterday was a miss, clearing today brings back the at-risk flag
+    const risky = makeState({ '2026-01-13': { read: 'full' } }, [read]) // 14th missed, 15th pending
+    expect(riskSignals(risky, read, '2026-01-15').atRisk).toBe(true)
+  })
+})
