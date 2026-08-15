@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- maskable: keep the mark inside the safe zone (center 80%) -->
+  <rect width="512" height="512" fill="#0a0a0b"/>
+  <g fill="none" stroke="#10b981" stroke-width="30" stroke-linecap="round">
+    <path d="M176 340 L176 292"/>
+    <path d="M245 340 L245 250"/>
+    <path d="M314 340 L314 208"/>
+    <path d="M383 340 L383 172"/>
+  </g>
+  <circle cx="383" cy="172" r="19" fill="#10b981"/>
+</svg>

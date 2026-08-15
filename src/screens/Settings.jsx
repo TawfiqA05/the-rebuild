@@ -1,0 +1,396 @@
+import { useRef, useState } from 'react'
+import { useStore } from '../store.jsx'
+import { PHASES, phaseMeta } from '../lib/seed.js'
+import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
+import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
+import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
+
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+export default function Settings() {
+  const {
+    state, updateSettings, unlockNextPhase, setPhase, resetPrivateLog,
+    exportJSON, importJSON, resetAll,
+  } = useStore()
+  const s = state.settings
+
+  return (
+    <Screen title="Settings" subtitle="Tune the system to fit your life.">
+      {/* Phase ------------------------------------------------------------- */}
+      <SectionLabel>Phase</SectionLabel>
+      <Card className="px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="font-medium">Phase {s.currentPhase} · {phaseMeta(s.currentPhase).name}</div>
+            <div className="text-xs text-[var(--color-muted)]">{phaseMeta(s.currentPhase).blurb}</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {PHASES.map((p) => (
+            <button key={p.n} onClick={() => setPhase(p.n)}
+              className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                p.n === s.currentPhase ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                  : p.n < s.currentPhase ? 'border-[var(--color-line)] text-[var(--color-fg)]'
+                  : 'border-[var(--color-line)] text-[var(--color-faint)]'}`}>
+              {p.n}. {p.name}
+            </button>
+          ))}
+        </div>
+        {s.currentPhase < 5 && (
+          <Button variant="primary" className="w-full mt-3" onClick={unlockNextPhase}>
+            Unlock Phase {s.currentPhase + 1}: {phaseMeta(s.currentPhase + 1).name}
+          </Button>
+        )}
+        <p className="text-[11px] text-[var(--color-faint)] mt-2">
+          Unlock in order, when the current phase feels automatic. You can move back down too.
+        </p>
+      </Card>
+
+      {/* Day rollover ------------------------------------------------------ */}
+      <SectionLabel>Day rollover</SectionLabel>
+      <Card className="px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium">New day starts at</div>
+            <div className="text-xs text-[var(--color-muted)]">A late-night check-in counts as the day before.</div>
+          </div>
+          <select
+            value={s.dayRolloverHour}
+            onChange={(e) => updateSettings({ dayRolloverHour: Number(e.target.value) })}
+            className="rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2 text-sm">
+            {[0, 1, 2, 3, 4, 5, 6].map((h) => (
+              <option key={h} value={h}>{h}:00 am</option>
+            ))}
+          </select>
+        </div>
+      </Card>
+
+      {/* Habits ------------------------------------------------------------ */}
+      <SectionLabel>Habits</SectionLabel>
+      <HabitManager />
+
+      {/* Prayer times ------------------------------------------------------ */}
+      <SectionLabel>Prayer times</SectionLabel>
+      <PrayerTimes />
+
+      {/* Private log PIN --------------------------------------------------- */}
+      <SectionLabel>Private log</SectionLabel>
+      <Card className="px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium">{s.pinHash ? 'PIN is set' : 'No PIN set'}</div>
+            <div className="text-xs text-[var(--color-muted)]">Stored as a hash, never plain text.</div>
+          </div>
+          {s.pinHash && (
+            <Button variant="danger" onClick={() => {
+              if (confirm('Reset the PIN? This also clears everything in the private log.')) resetPrivateLog()
+            }}>Reset PIN</Button>
+          )}
+        </div>
+      </Card>
+
+      {/* Backup ------------------------------------------------------------ */}
+      <SectionLabel>Backup & data</SectionLabel>
+      <BackupControls exportJSON={exportJSON} importJSON={importJSON} resetAll={resetAll} />
+
+      <p className="text-center text-[11px] text-[var(--color-faint)] mt-8">
+        The Rebuild · everything stays on this device.
+      </p>
+    </Screen>
+  )
+}
+
+// --- Habit manager ----------------------------------------------------------
+
+function HabitManager() {
+  const { state } = useStore()
+  const [editing, setEditing] = useState(null) // habit id, or 'new', or null
+  const byPhase = PHASES.map((p) => ({
+    phase: p,
+    habits: state.habits.filter((h) => h.phase === p.n),
+  }))
+
+  return (
+    <div className="space-y-4">
+      {byPhase.map(({ phase, habits }) => (
+        <div key={phase.n}>
+          <div className="text-xs text-[var(--color-muted)] mb-1.5">Phase {phase.n} · {phase.name}</div>
+          <div className="space-y-1.5">
+            {habits.map((h) => (
+              <div key={h.id}>
+                <button onClick={() => setEditing(editing === h.id ? null : h.id)}
+                  className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-3 text-left transition ${
+                    h.archived ? 'border-[var(--color-line)] opacity-45' : 'border-[var(--color-line)]'}`}>
+                  <span className="text-lg w-6 text-center">{h.emoji}</span>
+                  <span className="flex-1 text-sm truncate">{h.name}</span>
+                  <span className="text-[10px] text-[var(--color-faint)]">{freqLabel(h.frequency)}</span>
+                  {h.archived && <span className="text-[10px] text-[var(--color-faint)]">archived</span>}
+                </button>
+                {editing === h.id && <HabitEditor habit={h} onClose={() => setEditing(null)} />}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {editing === 'new'
+        ? <HabitEditor onClose={() => setEditing(null)} />
+        : <Button className="w-full" onClick={() => setEditing('new')}>+ Add a habit</Button>}
+    </div>
+  )
+}
+
+function HabitEditor({ habit, onClose }) {
+  const { upsertHabit, archiveHabit } = useStore()
+  const isNew = !habit
+  const [name, setName] = useState(habit?.name || '')
+  const [emoji, setEmoji] = useState(habit?.emoji || '✅')
+  const [phase, setPhaseN] = useState(habit?.phase || 1)
+  const [minVersion, setMinVersion] = useState(habit?.minVersion || '')
+  const [freqKind, setFreqKind] = useState(habit?.frequency?.kind || 'daily')
+  const [perWeek, setPerWeek] = useState(habit?.frequency?.count || 3)
+  const [weekdays, setWeekdays] = useState(habit?.frequency?.days || [1, 3, 5])
+  const [optional, setOptional] = useState(!!habit?.optional)
+
+  const buildFreq = () => {
+    if (freqKind === 'perWeek') return { kind: 'perWeek', count: Math.max(1, Math.min(7, perWeek)) }
+    if (freqKind === 'weekdays') return { kind: 'weekdays', days: weekdays.slice().sort() }
+    return { kind: 'daily' }
+  }
+
+  const save = () => {
+    if (!name.trim()) return
+    const id = habit?.id || name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '-' + Math.random().toString(36).slice(2, 6)
+    upsertHabit({
+      ...(habit || { type: 'standard' }),
+      id, name: name.trim(), emoji: emoji.trim() || '✅',
+      phase: Number(phase), minVersion: minVersion.trim(),
+      frequency: buildFreq(), optional,
+    })
+    onClose()
+  }
+
+  const toggleDay = (d) => setWeekdays((w) => w.includes(d) ? w.filter((x) => x !== d) : [...w, d])
+
+  return (
+    <Card className="px-4 py-4 mt-1.5 space-y-3 animate-fade">
+      <div className="flex gap-2">
+        <TextInput value={emoji} onChange={setEmoji} className="w-16 text-center text-lg" maxLength={4} />
+        <TextInput value={name} onChange={setName} placeholder="Habit name" />
+      </div>
+
+      <div>
+        <div className="text-xs text-[var(--color-muted)] mb-1">2-minute version</div>
+        <TextInput value={minVersion} onChange={setMinVersion} placeholder="The shrunk-down rep that still counts…" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-xs text-[var(--color-muted)] mb-1">Phase</div>
+          <select value={phase} onChange={(e) => setPhaseN(Number(e.target.value))}
+            className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2.5 text-sm">
+            {PHASES.map((p) => <option key={p.n} value={p.n}>Phase {p.n} · {p.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <div className="text-xs text-[var(--color-muted)] mb-1">Frequency</div>
+          <select value={freqKind} onChange={(e) => setFreqKind(e.target.value)}
+            className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2.5 text-sm">
+            <option value="daily">Daily</option>
+            <option value="perWeek">X per week</option>
+            <option value="weekdays">Specific days</option>
+          </select>
+        </div>
+      </div>
+
+      {freqKind === 'perWeek' && (
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-[var(--color-muted)]">Times per week</span>
+          <input type="number" min={1} max={7} value={perWeek}
+            onChange={(e) => setPerWeek(Number(e.target.value))}
+            className="w-16 rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2 text-sm text-center" />
+        </div>
+      )}
+      {freqKind === 'weekdays' && (
+        <div className="flex gap-1.5">
+          {WEEKDAY_LABELS.map((lbl, d) => (
+            <button key={d} onClick={() => toggleDay(d)}
+              className={`w-9 h-9 rounded-lg border text-xs transition ${
+                weekdays.includes(d) ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                                     : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <label className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+        <input type="checkbox" checked={optional} onChange={(e) => setOptional(e.target.checked)} />
+        Optional (won’t count against your daily score)
+      </label>
+
+      <div className="flex gap-2 pt-1">
+        <Button variant="primary" className="flex-1" onClick={save}>{isNew ? 'Add habit' : 'Save'}</Button>
+        {!isNew && (
+          <Button variant="ghost" onClick={() => { archiveHabit(habit.id, !habit.archived); onClose() }}>
+            {habit.archived ? 'Unarchive' : 'Archive'}
+          </Button>
+        )}
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+      </div>
+    </Card>
+  )
+}
+
+// --- Prayer times (AlAdhan live + cache + per-prayer adjust) -----------------
+
+function PrayerTimes() {
+  const { state, today, updateSettings } = useStore()
+  const { times, source, fetchedAt, status, refresh } = usePrayerTimes(today)
+  const adjust = state.settings.prayerAdjustMin || {}
+  const [showManual, setShowManual] = useState(false)
+
+  const bump = (p, delta) =>
+    updateSettings({ prayerAdjustMin: { ...adjust, [p]: (adjust[p] || 0) + delta } })
+
+  const badge = {
+    live: ['Live', 'text-[var(--color-accent)]'],
+    cache: ['Cached (offline-ready)', 'text-[var(--color-accent)]'],
+    loading: ['Loading…', 'text-[var(--color-muted)]'],
+    manual: ['Manual', 'text-[var(--color-min)]'],
+    error: ['Unavailable', 'text-[var(--color-min)]'],
+    none: ['Not set', 'text-[var(--color-faint)]'],
+  }[status === 'loading' ? 'loading' : source === 'manual' ? 'manual' : status] || ['—', 'text-[var(--color-faint)]']
+
+  return (
+    <Card className="px-4 py-4">
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-sm font-medium">{state.settings.city}</div>
+        <span className={`text-[11px] ${badge[1]}`}>● {badge[0]}</span>
+      </div>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] text-[var(--color-faint)]">
+          {fetchedAt ? `Updated ${agoLabel(fetchedAt)} · ISNA method` : 'AlAdhan API · ISNA method'}
+        </span>
+        <Button variant="ghost" onClick={refresh} className="!px-2 !py-1 text-xs">↻ Refresh</Button>
+      </div>
+
+      {/* Today's times with per-prayer nudge */}
+      <div className="space-y-1">
+        {PRAYER_KEYS.map((p) => {
+          const off = adjust[p] || 0
+          return (
+            <div key={p} className="flex items-center gap-2">
+              <span className="text-xs capitalize w-16 text-[var(--color-muted)]">{p}</span>
+              <span className="text-sm tabular-nums flex-1">{times ? fmt12(times[p]) : '—'}</span>
+              {off !== 0 && (
+                <span className="text-[10px] text-[var(--color-min)] tabular-nums w-10 text-right">
+                  {off > 0 ? `+${off}` : off}m
+                </span>
+              )}
+              <button onClick={() => bump(p, -1)} className="w-7 h-7 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]">−</button>
+              <button onClick={() => bump(p, +1)} className="w-7 h-7 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]">＋</button>
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-[11px] text-[var(--color-faint)] mt-2">
+        Nudge any time ±minutes to match your masjid’s iqamah. Times are cached, so they work
+        offline once loaded.
+      </p>
+
+      {/* Manual fallback (used only when offline and nothing is cached) */}
+      <button onClick={() => setShowManual((v) => !v)}
+        className="text-xs text-[var(--color-muted)] mt-3 underline decoration-dotted">
+        {showManual ? 'Hide manual fallback' : 'Set manual fallback times'}
+      </button>
+      {showManual && <ManualPrayerTimes />}
+    </Card>
+  )
+}
+
+function ManualPrayerTimes() {
+  const { state, updateSettings } = useStore()
+  const times = state.settings.prayerTimes || {}
+  const set = (p, v) => updateSettings({ prayerTimes: { ...times, [p]: v } })
+  return (
+    <div className="mt-3 pt-3 border-t border-[var(--color-line)]">
+      <p className="text-[11px] text-[var(--color-faint)] mb-2">
+        Only used if you’re offline before any month has been cached.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {PRAYER_KEYS.map((p) => (
+          <div key={p} className="flex items-center gap-2">
+            <span className="text-xs capitalize w-14 text-[var(--color-muted)]">{p}</span>
+            <input type="time" value={times[p] || ''} onChange={(e) => set(p, e.target.value)}
+              className="flex-1 rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-2 py-1.5 text-sm" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function agoLabel(ts) {
+  const mins = Math.floor((Date.now() - ts) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+// --- Backup controls --------------------------------------------------------
+
+function BackupControls({ exportJSON, importJSON, resetAll }) {
+  const fileRef = useRef(null)
+
+  const doExport = () => {
+    const blob = new Blob([exportJSON()], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `the-rebuild-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const doImport = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        importJSON(String(reader.result))
+        alert('Backup restored.')
+      } catch {
+        alert('That file didn’t look like a valid backup.')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  return (
+    <Card className="px-4 py-4 space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Button onClick={doExport}>Export JSON</Button>
+        <Button onClick={() => fileRef.current?.click()}>Import JSON</Button>
+      </div>
+      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={doImport} />
+      <Button variant="danger" className="w-full"
+        onClick={() => { if (confirm('Erase ALL data and start over? Export a backup first.')) resetAll() }}>
+        Reset everything
+      </Button>
+    </Card>
+  )
+}
+
+// --- helpers ----------------------------------------------------------------
+
+function freqLabel(f) {
+  if (f.kind === 'daily') return 'daily'
+  if (f.kind === 'perWeek') return `${f.count}×/wk`
+  if (f.kind === 'weekdays') return f.days.map((d) => WEEKDAY_LABELS[d]).join('')
+  return ''
+}

@@ -1,0 +1,22 @@
+{
+  "name": "the-rebuild",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The Rebuild — a personal habit-tracking app that enforces a specific discipline system. Local-first, no backend.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.7"
+  }
+}
