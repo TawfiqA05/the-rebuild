@@ -11,7 +11,9 @@
 // best-effort in-page reminders to true background push.
 // ---------------------------------------------------------------------------
 
-const CACHE = 'rebuild-shell-v2'
+// Bump this when the shell or the icons change so old caches are purged on
+// activate and the new art is re-fetched (v3: redesigned app icon).
+const CACHE = 'rebuild-shell-v3'
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg']
 
 // Cache the web fonts at runtime so the display face survives offline.

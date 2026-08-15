@@ -1,17 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="gm" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#a8781f"/>
-      <stop offset="1" stop-color="#cf9b38"/>
-    </linearGradient>
-  </defs>
-  <!-- maskable: mark kept inside the center safe zone -->
+  <!-- Maskable: same mark, scaled into the centre safe zone (~72%) with an
+       ivory full-bleed background so adaptive masks can't clip the steps. -->
   <rect width="512" height="512" fill="#f5f0e6"/>
-  <g fill="none" stroke="url(#gm)" stroke-width="30" stroke-linecap="round">
-    <path d="M176 342 L176 292"/>
-    <path d="M245 342 L245 250"/>
-    <path d="M314 342 L314 206"/>
-    <path d="M383 342 L383 170"/>
+  <g stroke="#7c5a12" stroke-width="58" stroke-linecap="round"
+     transform="translate(256 256) scale(0.72) translate(-256 -256)">
+    <line x1="116" y1="404" x2="116" y2="300"/>
+    <line x1="210" y1="404" x2="210" y2="250"/>
+    <line x1="304" y1="404" x2="304" y2="196"/>
+    <line x1="398" y1="404" x2="398" y2="138"/>
   </g>
-  <circle cx="383" cy="170" r="20" fill="#b8842a"/>
 </svg>

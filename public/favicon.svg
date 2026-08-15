@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- The Rebuild: bold deep-bronze rising steps on ivory. One rep at a time. -->
+  <!-- Browser-tab favicon: the same bold bronze steps on ivory. -->
   <rect width="512" height="512" fill="#f5f0e6"/>
-  <g stroke="#7c5a12" stroke-width="58" stroke-linecap="round">
+  <g stroke="#7c5a12" stroke-width="64" stroke-linecap="round">
     <line x1="116" y1="404" x2="116" y2="300"/>
     <line x1="210" y1="404" x2="210" y2="250"/>
     <line x1="304" y1="404" x2="304" y2="196"/>
