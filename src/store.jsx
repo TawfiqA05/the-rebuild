@@ -14,7 +14,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { freshState, SEED_HABITS } from './lib/seed.js'
 import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
-import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks } from './lib/tasks.js'
+import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -306,6 +306,16 @@ function makeActions(setState, stateRef) {
         return { ...prev, tasks, votes: becameDone ? prev.votes + 1 : prev.votes }
       })
     },
+    /**
+     * Edit a task's text and/or due day. Never changes its id, source, or
+     * completion state. Changing the due day is also how a task moves between
+     * Today and Upcoming (the lists are derived from dueDay). An empty text is
+     * treated as a cancel by the caller, so we don't blank a task here.
+     */
+    updateTask(id, patch) {
+      setState((prev) => ({ ...prev, tasks: updateTaskFields(prev.tasks, id, patch) }))
+    },
+
     // Delete never touches `votes` — undo is the only safety net, and votes
     // (once earned) only ever grow, so removing a done task doesn't claw one back.
     deleteTask(id) {

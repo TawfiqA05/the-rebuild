@@ -1,21 +1,58 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
-import { visibleTasks, carryOverLabel } from '../lib/tasks.js'
-import { addDaysKey } from '../lib/time.js'
+import { visibleTasks, carryOverLabel, upcomingTasks, groupByDueDay } from '../lib/tasks.js'
+import { addDaysKey, prettyDate } from '../lib/time.js'
 
 /**
  * The Tasks card on Today: one-off to-dos that live alongside the habits but
  * carry no discipline weight. Quick-add with Enter, tap the ring to complete
- * (same scroll-intent + undo-toast + toggle-back rules as habits), long-press a
- * row to delete. Unfinished tasks roll over quietly with a soft "since Tue"
- * tag — no red badges, no guilt copy.
+ * (same scroll-intent + undo-toast + toggle-back rules as habits), tap a task's
+ * text to edit it, long-press or the × to delete. Unfinished tasks roll over
+ * quietly with a soft "since Tue" tag; future-dated tasks wait in a collapsed
+ * "Upcoming" list. No badges, no red, no guilt copy.
  */
 export default function TasksCard({ dayKey }) {
-  const { state, addTask, toggleTask, deleteTask, restoreTask } = useStore()
+  const { state, addTask, toggleTask, deleteTask, restoreTask, updateTask } = useStore()
   const toast = useToast()
   const { open, done } = useMemo(() => visibleTasks(state.tasks, dayKey), [state.tasks, dayKey])
+  const upcoming = useMemo(() => upcomingTasks(state.tasks, dayKey), [state.tasks, dayKey])
+
+  const [editingId, setEditingId] = useState(null)
+  const [showUpcoming, setShowUpcoming] = useState(false)
+  // Upcoming starts collapsed every day — reset whenever the logical day turns.
+  useEffect(() => { setShowUpcoming(false) }, [dayKey])
+
+  const moveToday = (t) => {
+    updateTask(t.id, { dueDay: dayKey })
+    toast(`Moved to today · ${t.text}`, () => updateTask(t.id, { dueDay: t.dueDay }))
+  }
+
+  // Render a task as either its inline editor or a normal row.
+  const renderRow = (task, variant) =>
+    editingId === task.id ? (
+      <TaskEditor
+        key={task.id}
+        task={task}
+        dayKey={dayKey}
+        onSave={(fields) => { updateTask(task.id, fields); setEditingId(null) }}
+        onCancel={() => setEditingId(null)}
+      />
+    ) : (
+      <TaskRow
+        key={task.id}
+        task={task}
+        dayKey={dayKey}
+        variant={variant}
+        onEdit={setEditingId}
+        onToggle={toggleTask}
+        onDelete={deleteTask}
+        onRestore={restoreTask}
+        onMoveToday={variant === 'upcoming' ? moveToday : undefined}
+        toast={toast}
+      />
+    )
 
   return (
     <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5" style={{ boxShadow: 'var(--shadow-card)' }}>
@@ -24,28 +61,55 @@ export default function TasksCard({ dayKey }) {
         <div className="text-[11px] text-[var(--color-faint)]">{open.length ? `${open.length} to do` : 'all clear'}</div>
       </div>
 
-      <QuickAdd dayKey={dayKey} onAdd={addTask} toast={toast} onDelete={deleteTask} />
+      <QuickAdd dayKey={dayKey} onAdd={addTask} />
 
       {(open.length > 0 || done.length > 0) && (
         <div className="mt-3 space-y-1">
-          {open.map((t) => (
-            <TaskRow key={t.id} task={t} dayKey={dayKey}
-              onToggle={toggleTask} onDelete={deleteTask} onRestore={restoreTask} toast={toast} />
-          ))}
-          {done.map((t) => (
-            <TaskRow key={t.id} task={t} dayKey={dayKey}
-              onToggle={toggleTask} onDelete={deleteTask} onRestore={restoreTask} toast={toast} />
-          ))}
+          {open.map((t) => renderRow(t, 'today'))}
+          {done.map((t) => renderRow(t, 'today'))}
+        </div>
+      )}
+
+      {/* Upcoming — collapsed by default; expands to future-dated tasks by day. */}
+      {upcoming.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-[var(--color-line)]">
+          <button
+            onClick={() => setShowUpcoming((v) => !v)}
+            aria-expanded={showUpcoming}
+            className="w-full flex items-center justify-between text-[12px] text-[var(--color-muted)]"
+          >
+            <span>{upcoming.length} upcoming</span>
+            <span className="text-[var(--color-faint)] text-[13px] leading-none">{showUpcoming ? '⌄' : '›'}</span>
+          </button>
+
+          {showUpcoming && (
+            <div className="mt-2 space-y-3 animate-fade">
+              {groupByDueDay(upcoming).map((g) => (
+                <div key={g.dueDay}>
+                  <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1">
+                    {groupLabel(g.dueDay, dayKey)}
+                  </div>
+                  <div className="space-y-1">
+                    {g.tasks.map((t) => renderRow(t, 'upcoming'))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function QuickAdd({ dayKey, onAdd, toast }) {
+function groupLabel(dueDay, dayKey) {
+  if (dueDay === addDaysKey(dayKey, 1)) return 'Tomorrow'
+  return prettyDate(dueDay)
+}
+
+function QuickAdd({ dayKey, onAdd }) {
   const [text, setText] = useState('')
   const [due, setDue] = useState(dayKey)
-  const tomorrow = addDaysKey(dayKey, 1)
 
   const submit = () => {
     const t = onAdd({ text, dueDay: due })
@@ -75,27 +139,42 @@ function QuickAdd({ dayKey, onAdd, toast }) {
 
       {/* Due-day control — quiet, only shown while composing. Default is today. */}
       {text.trim() && (
-        <div className="flex items-center gap-1.5 mt-2 animate-fade">
-          <DueChip label="Today" active={due === dayKey} onClick={() => setDue(dayKey)} />
-          <DueChip label="Tomorrow" active={due === tomorrow} onClick={() => setDue(tomorrow)} />
-          <label className={`text-[11px] rounded-full border px-2 py-1 cursor-pointer transition ${
-            due !== dayKey && due !== tomorrow
-              ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent-soft)]/50 text-[var(--color-accent-ink)]'
-              : 'border-[var(--color-line-2)] text-[var(--color-muted)]'}`}>
-            📅 {due !== dayKey && due !== tomorrow ? due.slice(5) : 'Pick'}
-            <input type="date" value={due} min={dayKey}
-              onChange={(e) => e.target.value && setDue(e.target.value)}
-              className="sr-only" />
-          </label>
+        <div className="mt-2 animate-fade">
+          <DueControl due={due} setDue={setDue} dayKey={dayKey} />
         </div>
       )}
     </div>
   )
 }
 
-function DueChip({ label, active, onClick }) {
+/** Shared Today / Tomorrow / pick-a-date control, used by quick-add and editing. */
+function DueControl({ due, setDue, dayKey }) {
+  const tomorrow = addDaysKey(dayKey, 1)
+  const custom = due !== dayKey && due !== tomorrow
+  // Keep focus on whatever field owns it (the editor's text input) when a chip
+  // is tapped, so tapping a chip doesn't blur-commit the editor.
+  const keepFocus = (e) => e.preventDefault()
   return (
-    <button onClick={onClick}
+    <div className="flex items-center gap-1.5">
+      <DueChip label="Today" active={due === dayKey} onDown={keepFocus} onClick={() => setDue(dayKey)} />
+      <DueChip label="Tomorrow" active={due === tomorrow} onDown={keepFocus} onClick={() => setDue(tomorrow)} />
+      <label
+        className={`text-[11px] rounded-full border px-2 py-1 cursor-pointer transition ${
+          custom
+            ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent-soft)]/50 text-[var(--color-accent-ink)]'
+            : 'border-[var(--color-line-2)] text-[var(--color-muted)]'}`}>
+        📅 {custom ? due.slice(5) : 'Pick'}
+        <input type="date" value={due} min={dayKey}
+          onChange={(e) => e.target.value && setDue(e.target.value)}
+          className="sr-only" />
+      </label>
+    </div>
+  )
+}
+
+function DueChip({ label, active, onClick, onDown }) {
+  return (
+    <button onMouseDown={onDown} onClick={onClick}
       className={`text-[11px] rounded-full border px-2.5 py-1 transition ${
         active
           ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent-soft)]/50 text-[var(--color-accent-ink)]'
@@ -105,11 +184,65 @@ function DueChip({ label, active, onClick }) {
   )
 }
 
-function TaskRow({ task, dayKey, onToggle, onDelete, onRestore, toast }) {
+/**
+ * Inline editor for a task: text + the same due-day control as quick-add.
+ * Enter or tapping anywhere outside saves; Escape or emptying the text cancels
+ * (it never deletes). Only text + due day change — id, source, and completion
+ * are untouched by the store action this feeds.
+ */
+function TaskEditor({ task, dayKey, onSave, onCancel }) {
+  const [text, setText] = useState(task.text)
+  const [due, setDue] = useState(task.dueDay)
+  const ref = useRef(null)
+  // Read the latest values from the outside-tap handler without re-binding it.
+  const latest = useRef({ text, due })
+  latest.current = { text, due }
+
+  const commit = () => {
+    const t = latest.current.text.trim()
+    if (!t) return onCancel()               // empty cancels, never deletes
+    onSave({ text: t, dueDay: latest.current.due })
+  }
+
+  // Tapping away (anywhere outside this editor) saves.
+  useEffect(() => {
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) commit() }
+    document.addEventListener('pointerdown', onDown, true)
+    return () => document.removeEventListener('pointerdown', onDown, true)
+  }, [])
+
+  return (
+    <div ref={ref} className="py-1.5">
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commit() }
+            else if (e.key === 'Escape') onCancel()
+          }}
+          aria-label="Edit task"
+          className="flex-1 min-w-0 rounded-lg border border-[var(--color-line)] bg-[var(--color-ink-2)] px-3 py-2 text-[15px]
+            text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]/60 transition"
+        />
+        <button onClick={commit} aria-label="Save task"
+          className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">Save</button>
+      </div>
+      <div className="mt-2">
+        <DueControl due={due} setDue={setDue} dayKey={dayKey} />
+      </div>
+    </div>
+  )
+}
+
+function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore, onMoveToday, toast }) {
   const done = !!task.doneDay
+  const upcoming = variant === 'upcoming'
+  const canEdit = !done
   const since = carryOverLabel(task, dayKey)
 
-  // Ring: tap to complete/clear, with the same scroll-intent guard as habits.
+  // Ring: tap to complete/clear (today rows only), same scroll-intent as habits.
   const ring = useLongPress(() => {
     if (navigator.vibrate) navigator.vibrate(6)
     onToggle(task.id, dayKey)
@@ -117,29 +250,36 @@ function TaskRow({ task, dayKey, onToggle, onDelete, onRestore, toast }) {
   })
 
   // Delete — the visible × is the obvious path; long-press stays as a shortcut.
-  // Both drop the same undo toast, so there's no confirm dialog: undo is the net.
   const remove = () => {
     if (navigator.vibrate) navigator.vibrate(15)
     onDelete(task.id)
     toast(`Deleted · ${task.text}`, () => onRestore(task))
   }
-  // Long-press anywhere on the row body also deletes. `no-callout` on the row
-  // kills the iOS text-selection magnifier/callout that would otherwise eat it.
-  const body = useLongPress(undefined, remove)
+  // On the text body: tap edits (open/upcoming only), long-press deletes. The
+  // gesture helper keeps tap / long-press / scroll apart, and `no-callout`
+  // kills the iOS selection magnifier that would otherwise eat the long-press.
+  const body = useLongPress(canEdit ? () => onEdit(task.id) : undefined, remove)
 
   return (
     <div className="no-callout flex items-center gap-3 py-1.5">
-      <button
-        {...ring}
-        aria-label={`${done ? 'Reopen' : 'Complete'} ${task.text}`}
-        className="no-callout shrink-0 min-w-[40px] min-h-[40px] grid place-items-center rounded-lg active:scale-90 transition -ml-1.5"
-        style={{ touchAction: 'pan-y' }}
-      >
-        <TaskMarker done={done} />
-      </button>
+      {upcoming ? (
+        <span className="shrink-0 w-[40px] -ml-1.5 grid place-items-center text-[var(--color-line-2)]" aria-hidden="true">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-line-2)]" />
+        </span>
+      ) : (
+        <button
+          {...ring}
+          aria-label={`${done ? 'Reopen' : 'Complete'} ${task.text}`}
+          className="no-callout shrink-0 min-w-[40px] min-h-[40px] grid place-items-center rounded-lg active:scale-90 transition -ml-1.5"
+          style={{ touchAction: 'pan-y' }}
+        >
+          <TaskMarker done={done} />
+        </button>
+      )}
 
-      {/* Long-press lives on the text body only, so it can't collide with the
-          ring or × (siblings don't share bubbled touch events). */}
+      {/* Long-press / tap-to-edit live on the text body only, so they can't
+          collide with the ring, the × or the move action (siblings don't share
+          bubbled touch events). */}
       <span
         {...body}
         className={`no-callout flex-1 min-w-0 transition ${done ? 'opacity-45' : ''}`}
@@ -152,6 +292,16 @@ function TaskRow({ task, dayKey, onToggle, onDelete, onRestore, toast }) {
           <span className="block text-[11px] text-[var(--color-faint)] mt-0.5">{since}</span>
         )}
       </span>
+
+      {upcoming && onMoveToday && (
+        <button
+          onClick={() => onMoveToday(task)}
+          aria-label={`Move ${task.text} to today`}
+          className="no-callout shrink-0 text-[11px] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] border border-[var(--color-line-2)] rounded-full px-2 py-1 active:scale-95 transition"
+        >
+          → Today
+        </button>
+      )}
 
       {/* Visible, always-on delete affordance — quiet muted ×, no red, no trash. */}
       <button

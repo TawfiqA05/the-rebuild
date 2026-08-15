@@ -98,6 +98,43 @@ export function toggleTaskDone(tasks, id, dayKey, now = Date.now()) {
   return { tasks: next, becameDone }
 }
 
+/**
+ * Future-dated open tasks — the "Upcoming" list. These are deliberately hidden
+ * from the Today list until their day arrives (or they're pulled in), sorted by
+ * due day then creation order so grouping stays stable.
+ */
+export function upcomingTasks(tasks, dayKey) {
+  return (tasks || [])
+    .filter((t) => isOpen(t) && t.dueDay > dayKey)
+    .sort((a, b) => (a.dueDay < b.dueDay ? -1 : a.dueDay > b.dueDay ? 1 : a.createdAt - b.createdAt))
+}
+
+/** Group an already-sorted task list into [{ dueDay, tasks }] preserving order. */
+export function groupByDueDay(tasks) {
+  const groups = []
+  const at = new Map()
+  for (const t of tasks || []) {
+    if (!at.has(t.dueDay)) { at.set(t.dueDay, groups.length); groups.push({ dueDay: t.dueDay, tasks: [] }) }
+    groups[at.get(t.dueDay)].tasks.push(t)
+  }
+  return groups
+}
+
+/**
+ * Edit a task's text and/or due day, in place. Only those two fields ever
+ * change — id, source, createdAt, and completion (doneDay/doneAt) are preserved
+ * exactly, so editing can't resurrect or clobber a finished task.
+ */
+export function updateTaskFields(tasks, id, patch) {
+  return (tasks || []).map((t) => {
+    if (t.id !== id) return t
+    const next = { ...t }
+    if (typeof patch.text === 'string') next.text = patch.text.trim()
+    if (typeof patch.dueDay === 'string') next.dueDay = patch.dueDay
+    return next
+  })
+}
+
 /** Remove a task by id. Pure — never touches votes or any other state. */
 export function deleteTaskById(tasks, id) {
   return (tasks || []).filter((t) => t.id !== id)

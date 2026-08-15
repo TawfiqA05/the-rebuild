@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   makeTask, visibleTasks, carryOverLabel, toggleTaskDone, completedTaskCount,
   deleteTaskById, insertTask, planShutdownTasks,
+  upcomingTasks, groupByDueDay, updateTaskFields,
 } from './tasks.js'
 import { dayScore, currentStreak } from './logic.js'
 
@@ -169,5 +170,97 @@ describe('explicit delete + undo', () => {
     const rerun = planShutdownTasks(withDone, '2026-01-15', ['a', 'b'], opts)
     expect(rerun.filter((x) => x.doneDay)).toHaveLength(1)           // the finished one stayed
     expect(rerun.filter((x) => x.source === 'shutdown')).toHaveLength(3) // 1 done + 2 fresh
+  })
+})
+
+describe('upcoming (future-dated) tasks', () => {
+  it('hides future tasks from today but surfaces them in Upcoming', () => {
+    const todayTask = t({ id: 'now', dueDay: '2026-01-15' })
+    const soon = t({ id: 'soon', dueDay: '2026-01-16' })
+    const later = t({ id: 'later', dueDay: '2026-01-20' })
+    const list = [todayTask, soon, later]
+
+    expect(visibleTasks(list, '2026-01-15').open.map((x) => x.id)).toEqual(['now'])
+    expect(upcomingTasks(list, '2026-01-15').map((x) => x.id)).toEqual(['soon', 'later'])
+  })
+
+  it('a completed future task is neither on today nor in Upcoming', () => {
+    const doneFuture = { ...t({ id: 'df', dueDay: '2026-01-18' }), doneDay: '2026-01-18', doneAt: 1 }
+    expect(upcomingTasks([doneFuture], '2026-01-15')).toEqual([])
+    expect(visibleTasks([doneFuture], '2026-01-15').open).toEqual([])
+  })
+
+  it('groups upcoming tasks by due day, in date order', () => {
+    const list = [
+      t({ id: 'b1', dueDay: '2026-01-16', now: 2 }),
+      t({ id: 'a', dueDay: '2026-01-20' }),
+      t({ id: 'b2', dueDay: '2026-01-16', now: 1 }),
+    ]
+    const groups = groupByDueDay(upcomingTasks(list, '2026-01-15'))
+    expect(groups.map((g) => g.dueDay)).toEqual(['2026-01-16', '2026-01-20'])
+    expect(groups[0].tasks.map((x) => x.id)).toEqual(['b2', 'b1']) // same day, by createdAt
+  })
+
+  it('move-to-today pulls a future task in; re-dating pushes one out', () => {
+    const future = t({ id: 'f', dueDay: '2026-01-18' })
+
+    // Move to today (dueDay -> today): leaves Upcoming, enters today's open list.
+    const pulledIn = updateTaskFields([future], 'f', { dueDay: '2026-01-15' })
+    expect(upcomingTasks(pulledIn, '2026-01-15')).toEqual([])
+    expect(visibleTasks(pulledIn, '2026-01-15').open.map((x) => x.id)).toEqual(['f'])
+
+    // The reverse: a today task re-dated to the future leaves today, joins Upcoming.
+    const todayTask = t({ id: 'g', dueDay: '2026-01-15' })
+    const pushedOut = updateTaskFields([todayTask], 'g', { dueDay: '2026-01-19' })
+    expect(visibleTasks(pushedOut, '2026-01-15').open).toEqual([])
+    expect(upcomingTasks(pushedOut, '2026-01-15').map((x) => x.id)).toEqual(['g'])
+  })
+})
+
+describe('editing a task', () => {
+  it('preserves id, source, and completion; only text/due change', () => {
+    const original = { ...t({ id: 'e', dueDay: '2026-01-15', source: 'shutdown' }), doneDay: '2026-01-15', doneAt: 42 }
+    const [edited] = updateTaskFields([original], 'e', { text: '  new text  ', dueDay: '2026-01-17' })
+    expect(edited.id).toBe('e')
+    expect(edited.source).toBe('shutdown')
+    expect(edited.doneDay).toBe('2026-01-15') // completion untouched
+    expect(edited.doneAt).toBe(42)
+    expect(edited.text).toBe('new text')      // trimmed
+    expect(edited.dueDay).toBe('2026-01-17')
+  })
+
+  it('editing a shutdown task is not clobbered or duplicated by the next shutdown run', () => {
+    const opts = { createdDay: '2026-01-14' }
+    const planned = planShutdownTasks([], '2026-01-16', ['a', 'b'], opts) // tomorrow = the 16th
+
+    // The user edits one planned task: rename it AND push it two days out.
+    const editedId = planned[0].id
+    const edited = updateTaskFields(planned, editedId, { text: 'a-edited', dueDay: '2026-01-18' })
+
+    // Re-running shutdown for the 16th only reconciles the 16th. The moved task
+    // (now due the 18th) is left completely alone — not dropped, not duplicated.
+    const rerun = planShutdownTasks(edited, '2026-01-16', ['b'], opts)
+    const moved = rerun.filter((x) => x.id === editedId)
+    expect(moved).toHaveLength(1)
+    expect(moved[0].text).toBe('a-edited')
+    expect(moved[0].dueDay).toBe('2026-01-18')
+    // And no duplicate of it was created for the 16th.
+    expect(rerun.filter((x) => x.text === 'a-edited')).toHaveLength(1)
+  })
+
+  it('an edited task still has zero effect on habit score or streaks', () => {
+    const habit = { id: 'read', type: 'standard', phase: 1, frequency: { kind: 'daily' } }
+    const base = {
+      settings: { dayRolloverHour: 3, currentPhase: 1 },
+      habits: [habit],
+      logs: { '2026-01-14': { read: { status: 'full' } }, '2026-01-15': { read: { status: 'full' } } },
+      days: {}, votes: 0,
+      tasks: [t({ id: 'x', dueDay: '2026-01-15' })],
+    }
+    const before = { score: dayScore(base, '2026-01-15'), streak: currentStreak(base, habit, '2026-01-15') }
+    const edited = { ...base, tasks: updateTaskFields(base.tasks, 'x', { text: 'changed', dueDay: '2026-01-20' }) }
+    expect(dayScore(edited, '2026-01-15')).toEqual(before.score)
+    expect(currentStreak(edited, habit, '2026-01-15')).toBe(before.streak)
+    expect(before.streak).toBe(2)
   })
 })
