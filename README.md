@@ -105,33 +105,42 @@ any device. That's your whole backup story — no cloud required.
 
 ## Deploying (Cloudflare Pages, from a private repo)
 
-The repo stays **private** on GitHub; **Cloudflare Pages** builds and hosts it
-for free and redeploys on every push. (This is the free-plan way to keep code
-private — GitHub Pages itself needs a paid plan for private repos.)
+The repo stays **private** on GitHub; **Cloudflare Pages** hosts it for free.
+Live site: `https://the-rebuild.pages.dev`.
 
-GitHub Actions runs a **build check** (`.github/workflows/ci.yml`) on every push
-so broken builds are caught before Cloudflare deploys.
+There are two ways to ship, and both are set up:
 
-### One-time Cloudflare setup
+### 1. Manual, one command
 
-1. Push this repo to GitHub (private is fine).
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**,
-   authorize GitHub, pick this repo.
-3. Build settings:
-   - **Framework preset:** Vite
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - Node version is pinned to 20 via `.nvmrc`.
-4. **Save and Deploy.** Your site goes live at
-   `https://<project>.pages.dev` (add a custom domain later if you want).
+```bash
+npm run deploy
+```
 
-Every push to the production branch triggers an automatic rebuild + deploy.
-To keep the site itself private, use **Cloudflare Access** (Pages → your project
-→ Settings → enable Access policy) for email-gated or one-time-PIN login.
+Builds the app and uploads `dist/` to the `the-rebuild` Pages project via
+Wrangler (`scripts/deploy.sh`). Requires a one-time `wrangler login`.
 
-Notes:
+### 2. Automatic on every push (GitHub Actions)
 
-- The app uses `base: './'` in `vite.config.js`, so it works at any path/domain
-  with no extra config.
+`.github/workflows/deploy.yml` builds and deploys to Cloudflare Pages on every
+push to `main`. `.github/workflows/ci.yml` runs a build check on pull requests.
+
+One-time setup — add a repo secret so the Action can deploy:
+
+1. **Cloudflare dashboard → Manage Account → Account API Tokens → Create Token.**
+2. Use **Create Custom Token** with permission
+   **Account · Cloudflare Pages · Edit** (scoped to your account). Create it and
+   copy the token.
+3. In GitHub: **repo → Settings → Secrets and variables → Actions → New
+   repository secret**, name it **`CLOUDFLARE_API_TOKEN`**, paste the token.
+
+The account ID is inlined in the workflow (it's an identifier, not a secret).
+After that, every push to `main` auto-deploys.
+
+### Notes
+
+- `base: './'` in `vite.config.js` means the app works at any path/domain.
+- Node is pinned to 20 via `.nvmrc`.
 - No personal data is ever in the repo or on the server — all app data lives in
   your browser's localStorage.
+- To keep the *site* private, enable **Cloudflare Access** (Pages project →
+  Settings) for email or one-time-PIN login.

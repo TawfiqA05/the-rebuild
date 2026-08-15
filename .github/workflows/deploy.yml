@@ -1,0 +1,39 @@
+# Auto-deploy to Cloudflare Pages on every push to main.
+#
+# Requires one repo secret:
+#   CLOUDFLARE_API_TOKEN — a token with "Account · Cloudflare Pages · Edit"
+#                          permission (see README for how to create it).
+# The account ID below is an identifier, not a secret, so it's inlined.
+
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 19b837146074efecc8b822c1c06d2f7b
+          command: pages deploy dist --project-name=the-rebuild --branch=main
