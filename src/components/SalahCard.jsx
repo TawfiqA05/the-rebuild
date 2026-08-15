@@ -52,19 +52,19 @@ export default function SalahCard({ dayKey }) {
           const v = log[p]
           const isNow = current === p
           const cls =
-            v === 'ontime' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/50 text-[var(--color-accent)]'
-            : v === 'late' ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/50 text-[var(--color-min)]'
-            : isNow ? 'border-[var(--color-risk)]/70 text-[var(--color-fg)]'
+            v === 'ontime' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/60 text-[var(--color-accent)]'
+            : v === 'late' ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/60 text-[var(--color-min)]'
+            : isNow ? 'border-[var(--color-accent)]/45 text-[var(--color-fg)]'
             : 'border-[var(--color-line)] text-[var(--color-faint)]'
           return (
             <button
               key={p}
               onClick={() => cycleSalah(dayKey, p)}
-              className={`no-callout relative rounded-xl border py-2 flex flex-col items-center gap-0.5 active:scale-95 transition ${cls}`}
+              className={`press no-callout relative rounded-xl border py-2.5 flex flex-col items-center gap-0.5 ${cls}`}
             >
               {isNow && (
                 <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wide
-                  bg-[var(--color-risk)] text-white rounded-full px-1.5 py-px leading-none">now</span>
+                  bg-[var(--color-accent)] text-[#231a09] rounded-full px-1.5 py-px leading-none">now</span>
               )}
               <span className="text-[11px] font-medium">{SALAH_LABELS[p]}</span>
               <span className="text-[10px] tabular-nums">{times?.[p] ? compact(times[p]) : '—'}</span>

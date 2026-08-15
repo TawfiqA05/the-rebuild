@@ -3,12 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="theme-color" content="#131109" />
     <meta name="description" content="The Rebuild — build the person you're becoming, one rep at a time." />
+    <!-- Typography: Fraunces (display serif with character) + Inter (body). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;450;500;600&display=swap"
+    />
     <!-- PWA manifest + iOS install meta. Service worker is registered in main.jsx. -->
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      /* Warm charcoal paint before JS/CSS loads — no white flash. */
+      html, body { background: #131109; }
+    </style>
     <meta name="apple-mobile-web-app-title" content="The Rebuild" />
     <title>The Rebuild</title>
   </head>

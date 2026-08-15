@@ -21,11 +21,11 @@ export default function Stats({ navigate }) {
       right={<Button variant="ghost" onClick={() => navigate('weekly')}>Weekly review →</Button>}
     >
       {/* Votes — the number that only goes up ------------------------------ */}
-      <Card className="px-4 py-5 text-center">
-        <div className="text-5xl font-semibold tabular-nums text-[var(--color-accent)]">
+      <Card className="px-4 py-7 text-center">
+        <div className="font-display text-[3.5rem] leading-none tnum text-[var(--color-accent)]">
           {state.votes.toLocaleString()}
         </div>
-        <div className="text-sm font-medium mt-1">votes for who I’m becoming</div>
+        <div className="text-[13px] font-medium mt-2">votes for who I’m becoming</div>
         <div className="text-xs text-[var(--color-muted)] mt-1">
           Every completion, ever. This number only goes up.
         </div>
@@ -102,8 +102,8 @@ function HabitStatRow({ habit }) {
           <Heatmap habit={habit} />
           <div className="flex gap-3 text-[10px] text-[var(--color-faint)] mt-2">
             <Legend cls="bg-[var(--color-accent)]" label="full" />
-            <Legend cls="bg-[var(--color-min)]" label="min" />
-            <Legend cls="border border-[var(--color-line)]" label="missed" />
+            <Legend cls="bg-[var(--color-accent)]/45" label="min" />
+            <Legend cls="bg-[var(--color-surface-2)] ring-1 ring-inset ring-[var(--color-line-2)]/60" label="missed" />
           </div>
         </div>
       )}

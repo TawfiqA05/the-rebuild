@@ -53,15 +53,16 @@ export default function Today({ navigate }) {
   const shutdownDone = !!todayRec.shutdownAt
 
   return (
-    <div className="px-4 pt-3 pb-28 max-w-md mx-auto animate-fade">
+    <div className="px-5 pt-5 pb-28 max-w-md mx-auto animate-rise">
       {/* Header ------------------------------------------------------------ */}
-      <header className="mb-4">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight">{prettyDate(today).split(',')[0]}</h1>
-          <span className="text-xs text-[var(--color-muted)]">{prettyDate(today).split(', ')[1]}</span>
-        </div>
-        <div className="text-xs text-[var(--color-muted)] mt-0.5">
+      <header className="mb-5">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]/90 mb-1.5">
+          <span className="w-4 h-px bg-[var(--color-accent)]/50" />
           Phase {phase.n} · {phase.name}
+        </div>
+        <div className="flex items-baseline justify-between">
+          <h1 className="font-display text-[2.5rem] leading-none">{prettyDate(today).split(',')[0]}</h1>
+          <span className="text-[13px] text-[var(--color-muted)]">{prettyDate(today).split(', ')[1]}</span>
         </div>
       </header>
 
@@ -177,16 +178,22 @@ export default function Today({ navigate }) {
 
 function ScoreCard({ state, today, done, total }) {
   const pct = total ? Math.round((done / total) * 100) : 0
+  const complete = total > 0 && done === total
+
   return (
-    <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4">
+    <div className={`card px-5 py-5 ${complete ? 'day-complete' : ''}`}>
       <div className="flex items-end justify-between">
         <div>
-          <div className="text-3xl font-semibold tabular-nums">
-            {done}<span className="text-[var(--color-faint)] text-2xl">/{total}</span>
+          <div className="font-display text-[3.25rem] leading-[0.9] tnum">
+            {done}<span className="text-[var(--color-faint)] text-[2.25rem]">/{total}</span>
           </div>
-          <div className="text-xs text-[var(--color-muted)] mt-0.5">today’s reps locked in</div>
+          <div className={`text-[12.5px] mt-1.5 transition-colors ${complete ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`}>
+            {complete ? 'Day complete — every anchor held.' : 'reps locked in today'}
+          </div>
         </div>
-        <div className="flex items-center gap-2.5">
+
+        {/* Four anchors — the load-bearing walls, lit as they're completed. */}
+        <div className="flex items-center gap-2">
           {ANCHORS.map((a) => {
             const h = state.habits.find((x) => x.id === a.key)
             const status = h?.type === 'salah'
@@ -197,7 +204,11 @@ function ScoreCard({ state, today, done, total }) {
               <span
                 key={a.key}
                 title={a.key}
-                className={`text-xl transition ${active ? '' : 'grayscale opacity-30'}`}
+                className={`w-9 h-9 grid place-items-center rounded-full text-lg transition-all duration-300 ${
+                  active
+                    ? 'bg-[var(--color-accent-soft)] ring-1 ring-[var(--color-accent)]/50'
+                    : 'bg-[var(--color-ink-2)] grayscale opacity-35'
+                }`}
               >
                 {a.emoji}
               </span>
@@ -205,10 +216,11 @@ function ScoreCard({ state, today, done, total }) {
           })}
         </div>
       </div>
+
       {/* progress bar */}
-      <div className="mt-3 h-1.5 rounded-full bg-[var(--color-line)] overflow-hidden">
+      <div className="mt-4 h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
         <div
-          className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
+          className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>

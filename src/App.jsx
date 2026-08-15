@@ -64,7 +64,7 @@ function BottomNav({ screen, setScreen, privateRevealed }) {
           <button
             key={t.id}
             onClick={() => setScreen(t.id)}
-            className={`py-2.5 flex flex-col items-center gap-0.5 text-[10px] transition ${
+            className={`press py-2.5 flex flex-col items-center gap-1 text-[10px] whitespace-nowrap transition ${
               active === t.id ? 'text-[var(--color-accent)]' : 'text-[var(--color-faint)]'
             }`}
           >

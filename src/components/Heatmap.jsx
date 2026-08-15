@@ -30,11 +30,13 @@ export default function Heatmap({ habit, weeks = 20 }) {
     cols.push(col)
   }
 
+  // Gold intensity ramp: full = bright gold, min = a dim bronze step,
+  // scheduled-but-missed = a bare warm cell, nothing = the faintest wash.
   const cell = {
-    full: 'bg-[var(--color-accent)]',
-    min: 'bg-[var(--color-min)]',
-    miss: 'border border-[var(--color-line)]',
-    blank: 'bg-[var(--color-surface-2)]',
+    full: 'bg-[var(--color-accent)] shadow-[0_0_6px_-1px_rgba(224,177,90,0.5)]',
+    min: 'bg-[var(--color-accent)]/45',
+    miss: 'bg-[var(--color-surface-2)] ring-1 ring-inset ring-[var(--color-line-2)]/60',
+    blank: 'bg-[var(--color-ink-2)]',
     future: 'opacity-0',
   }
 
@@ -43,7 +45,7 @@ export default function Heatmap({ habit, weeks = 20 }) {
       {cols.map((col, i) => (
         <div key={i} className="flex flex-col gap-[3px]">
           {col.map((d) => (
-            <div key={d.key} title={d.key} className={`w-2.5 h-2.5 rounded-[3px] ${cell[d.kind]}`} />
+            <div key={d.key} title={d.key} className={`w-2.5 h-2.5 rounded-[3px] transition-colors ${cell[d.kind]}`} />
           ))}
         </div>
       ))}

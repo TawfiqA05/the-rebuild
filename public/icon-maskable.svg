@@ -1,11 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- maskable: keep the mark inside the safe zone (center 80%) -->
-  <rect width="512" height="512" fill="#0a0a0b"/>
-  <g fill="none" stroke="#10b981" stroke-width="30" stroke-linecap="round">
-    <path d="M176 340 L176 292"/>
-    <path d="M245 340 L245 250"/>
-    <path d="M314 340 L314 208"/>
-    <path d="M383 340 L383 172"/>
+  <defs>
+    <linearGradient id="gm" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9974a"/>
+      <stop offset="1" stop-color="#f1c470"/>
+    </linearGradient>
+  </defs>
+  <!-- maskable: mark kept inside the center safe zone -->
+  <rect width="512" height="512" fill="#17130a"/>
+  <g fill="none" stroke="url(#gm)" stroke-width="30" stroke-linecap="round">
+    <path d="M176 342 L176 292"/>
+    <path d="M245 342 L245 250"/>
+    <path d="M314 342 L314 206"/>
+    <path d="M383 342 L383 170"/>
   </g>
-  <circle cx="383" cy="172" r="19" fill="#10b981"/>
+  <circle cx="383" cy="170" r="20" fill="#f1c470"/>
 </svg>

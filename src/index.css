@@ -1,26 +1,50 @@
 @import 'tailwindcss';
 
-/* ---------------------------------------------------------------------------
-   The Rebuild — global theme.
-   Dark by default. Calm, minimal, not gamified. We define a small set of
-   semantic CSS variables so the whole app shares one palette.
-   --------------------------------------------------------------------------- */
+/* ===========================================================================
+   The Rebuild — visual system.
+
+   Direction: calm, premium, intentional. A warm near-black charcoal base with
+   real depth, ONE sparingly-used gold accent that reads as light/progress, and
+   soft elevated surfaces. Typography carries the character: Fraunces (a soft
+   display serif) for titles and the daily score, Inter for everything else.
+   =========================================================================== */
 
 @theme {
-  --color-ink: #0a0a0b;          /* app background */
-  --color-surface: #141416;      /* cards */
-  --color-surface-2: #1d1d21;    /* raised / pressed */
-  --color-line: #2a2a2f;         /* hairline borders */
-  --color-fg: #f5f5f4;           /* primary text */
-  --color-muted: #a1a1aa;        /* secondary text */
-  --color-faint: #6b6b73;        /* tertiary text */
+  /* --- warm charcoal base (never pure black) --- */
+  --color-ink: #131109;        /* app background — warm near-black */
+  --color-ink-2: #191509;      /* faint raised background wash */
+  --color-surface: #201b10;    /* card surface, elevated */
+  --color-surface-2: #2b2416;  /* raised / pressed surface */
+  --color-line: #35301f;       /* warm hairline border */
+  --color-line-2: #423a25;     /* stronger border */
 
-  --color-accent: #10b981;       /* emerald — completion / "win" */
-  --color-accent-soft: #064e3b;
-  --color-min: #f59e0b;          /* amber — minimum rep (2-min version) */
-  --color-min-soft: #4a2f08;
-  --color-risk: #6366f1;         /* indigo — "at risk", supportive not red */
-  --color-risk-soft: #1e1b4b;
+  /* --- warm off-white text ramp --- */
+  --color-fg: #f4efe2;         /* primary — warm paper white */
+  --color-muted: #a89c81;      /* secondary */
+  --color-faint: #6f6650;      /* tertiary */
+
+  /* --- the single accent: muted warm gold (progress / light) --- */
+  --color-accent: #e0b15a;
+  --color-accent-strong: #f1c470;
+  --color-accent-soft: #2e2611; /* gold-tinted dark fill */
+
+  /* min rep = the same gold, dimmed to a bronze (a value, not a new hue) */
+  --color-min: #a5824a;
+  --color-min-soft: #251d0f;
+
+  /* at-risk = warm neutral emphasis (deliberately NOT a new color) */
+  --color-risk: #b0a184;
+  --color-risk-soft: #221d13;
+
+  /* destructive only — a muted clay, used almost nowhere */
+  --color-danger: #c67f6e;
+}
+
+:root {
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino', Georgia, serif;
+  --glow: 0 0 55px -14px rgba(224, 177, 90, 0.28);
+  --shadow-card: 0 1px 0 rgba(255, 246, 224, 0.02) inset, 0 8px 24px -18px rgba(0, 0, 0, 0.9);
 }
 
 html { color-scheme: dark; }
@@ -29,40 +53,98 @@ body {
   margin: 0;
   background: var(--color-ink);
   color: var(--color-fg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-  /* Prevent iOS rubber-band flashing a white background */
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
 }
 
-/* Respect the notch / home indicator on iPhone */
+/* A whisper of warm light from the top for depth — never a spotlight. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(115% 70% at 50% -8%, rgba(224, 177, 90, 0.055), transparent 62%);
+}
+
 #root {
+  position: relative;
+  z-index: 1;
   min-height: 100dvh;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Kill the tap highlight so big tap targets feel native */
-* { -webkit-tap-highlight-color: transparent; }
+/* Display face — used only for titles and the score, where it earns its keep. */
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
 
+.tnum { font-variant-numeric: tabular-nums; }
+
+* { -webkit-tap-highlight-color: transparent; }
+/* Only inherit the font — NOT color. (An unlayered `color` here would override
+   Tailwind's text-* utilities on <button>, tinting e.g. the gold primary
+   button's label. Tailwind's own layered preflight handles color inheritance.) */
 button { font: inherit; }
 
-/* Long-press shouldn't pop the iOS text-selection / callout menu */
 .no-callout {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-@keyframes rebuild-pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.06); }
-  100% { transform: scale(1); }
+/* Soft elevated card — one consistent recipe for depth. */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
 }
-.animate-pop { animation: rebuild-pop 260ms ease-out; }
 
-@keyframes rebuild-fade {
-  from { opacity: 0; transform: translateY(6px); }
+/* Press feel — quick, understated, "haptic". */
+.press { transition: transform 140ms cubic-bezier(0.2, 0.7, 0.2, 1), background-color 240ms ease, border-color 240ms ease; }
+.press:active { transform: scale(0.982); }
+
+/* ---- motion ------------------------------------------------------------- */
+
+@keyframes rb-rise {
+  from { opacity: 0; transform: translateY(9px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fade { animation: rebuild-fade 220ms ease-out; }
+/* Kept names the app already references, retuned to feel calmer. */
+.animate-rise { animation: rb-rise 0.44s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+.animate-fade { animation: rb-rise 0.32s ease both; }
+
+@keyframes rb-check {
+  0% { transform: scale(0.5); opacity: 0; }
+  55% { transform: scale(1.14); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-check { animation: rb-check 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+@keyframes rb-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+.animate-pop { animation: rb-pop 0.28s ease-out; }
+
+/* The quiet "day complete" state — a slow warm breath, not a party. */
+@keyframes rb-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px var(--color-line); }
+  50% { box-shadow: 0 0 0 1px rgba(224, 177, 90, 0.32), var(--glow); }
+}
+.day-complete {
+  animation: rb-breathe 4.5s ease-in-out infinite;
+  border-color: rgba(224, 177, 90, 0.3) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise, .animate-fade, .animate-check, .animate-pop, .day-complete { animation: none; }
+}

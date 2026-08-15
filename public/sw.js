@@ -11,8 +11,11 @@
 // best-effort in-page reminders to true background push.
 // ---------------------------------------------------------------------------
 
-const CACHE = 'rebuild-shell-v1'
+const CACHE = 'rebuild-shell-v2'
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg']
+
+// Cache the web fonts at runtime so the display face survives offline.
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()))
@@ -29,6 +32,21 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
+
+  // Google Fonts (cross-origin): cache-first so the display font works offline.
+  const url = new URL(request.url)
+  if (FONT_HOSTS.includes(url.hostname)) {
+    event.respondWith(
+      caches.match(request).then((cached) =>
+        cached || fetch(request).then((res) => {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(request, copy))
+          return res
+        }).catch(() => cached),
+      ),
+    )
+    return
+  }
 
   // Network-first for navigations (so you get fresh HTML when online),
   // falling back to the cached shell when offline.
