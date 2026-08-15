@@ -15,23 +15,29 @@ import SalahCard from '../components/SalahCard.jsx'
  * All autosaves as you type — the "Done" button just closes the ritual.
  */
 export default function Shutdown({ navigate }) {
-  const { state, today, updateDay } = useStore()
+  const { state, today, updateDay, syncShutdownTasks } = useStore()
   const [step, setStep] = useState(0)
 
   const tomorrow = addDaysKey(today, 1)
   const dayRec = state.days[today] || {}
-  const tomorrowRec = state.days[tomorrow] || {}
   const gratitude = dayRec.gratitude || ['', '', '']
   const journal = dayRec.journal || { well: '', didnt: '', fix: '' }
-  const topTasks = tomorrowRec.topTasks || ['', '', '']
+
+  // Step 4 plans tomorrow's top 3 as *real tasks*. We hold the three lines in
+  // local state (seeded from any still-open shutdown tasks already planned for
+  // tomorrow) and commit them on "Done", so re-running shutdown never dupes.
+  const [topTasks, setTopTasks] = useState(() => {
+    const existing = (state.tasks || [])
+      .filter((t) => t.source === 'shutdown' && t.dueDay === tomorrow && !t.doneDay)
+      .map((t) => t.text)
+    return [existing[0] || '', existing[1] || '', existing[2] || '']
+  })
 
   const setGratitude = (i, v) => {
     const next = [...gratitude]; next[i] = v; updateDay(today, { gratitude: next })
   }
   const setJournal = (k, v) => updateDay(today, { journal: { ...journal, [k]: v } })
-  const setTask = (i, v) => {
-    const next = [...topTasks]; next[i] = v; updateDay(tomorrow, { topTasks: next })
-  }
+  const setTask = (i, v) => setTopTasks((prev) => { const next = [...prev]; next[i] = v; return next })
 
   const steps = [
     {
@@ -70,7 +76,7 @@ export default function Shutdown({ navigate }) {
     },
     {
       title: `Plan ${prettyDate(tomorrow).split(',')[0]}`,
-      hint: 'Only three. Pick the ones that actually move the needle.',
+      hint: 'Only three. These become real tasks, waiting on tomorrow’s list.',
       body: (
         <div className="space-y-2.5">
           {[0, 1, 2].map((i) => (
@@ -86,6 +92,7 @@ export default function Shutdown({ navigate }) {
   const last = step === steps.length - 1
 
   const finish = () => {
+    syncShutdownTasks(tomorrow, topTasks)
     updateDay(today, { shutdownAt: Date.now() })
     navigate('today')
   }

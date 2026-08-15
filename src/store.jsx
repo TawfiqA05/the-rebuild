@@ -14,6 +14,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { freshState, SEED_HABITS } from './lib/seed.js'
 import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
+import { makeTask, toggleTaskDone } from './lib/tasks.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -77,6 +78,8 @@ function migrate(state) {
   merged.privateLog = state.privateLog || { entries: [], waves: [] }
   merged.votes = typeof state.votes === 'number' ? state.votes : 0
   merged.wins = Array.isArray(state.wins) ? state.wins : []
+  merged.tasks = Array.isArray(state.tasks) ? state.tasks : []
+  merged.myQuotes = Array.isArray(state.myQuotes) ? state.myQuotes : []
   return merged
 }
 
@@ -278,6 +281,71 @@ function makeActions(setState, stateRef) {
     removeWin(id) {
       setState((prev) => ({ ...prev, wins: prev.wins.filter((w) => w.id !== id) }))
     },
+
+    // -- tasks (one-off to-dos; separate from habits, no streak/score weight) --
+    // Returns the created task so callers can offer an undo.
+    addTask({ text, dueDay, source = 'manual' }) {
+      const clean = String(text || '').trim()
+      if (!clean) return null
+      const s = stateRef.current
+      const task = makeTask({
+        text: clean, dueDay, source,
+        createdDay: todayKey(s.settings.dayRolloverHour),
+      })
+      setState((prev) => ({ ...prev, tasks: [...(prev.tasks || []), task] }))
+      return task
+    },
+    /**
+     * Complete / un-complete a task for `dayKey`. Same toggle-both-ways feel as
+     * habits. A fresh completion ticks `votes` up by one — the one place tasks
+     * touch the shared counter — and votes never come back down on un-complete.
+     */
+    toggleTask(id, dayKey) {
+      setState((prev) => {
+        const { tasks, becameDone } = toggleTaskDone(prev.tasks || [], id, dayKey)
+        return { ...prev, tasks, votes: becameDone ? prev.votes + 1 : prev.votes }
+      })
+    },
+    deleteTask(id) {
+      setState((prev) => ({ ...prev, tasks: (prev.tasks || []).filter((t) => t.id !== id) }))
+    },
+    /** Re-insert a task object (used to undo a delete). */
+    restoreTask(task) {
+      if (!task) return
+      setState((prev) => ({ ...prev, tasks: [...(prev.tasks || []), task] }))
+    },
+    /**
+     * Reconcile the evening-shutdown plan into real tasks for `dueDay`: drop the
+     * previously-planned (still-open) shutdown tasks for that day and recreate
+     * from `texts`, so re-running shutdown is idempotent and never duplicates.
+     * Already-completed shutdown tasks are left alone.
+     */
+    syncShutdownTasks(dueDay, texts) {
+      setState((prev) => {
+        const kept = (prev.tasks || []).filter(
+          (t) => !(t.source === 'shutdown' && t.dueDay === dueDay && !t.doneDay),
+        )
+        const createdDay = todayKey(prev.settings.dayRolloverHour)
+        const added = (texts || [])
+          .map((x) => String(x || '').trim())
+          .filter(Boolean)
+          .map((text) => makeTask({ text, dueDay, createdDay, source: 'shutdown' }))
+        return { ...prev, tasks: [...kept, ...added] }
+      })
+    },
+    // -- my quotes (added to the Daily anchor's curated pool) --
+    addMyQuote(text) {
+      const t = String(text || '').trim()
+      if (!t) return
+      setState((prev) => ({
+        ...prev,
+        myQuotes: [{ id: crypto.randomUUID(), at: Date.now(), text: t }, ...(prev.myQuotes || [])],
+      }))
+    },
+    removeMyQuote(id) {
+      setState((prev) => ({ ...prev, myQuotes: (prev.myQuotes || []).filter((q) => q.id !== id) }))
+    },
+
     // record that a JSON backup was taken (for the "last export" line + nudge)
     markExported() {
       setState((prev) => ({

@@ -41,6 +41,21 @@ Habits are grouped into phases you unlock in order:
 A phase unlocks manually (you decide when it feels automatic). The app *suggests*
 unlocking when the current phase is ≥80% complete over the trailing 21 days.
 
+### Beyond the routines
+
+Two things round out the day without touching the discipline machinery:
+
+- **Tasks.** One-off to-dos live in a card on Today, alongside the habits.
+  They're deliberately kept off the scoreboard — finishing one never affects the
+  daily score, streaks, or never-miss-twice (it does count a single *vote*).
+  Unfinished tasks roll quietly to the next day with a soft "since Tue" tag; the
+  evening shutdown's "plan tomorrow's top 3" creates real tasks for tomorrow.
+- **Daily anchor.** One quiet line of motivation, fixed for the whole day
+  (deterministic by date — not a feed, no refresh button). It rotates through a
+  curated set of verified quotes (with your own additions from Settings) and,
+  once you've logged enough, your own past wins and journal lines — which it
+  leans on during rough-day and restart states.
+
 ## Run it
 
 Node 18+ is required.

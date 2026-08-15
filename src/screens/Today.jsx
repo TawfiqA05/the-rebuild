@@ -8,6 +8,8 @@ import {
 } from '../lib/logic.js'
 import HabitCard from '../components/HabitCard.jsx'
 import SalahCard from '../components/SalahCard.jsx'
+import TasksCard from '../components/TasksCard.jsx'
+import AnchorCard from '../components/AnchorCard.jsx'
 
 // The Phase-1 anchors, shown as a compact emoji row in the score header.
 const ANCHORS = [
@@ -18,7 +20,7 @@ const ANCHORS = [
 ]
 
 export default function Today({ navigate }) {
-  const { state, today, setRoughDay, updateDay } = useStore()
+  const { state, today, setRoughDay } = useStore()
   const phase = phaseMeta(state.settings.currentPhase)
 
   const habits = useMemo(
@@ -47,14 +49,7 @@ export default function Today({ navigate }) {
   const focus = state.focusThisWeek && state.focusThisWeek.weekKey === weekKeyFor(today)
     ? state.focusThisWeek.text : null
 
-  // Top 3 tasks planned last night for today (from the evening shutdown).
   const todayRec = state.days[today] || {}
-  const topTasks = (todayRec.topTasks || []).filter(Boolean)
-  const topDone = todayRec.topDone || []
-  const toggleTask = (i) => {
-    const next = [...topDone]; next[i] = !next[i]; updateDay(today, { topDone: next })
-  }
-
   const isEvening = new Date().getHours() >= 20
   const shutdownDone = !!todayRec.shutdownAt
 
@@ -74,6 +69,10 @@ export default function Today({ navigate }) {
 
       {/* Score card -------------------------------------------------------- */}
       <ScoreCard state={state} today={today} done={done} total={total} />
+
+      {/* Daily anchor — one quiet line, fixed for the day. On hard days it
+          leans on my own wins and journal instead of strangers' quotes. */}
+      <AnchorCard biasOwn={roughDay || gap >= 2} />
 
       {/* This week's focus (from the weekly review) ------------------------ */}
       {focus && (
@@ -142,23 +141,6 @@ export default function Today({ navigate }) {
         </div>
       )}
 
-      {/* Tonight-planned top 3 tasks --------------------------------------- */}
-      {topTasks.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-          <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-2">Today’s top tasks</div>
-          <div className="space-y-1.5">
-            {topTasks.map((t, i) => (
-              <button key={i} onClick={() => toggleTask(i)} className="flex items-center gap-2.5 w-full text-left">
-                <span className={topDone[i] ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-faint)]'}>
-                  {topDone[i] ? '✓' : '○'}
-                </span>
-                <span className={`text-sm ${topDone[i] ? 'line-through text-[var(--color-faint)]' : ''}`}>{t}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Habits ------------------------------------------------------------ */}
       <div className="mt-4 space-y-2.5">
         {habits.map((h) =>
@@ -166,6 +148,11 @@ export default function Today({ navigate }) {
             ? <SalahCard key={h.id} dayKey={today} />
             : <HabitCard key={h.id} habit={h} dayKey={today} />,
         )}
+      </div>
+
+      {/* Tasks — one-off to-dos, alongside the routines but off the scoreboard */}
+      <div className="mt-4">
+        <TasksCard dayKey={today} />
       </div>
 
       {/* Evening shutdown entry (emphasized after 8pm) --------------------- */}

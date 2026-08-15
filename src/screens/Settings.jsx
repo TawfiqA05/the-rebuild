@@ -70,6 +70,10 @@ export default function Settings({ onRevealPrivate }) {
       <SectionLabel>Habits</SectionLabel>
       <HabitManager />
 
+      {/* My quotes --------------------------------------------------------- */}
+      <SectionLabel>My quotes</SectionLabel>
+      <MyQuotes />
+
       {/* Prayer times ------------------------------------------------------ */}
       <SectionLabel>Prayer times</SectionLabel>
       <PrayerTimes />
@@ -121,6 +125,53 @@ function VersionTapper({ onReveal }) {
         <div className="text-[11px] text-[var(--color-accent-ink)] mt-1 animate-fade">Private tab revealed</div>
       )}
     </button>
+  )
+}
+
+// --- My quotes --------------------------------------------------------------
+
+/**
+ * Add my own lines to the Daily anchor's curated pool. Kept deliberately
+ * simple: a text box and a list. Everything here is device-local and rides
+ * along in the JSON backup like the rest of the state.
+ */
+function MyQuotes() {
+  const { state, addMyQuote, removeMyQuote } = useStore()
+  const [text, setText] = useState('')
+  const quotes = state.myQuotes || []
+
+  const add = () => {
+    if (!text.trim()) return
+    addMyQuote(text)
+    setText('')
+  }
+
+  return (
+    <Card className="px-4 py-4 space-y-3">
+      <div className="flex gap-2">
+        <TextInput value={text} onChange={setText}
+          placeholder="A line that keeps you going…"
+          onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+        <Button variant="primary" onClick={add}>Add</Button>
+      </div>
+
+      {quotes.length === 0 ? (
+        <p className="text-[11px] text-[var(--color-faint)]">
+          Your lines join the daily anchor’s rotation alongside the built-in ones.
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {quotes.map((q) => (
+            <div key={q.id} className="flex items-start gap-2 rounded-xl border border-[var(--color-line)] px-3 py-2">
+              <span className="flex-1 text-sm leading-snug">{q.text}</span>
+              <button onClick={() => removeMyQuote(q.id)}
+                aria-label="Remove quote"
+                className="text-[var(--color-faint)] hover:text-[var(--color-danger)] text-sm shrink-0 leading-none mt-0.5">✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   )
 }
 
