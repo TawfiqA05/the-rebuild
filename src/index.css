@@ -1,53 +1,57 @@
 @import 'tailwindcss';
 
 /* ===========================================================================
-   The Rebuild — visual system.
+   The Rebuild — visual system (light).
 
-   Direction: calm, premium, intentional. A warm near-black charcoal base with
-   real depth, ONE sparingly-used gold accent that reads as light/progress, and
-   soft elevated surfaces. Typography carries the character: Fraunces (a soft
-   display serif) for titles and the daily score, Inter for everything else.
+   Warm paper-white base, white cards on soft diffused shadows, ink-dark text,
+   one deepened gold accent. Airy and calm. Fraunces for titles / score / votes,
+   Inter for body. Two gold tokens: --color-accent is the FILL gold (buttons,
+   markers, heatmap — always paired with dark ink text), and --color-accent-ink
+   is the darker TEXT gold that clears WCAG AA on white.
    =========================================================================== */
 
 @theme {
-  /* --- warm charcoal base (never pure black) --- */
-  --color-ink: #131109;        /* app background — warm near-black */
-  --color-ink-2: #191509;      /* faint raised background wash */
-  --color-surface: #201b10;    /* card surface, elevated */
-  --color-surface-2: #2b2416;  /* raised / pressed surface */
-  --color-line: #35301f;       /* warm hairline border */
-  --color-line-2: #423a25;     /* stronger border */
+  /* --- warm paper base (never stark white) --- */
+  --color-ink: #f5f0e6;        /* app background — soft ivory */
+  --color-ink-2: #efe7d8;      /* inset wash / input fields */
+  --color-surface: #fffdf9;    /* cards — warm near-white */
+  --color-surface-2: #f2ead9;  /* raised / pressed surface */
+  --color-line: #e7ddcb;       /* barely-there divider */
+  --color-line-2: #d6c8ac;     /* stronger divider */
 
-  /* --- warm off-white text ramp --- */
-  --color-fg: #f4efe2;         /* primary — warm paper white */
-  --color-muted: #a89c81;      /* secondary */
-  --color-faint: #6f6650;      /* tertiary */
+  /* --- ink text ramp (warm near-black, all AA on the light surfaces) --- */
+  --color-fg: #241f18;
+  --color-muted: #5b5340;
+  --color-faint: #6b6350;
 
-  /* --- the single accent: muted warm gold (progress / light) --- */
-  --color-accent: #e0b15a;
-  --color-accent-strong: #f1c470;
-  --color-accent-soft: #2e2611; /* gold-tinted dark fill */
+  /* --- the single accent, split into fill vs text --- */
+  --color-accent: #c6902f;         /* FILL: buttons, markers, heatmap, progress */
+  --color-accent-strong: #b17d20;  /* hover */
+  --color-accent-ink: #7c5a12;     /* TEXT gold — AA on white/ivory */
+  --color-accent-soft: #f6ebd3;    /* pale gold tint behind completions */
 
-  /* min rep = the same gold, dimmed to a bronze (a value, not a new hue) */
-  --color-min: #a5824a;
-  --color-min-soft: #251d0f;
+  /* min rep = a bronze of the same family */
+  --color-min: #855f1f;
+  --color-min-soft: #f1e7cd;
 
-  /* at-risk = warm neutral emphasis (deliberately NOT a new color) */
-  --color-risk: #b0a184;
-  --color-risk-soft: #221d13;
+  /* at-risk = warm neutral, not a new hue */
+  --color-risk: #6d6047;
+  --color-risk-soft: #ece5d4;
 
-  /* destructive only — a muted clay, used almost nowhere */
-  --color-danger: #c67f6e;
+  /* destructive only */
+  --color-danger: #a63a25;
 }
 
 :root {
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino', Georgia, serif;
-  --glow: 0 0 55px -14px rgba(224, 177, 90, 0.28);
-  --shadow-card: 0 1px 0 rgba(255, 246, 224, 0.02) inset, 0 8px 24px -18px rgba(0, 0, 0, 0.9);
+  /* soft warm halo for the "day complete" state — a glow, not a bloom */
+  --glow: 0 0 0 1px rgba(198, 144, 47, 0.45), 0 10px 34px -8px rgba(198, 144, 47, 0.30);
+  /* diffused, low-contrast card shadow tinted warm */
+  --shadow-card: 0 1px 2px rgba(60, 45, 15, 0.04), 0 10px 26px -16px rgba(90, 68, 20, 0.22);
 }
 
-html { color-scheme: dark; }
+html { color-scheme: light; }
 
 body {
   margin: 0;
@@ -59,14 +63,14 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* A whisper of warm light from the top for depth — never a spotlight. */
+/* A whisper of warm light from the top, for a little depth on the flat ivory. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(115% 70% at 50% -8%, rgba(224, 177, 90, 0.055), transparent 62%);
+  background: radial-gradient(120% 70% at 50% -8%, rgba(198, 144, 47, 0.06), transparent 60%);
 }
 
 #root {
@@ -77,7 +81,6 @@ body::before {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Display face — used only for titles and the score, where it earns its keep. */
 .font-display {
   font-family: var(--font-display);
   font-optical-sizing: auto;
@@ -88,9 +91,7 @@ body::before {
 .tnum { font-variant-numeric: tabular-nums; }
 
 * { -webkit-tap-highlight-color: transparent; }
-/* Only inherit the font — NOT color. (An unlayered `color` here would override
-   Tailwind's text-* utilities on <button>, tinting e.g. the gold primary
-   button's label. Tailwind's own layered preflight handles color inheritance.) */
+/* Only inherit the font — not color — so text-* utilities win on <button>. */
 button { font: inherit; }
 
 .no-callout {
@@ -99,25 +100,23 @@ button { font: inherit; }
   user-select: none;
 }
 
-/* Soft elevated card — one consistent recipe for depth. */
+/* Soft elevated card — one recipe for depth. */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
-  border-radius: 1.25rem;
+  border-radius: 1.5rem;
   box-shadow: var(--shadow-card);
 }
 
-/* Press feel — quick, understated, "haptic". */
 .press { transition: transform 140ms cubic-bezier(0.2, 0.7, 0.2, 1), background-color 240ms ease, border-color 240ms ease; }
 .press:active { transform: scale(0.982); }
 
-/* ---- motion ------------------------------------------------------------- */
+/* ---- motion (unchanged timings, tuned glow) ----------------------------- */
 
 @keyframes rb-rise {
   from { opacity: 0; transform: translateY(9px); }
   to { opacity: 1; transform: translateY(0); }
 }
-/* Kept names the app already references, retuned to feel calmer. */
 .animate-rise { animation: rb-rise 0.44s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
 .animate-fade { animation: rb-rise 0.32s ease both; }
 
@@ -135,14 +134,14 @@ button { font: inherit; }
 }
 .animate-pop { animation: rb-pop 0.28s ease-out; }
 
-/* The quiet "day complete" state — a slow warm breath, not a party. */
+/* The quiet "day complete" state — a soft warm halo that breathes. */
 @keyframes rb-breathe {
   0%, 100% { box-shadow: 0 0 0 1px var(--color-line); }
-  50% { box-shadow: 0 0 0 1px rgba(224, 177, 90, 0.32), var(--glow); }
+  50% { box-shadow: var(--glow); }
 }
 .day-complete {
   animation: rb-breathe 4.5s ease-in-out infinite;
-  border-color: rgba(224, 177, 90, 0.3) !important;
+  border-color: rgba(198, 144, 47, 0.4) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

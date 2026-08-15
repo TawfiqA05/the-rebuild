@@ -82,7 +82,7 @@ export default function WeeklyReview({ navigate }) {
           <div className="text-xs text-[var(--color-muted)]">last week overall</div>
         </div>
         <div className={`text-sm font-medium ${
-          trend > 0 ? 'text-[var(--color-accent)]' : trend < 0 ? 'text-[var(--color-min)]' : 'text-[var(--color-muted)]'
+          trend > 0 ? 'text-[var(--color-accent-ink)]' : trend < 0 ? 'text-[var(--color-min)]' : 'text-[var(--color-muted)]'
         }`}>
           {trend > 0 ? '▲' : trend < 0 ? '▼' : '—'} {Math.abs(trend)}% <span className="text-[var(--color-faint)]">vs prior</span>
         </div>

@@ -62,7 +62,7 @@ export default function Today({ navigate }) {
     <div className="px-5 pt-5 pb-28 max-w-md mx-auto animate-rise">
       {/* Header ------------------------------------------------------------ */}
       <header className="mb-5">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]/90 mb-1.5">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent-ink)]/90 mb-1.5">
           <span className="w-4 h-px bg-[var(--color-accent)]/50" />
           Phase {phase.n} · {phase.name}
         </div>
@@ -92,7 +92,7 @@ export default function Today({ navigate }) {
               <div className="text-sm font-medium">It’s Sunday — run your weekly review</div>
               <div className="text-xs text-[var(--color-muted)] mt-0.5">Score the week, pick one thing to improve.</div>
             </div>
-            <span className="text-[var(--color-accent)]">→</span>
+            <span className="text-[var(--color-accent-ink)]">→</span>
           </div>
         </button>
       )}
@@ -137,7 +137,7 @@ export default function Today({ navigate }) {
       {/* A past win, brought back on hard days ----------------------------- */}
       {winForToday && (
         <div className="mt-3 rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-soft)]/25 px-4 py-3.5 animate-fade">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent)]/90">You’ve done hard things</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent-ink)]/90">You’ve done hard things</div>
           <div className="text-[15px] mt-1.5 leading-snug">{winForToday.text}</div>
         </div>
       )}
@@ -149,7 +149,7 @@ export default function Today({ navigate }) {
           <div className="space-y-1.5">
             {topTasks.map((t, i) => (
               <button key={i} onClick={() => toggleTask(i)} className="flex items-center gap-2.5 w-full text-left">
-                <span className={topDone[i] ? 'text-[var(--color-accent)]' : 'text-[var(--color-faint)]'}>
+                <span className={topDone[i] ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-faint)]'}>
                   {topDone[i] ? '✓' : '○'}
                 </span>
                 <span className={`text-sm ${topDone[i] ? 'line-through text-[var(--color-faint)]' : ''}`}>{t}</span>
@@ -201,7 +201,7 @@ function ScoreCard({ state, today, done, total }) {
           <div className="font-display text-[3.25rem] leading-[0.9] tnum">
             {done}<span className="text-[var(--color-faint)] text-[2.25rem]">/{total}</span>
           </div>
-          <div className={`text-[12.5px] mt-1.5 transition-colors ${complete ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`}>
+          <div className={`text-[12.5px] mt-1.5 transition-colors ${complete ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-muted)]'}`}>
             {complete ? 'Day complete — every anchor held.' : 'reps locked in today'}
           </div>
         </div>

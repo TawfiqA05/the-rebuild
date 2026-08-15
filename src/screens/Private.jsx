@@ -160,7 +160,7 @@ function PrivateDashboard({ onLock }) {
         {[['timer', 'Ride the wave'], ['log', 'Log a moment'], ['stats', 'Patterns']].map(([id, label]) => (
           <button key={id} onClick={() => setView(id)}
             className={`flex-1 rounded-xl border py-2 text-xs transition ${
-              view === id ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+              view === id ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
                           : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
             {label}
           </button>
@@ -215,7 +215,7 @@ function UrgeTimer() {
     return (
       <Card className="px-4 py-8 text-center">
         <div className="text-5xl mb-2">🌊</div>
-        <div className="text-lg font-semibold text-[var(--color-accent)]">Wave survived.</div>
+        <div className="text-lg font-semibold text-[var(--color-accent-ink)]">Wave survived.</div>
         <div className="text-sm text-[var(--color-muted)] mt-1">
           You outlasted it. That’s a rep for the person you’re becoming.
         </div>
@@ -232,7 +232,7 @@ function UrgeTimer() {
             Urges peak and pass — usually within 20 minutes. Start the timer and let it crest.
           </p>
           <button onClick={start}
-            className="mx-auto w-40 h-40 rounded-full border-2 border-[var(--color-accent)] text-[var(--color-accent)]
+            className="mx-auto w-40 h-40 rounded-full border-2 border-[var(--color-accent)] text-[var(--color-accent-ink)]
               grid place-items-center active:scale-95 transition">
             <span className="text-lg font-semibold leading-tight">🌊<br />Ride the<br />wave</span>
           </button>
@@ -291,7 +291,7 @@ function LogMoment() {
           {TRIGGERS.map((t) => (
             <button key={t} onClick={() => setTrigger(t)}
               className={`rounded-lg border px-3 py-1.5 text-xs capitalize transition ${
-                trigger === t ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                trigger === t ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
                               : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
               {t}
             </button>
@@ -307,7 +307,7 @@ function LogMoment() {
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => setRodeOut(true)}
             className={`rounded-xl border py-2.5 text-sm transition ${
-              rodeOut ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 text-[var(--color-accent)]'
+              rodeOut ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 text-[var(--color-accent-ink)]'
                       : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
             Yes — rode the wave
           </button>
@@ -360,7 +360,7 @@ function Patterns({ entries, waves }) {
           <div className="space-y-2">
             {entries.slice(0, 8).map((e) => (
               <div key={e.id} className="flex items-center gap-2 text-xs">
-                <span className={e.rodeOut ? 'text-[var(--color-accent)]' : 'text-[var(--color-min)]'}>
+                <span className={e.rodeOut ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-min)]'}>
                   {e.rodeOut ? '🌊' : '•'}
                 </span>
                 <span className="text-[var(--color-muted)] w-28 shrink-0">{fmtWhen(e.at)}</span>
@@ -411,7 +411,7 @@ function computePatterns(entries) {
 function Stat({ big, label, accent }) {
   return (
     <Card className="px-4 py-4 text-center">
-      <div className={`text-3xl font-semibold tabular-nums ${accent ? 'text-[var(--color-accent)]' : ''}`}>{big}</div>
+      <div className={`text-3xl font-semibold tabular-nums ${accent ? 'text-[var(--color-accent-ink)]' : ''}`}>{big}</div>
       <div className="text-xs text-[var(--color-muted)] mt-1">{label}</div>
     </Card>
   )

@@ -75,7 +75,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
   const press = useLongPress(onTap)
 
   const cls =
-    value === 'ontime' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/60 text-[var(--color-accent)]'
+    value === 'ontime' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/60 text-[var(--color-accent-ink)]'
     : value === 'late' ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/60 text-[var(--color-min)]'
     : isNow ? 'border-[var(--color-accent)]/45 text-[var(--color-fg)]'
     : 'border-[var(--color-line)] text-[var(--color-faint)]'

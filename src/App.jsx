@@ -68,7 +68,7 @@ function BottomNav({ screen, setScreen, privateRevealed }) {
             key={t.id}
             onClick={() => setScreen(t.id)}
             className={`press py-2.5 flex flex-col items-center gap-1 text-[10px] whitespace-nowrap transition ${
-              active === t.id ? 'text-[var(--color-accent)]' : 'text-[var(--color-faint)]'
+              active === t.id ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-faint)]'
             }`}
           >
             <span className="text-lg leading-none">{t.icon}</span>

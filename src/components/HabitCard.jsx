@@ -107,7 +107,7 @@ function WeekPips({ count, target }) {
       {Array.from({ length: target }).map((_, i) => (
         <span key={i} className={`h-2 w-2 rounded-full transition-all duration-300 ${i < count ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-line-2)]'}`} />
       ))}
-      {met && <span className="text-[var(--color-accent)] ml-0.5 text-sm animate-check">✓</span>}
+      {met && <span className="text-[var(--color-accent-ink)] ml-0.5 text-sm animate-check">✓</span>}
     </span>
   )
 }

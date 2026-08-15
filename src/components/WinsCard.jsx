@@ -36,7 +36,7 @@ export default function WinsCard() {
         <div className="mt-3 space-y-2">
           {wins.map((w) => (
             <div key={w.id} className="flex items-start gap-2.5 group">
-              <span className="text-[var(--color-accent)] mt-0.5 text-sm">•</span>
+              <span className="text-[var(--color-accent-ink)] mt-0.5 text-sm">•</span>
               <span className="flex-1 text-[14px] leading-snug">{w.text}</span>
               <span className="text-[11px] text-[var(--color-faint)] tnum shrink-0 mt-0.5">{fmtDate(w.at)}</span>
               <button

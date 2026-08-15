@@ -23,7 +23,7 @@ export default function Stats({ navigate }) {
     >
       {/* Votes — the number that only goes up ------------------------------ */}
       <Card className="px-4 py-7 text-center">
-        <div className="font-display text-[3.5rem] leading-none tnum text-[var(--color-accent)]">
+        <div className="font-display text-[3.5rem] leading-none tnum text-[var(--color-accent-ink)]">
           {state.votes.toLocaleString()}
         </div>
         <div className="text-[13px] font-medium mt-2">votes for who I’m becoming</div>
@@ -92,7 +92,7 @@ function HabitStatRow({ habit }) {
           <span className="text-xl w-7 text-center">{habit.emoji}</span>
           <span className="flex-1 font-medium truncate">{habit.name}</span>
           <span className="text-sm tabular-nums">
-            <span className="text-[var(--color-accent)]">🔥{s.current}</span>
+            <span className="text-[var(--color-accent-ink)]">🔥{s.current}</span>
           </span>
         </div>
         <div className="flex gap-4 text-[11px] text-[var(--color-muted)] mt-2 pl-10">

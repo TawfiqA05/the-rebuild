@@ -30,7 +30,7 @@ export default function Settings({ onRevealPrivate }) {
           {PHASES.map((p) => (
             <button key={p.n} onClick={() => setPhase(p.n)}
               className={`rounded-lg border px-3 py-1.5 text-xs transition ${
-                p.n === s.currentPhase ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                p.n === s.currentPhase ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
                   : p.n < s.currentPhase ? 'border-[var(--color-line)] text-[var(--color-fg)]'
                   : 'border-[var(--color-line)] text-[var(--color-faint)]'}`}>
               {p.n}. {p.name}
@@ -118,7 +118,7 @@ function VersionTapper({ onReveal }) {
         The Rebuild · v{APP_VERSION} · everything stays on this device
       </div>
       {revealed && (
-        <div className="text-[11px] text-[var(--color-accent)] mt-1 animate-fade">Private tab revealed</div>
+        <div className="text-[11px] text-[var(--color-accent-ink)] mt-1 animate-fade">Private tab revealed</div>
       )}
     </button>
   )
@@ -240,7 +240,7 @@ function HabitEditor({ habit, onClose }) {
           {WEEKDAY_LABELS.map((lbl, d) => (
             <button key={d} onClick={() => toggleDay(d)}
               className={`w-9 h-9 rounded-lg border text-xs transition ${
-                weekdays.includes(d) ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                weekdays.includes(d) ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
                                      : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
               {lbl}
             </button>
@@ -278,8 +278,8 @@ function PrayerTimes() {
     updateSettings({ prayerAdjustMin: { ...adjust, [p]: (adjust[p] || 0) + delta } })
 
   const badge = {
-    live: ['Live', 'text-[var(--color-accent)]'],
-    cache: ['Cached (offline-ready)', 'text-[var(--color-accent)]'],
+    live: ['Live', 'text-[var(--color-accent-ink)]'],
+    cache: ['Cached (offline-ready)', 'text-[var(--color-accent-ink)]'],
     loading: ['Loading…', 'text-[var(--color-muted)]'],
     manual: ['Manual', 'text-[var(--color-min)]'],
     error: ['Unavailable', 'text-[var(--color-min)]'],

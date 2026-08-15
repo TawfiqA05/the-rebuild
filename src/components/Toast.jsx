@@ -29,7 +29,7 @@ export function ToastProvider({ children }) {
             <span className="text-[13px] text-[var(--color-muted)] whitespace-nowrap">{toast.msg}</span>
             <button
               onClick={() => { toast.onUndo?.(); dismiss() }}
-              className="text-[13px] font-medium text-[var(--color-accent)] px-3 py-1 rounded-full"
+              className="text-[13px] font-medium text-[var(--color-accent-ink)] px-3 py-1 rounded-full"
             >
               Undo
             </button>
