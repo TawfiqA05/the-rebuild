@@ -40,6 +40,9 @@ function migrate(state) {
   const base = freshState()
   const merged = { ...base, ...state }
   merged.settings = { ...base.settings, ...(state.settings || {}) }
+  // Any state we're migrating already belongs to a real user — never show them
+  // onboarding. Only a truly fresh install (which skips migrate) starts false.
+  merged.settings.onboarded = state.settings?.onboarded ?? true
   // A PIN from the old static-salt scheme has no per-device salt and can't be
   // verified anymore. Clear it (private-log entries are kept) so the owner is
   // re-prompted to set a fresh PIN instead of being locked out with no reset.
@@ -234,6 +237,18 @@ function makeActions(setState, stateRef) {
       setState((prev) => ({
         ...prev,
         habits: prev.habits.map((h) => (h.id === id ? { ...h, archived } : h)),
+      }))
+    },
+
+    // -- onboarding (first run only) --
+    // Keep the Phase 1 habits whose ids are in `activeIds`, archive the rest,
+    // and mark the device onboarded so the welcome flow never shows again.
+    finishOnboarding(activeIds) {
+      setState((prev) => ({
+        ...prev,
+        habits: prev.habits.map((h) =>
+          h.phase === 1 ? { ...h, archived: !activeIds.includes(h.id) } : h),
+        settings: { ...prev.settings, onboarded: true },
       }))
     },
 

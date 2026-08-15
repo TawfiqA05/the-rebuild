@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { StoreProvider } from './store.jsx'
+import { StoreProvider, useStore } from './store.jsx'
 import { ToastProvider } from './components/Toast.jsx'
+import Welcome from './screens/Welcome.jsx'
 import Today from './screens/Today.jsx'
 import Stats from './screens/Stats.jsx'
 import Shutdown from './screens/Shutdown.jsx'
@@ -20,6 +21,17 @@ const TABS = [
 ]
 
 export default function App() {
+  return (
+    <StoreProvider>
+      <ToastProvider>
+        <AppShell />
+      </ToastProvider>
+    </StoreProvider>
+  )
+}
+
+function AppShell() {
+  const { state } = useStore()
   const [screen, setScreen] = useState('today')
   // Reveal is intentionally ephemeral (not persisted): the Private tab is hidden
   // on every fresh launch until the owner performs the reveal gesture again.
@@ -28,25 +40,24 @@ export default function App() {
 
   const revealPrivate = () => { setPrivateRevealed(true); setScreen('private') }
 
+  // First run only. Existing devices are marked onboarded by migrate().
+  if (!state.settings.onboarded) return <Welcome />
+
   // Guard: if the tab isn't revealed, never render the Private screen.
   const activeScreen = screen === 'private' && !privateRevealed ? 'today' : screen
 
   return (
-    <StoreProvider>
-      <ToastProvider>
-      <div className="min-h-[100dvh] bg-[var(--color-ink)]">
-        <main>
-          {activeScreen === 'today' && <Today navigate={navigate} />}
-          {activeScreen === 'stats' && <Stats navigate={navigate} />}
-          {activeScreen === 'shutdown' && <Shutdown navigate={navigate} />}
-          {activeScreen === 'weekly' && <WeeklyReview navigate={navigate} />}
-          {activeScreen === 'private' && <Private navigate={navigate} />}
-          {activeScreen === 'settings' && <Settings navigate={navigate} onRevealPrivate={revealPrivate} />}
-        </main>
-        <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
-      </div>
-      </ToastProvider>
-    </StoreProvider>
+    <div className="min-h-[100dvh] bg-[var(--color-ink)]">
+      <main>
+        {activeScreen === 'today' && <Today navigate={navigate} />}
+        {activeScreen === 'stats' && <Stats navigate={navigate} />}
+        {activeScreen === 'shutdown' && <Shutdown navigate={navigate} />}
+        {activeScreen === 'weekly' && <WeeklyReview navigate={navigate} />}
+        {activeScreen === 'private' && <Private navigate={navigate} />}
+        {activeScreen === 'settings' && <Settings navigate={navigate} onRevealPrivate={revealPrivate} />}
+      </main>
+      <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
+    </div>
   )
 }
 

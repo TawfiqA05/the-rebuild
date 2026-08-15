@@ -51,6 +51,14 @@ export const SEED_HABITS = [
     frequency: daily, minVersion: 'Pull the covers straight',
     isAnchor: true, anchorKey: 'bed',
   },
+  {
+    id: 'phone-kitchen', name: 'Phone to kitchen by 10:30pm', emoji: '📵', phase: 1, type: 'standard',
+    frequency: daily, minVersion: 'Plug it in outside the bedroom',
+  },
+  {
+    id: 'clean-feed', name: 'Clean feed', emoji: '🧹', phase: 1, type: 'standard',
+    frequency: daily, minVersion: 'Close the app, put the phone down',
+  },
 
   // ---- Phase 2 · Mind & Structure ---------------------------------------
   {
@@ -179,6 +187,7 @@ export function freshState() {
       dismissedUnlock: {},       // { phaseN: true } — user dismissed the suggestion
       prayerAdjustMin: {},       // manual per-prayer minute offsets
       lastExportAt: null,        // timestamp of the last JSON backup
+      onboarded: false,          // fresh installs see the welcome flow; existing data never does
     },
     habits: SEED_HABITS.map((h) => ({ ...h, archived: false, createdAt: now })),
     // logs[dayKey][habitId] = { status: 'full'|'min', at } | salah shape
