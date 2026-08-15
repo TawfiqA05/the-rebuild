@@ -8,6 +8,12 @@ account, no backend, and no data ever leaves your device (it lives in
 Built with **Vite + React + Tailwind v4**. Dark, mobile-first, installable as a
 PWA.
 
+## Screenshots
+
+Today, and the stats screen with the wins list and streak heatmaps.
+
+<img src="screenshots/today.png" width="300" alt="Today screen"> <img src="screenshots/stats.png" width="300" alt="Stats screen">
+
 ## The system it enforces
 
 The philosophy is baked into the *logic*, not just the copy:
