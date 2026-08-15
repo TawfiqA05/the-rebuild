@@ -1,4 +1,6 @@
 import { useStore } from '../store.jsx'
+import { useToast } from './Toast.jsx'
+import { useLongPress } from './useLongPress.js'
 import { SALAH_PRAYERS, SALAH_LABELS, salahSummary } from '../lib/logic.js'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { fmtDuration } from '../lib/prayerTimes.js'
@@ -13,7 +15,7 @@ import { fmtDuration } from '../lib/prayerTimes.js'
  * and highlight the window we're currently in.
  */
 export default function SalahCard({ dayKey }) {
-  const { state, cycleSalah } = useStore()
+  const { state } = useStore()
   const log = state.logs[dayKey]?.['salah'] || {}
   const sum = salahSummary(log)
 
@@ -48,34 +50,52 @@ export default function SalahCard({ dayKey }) {
       )}
 
       <div className="grid grid-cols-5 gap-1.5 mt-2">
-        {SALAH_PRAYERS.map((p) => {
-          const v = log[p]
-          const isNow = current === p
-          const cls =
-            v === 'ontime' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/60 text-[var(--color-accent)]'
-            : v === 'late' ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/60 text-[var(--color-min)]'
-            : isNow ? 'border-[var(--color-accent)]/45 text-[var(--color-fg)]'
-            : 'border-[var(--color-line)] text-[var(--color-faint)]'
-          return (
-            <button
-              key={p}
-              onClick={() => cycleSalah(dayKey, p)}
-              className={`press no-callout relative rounded-xl border py-2.5 flex flex-col items-center gap-0.5 ${cls}`}
-            >
-              {isNow && (
-                <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wide
-                  bg-[var(--color-accent)] text-[#231a09] rounded-full px-1.5 py-px leading-none">now</span>
-              )}
-              <span className="text-[11px] font-medium">{SALAH_LABELS[p]}</span>
-              <span className="text-[10px] tabular-nums">{times?.[p] ? compact(times[p]) : '—'}</span>
-              <span className="text-[9px] opacity-80">
-                {v === 'ontime' ? 'on time' : v === 'late' ? 'late' : '·'}
-              </span>
-            </button>
-          )
-        })}
+        {SALAH_PRAYERS.map((p) => (
+          <PrayerCell key={p} dayKey={dayKey} p={p} value={log[p]} isNow={current === p} time={times?.[p]} />
+        ))}
       </div>
     </div>
+  )
+}
+
+// One prayer sub-check. Cycles pending → on time → late → pending, but only on a
+// clean stationary tap (scrolling over it does nothing), and each change drops
+// an Undo toast.
+function PrayerCell({ dayKey, p, value, isNow, time }) {
+  const { setSalah } = useStore()
+  const toast = useToast()
+
+  const onTap = () => {
+    const next = value === 'ontime' ? 'late' : value === 'late' ? null : 'ontime'
+    setSalah(dayKey, p, next)
+    if (next) {
+      toast(`${SALAH_LABELS[p]} · ${next === 'ontime' ? 'on time' : 'late'}`, () => setSalah(dayKey, p, value ?? null))
+    }
+  }
+  const press = useLongPress(onTap)
+
+  const cls =
+    value === 'ontime' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/60 text-[var(--color-accent)]'
+    : value === 'late' ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/60 text-[var(--color-min)]'
+    : isNow ? 'border-[var(--color-accent)]/45 text-[var(--color-fg)]'
+    : 'border-[var(--color-line)] text-[var(--color-faint)]'
+
+  return (
+    <button
+      {...press}
+      className={`press no-callout relative rounded-xl border py-2.5 flex flex-col items-center gap-0.5 ${cls}`}
+      style={{ touchAction: 'pan-y' }}
+    >
+      {isNow && (
+        <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wide
+          bg-[var(--color-accent)] text-[#231a09] rounded-full px-1.5 py-px leading-none">now</span>
+      )}
+      <span className="text-[11px] font-medium">{SALAH_LABELS[p]}</span>
+      <span className="text-[10px] tabular-nums">{time ? compact(time) : '—'}</span>
+      <span className="text-[9px] opacity-80">
+        {value === 'ontime' ? 'on time' : value === 'late' ? 'late' : '·'}
+      </span>
+    </button>
   )
 }
 

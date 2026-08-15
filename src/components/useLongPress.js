@@ -1,54 +1,68 @@
-import { useRef, useCallback } from 'react'
+import { useCallback, useRef } from 'react'
+import { movedTooFar, shouldCountTap } from '../lib/gesture.js'
 
 /**
- * Distinguish a tap from a long-press on one element (big tap targets need
- * both: tap = full rep, long-press = min rep). Works for touch and mouse.
- *
- * onTap fires on a short press/click; onLongPress fires once the press is held
- * past `ms`. We swallow the following click after a long-press so it doesn't
- * also register as a tap.
+ * Distinguish a real tap from a scroll or a long-press on one element.
+ *   tap        → onTap, but only if the finger stayed put (moved <= ~10px)
+ *   long-press → onLongPress, after `ms`, and only if it hasn't moved
+ * If the touch drifts past the threshold it's a scroll: neither fires. The
+ * long-press timer only arms when an onLongPress handler is given, so plain
+ * tap targets don't lose a slow, stationary tap.
  */
 export function useLongPress(onTap, onLongPress, ms = 420) {
   const timer = useRef(null)
   const longFired = useRef(false)
-  const startPos = useRef(null)
+  const moved = useRef(false)
+  const start = useRef(null)
 
-  const start = useCallback((e) => {
+  const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null } }
+
+  const onStart = useCallback((e) => {
     longFired.current = false
-    const point = e.touches ? e.touches[0] : e
-    startPos.current = { x: point.clientX, y: point.clientY }
-    timer.current = setTimeout(() => {
-      longFired.current = true
-      if (navigator.vibrate) navigator.vibrate(15)
-      onLongPress?.()
-    }, ms)
+    moved.current = false
+    const p = e.touches ? e.touches[0] : e
+    start.current = { x: p.clientX, y: p.clientY }
+    clear()
+    if (onLongPress) {
+      timer.current = setTimeout(() => {
+        if (moved.current) return
+        longFired.current = true
+        if (navigator.vibrate) navigator.vibrate(15)
+        onLongPress()
+      }, ms)
+    }
   }, [onLongPress, ms])
 
-  const cancel = useCallback(() => {
-    if (timer.current) { clearTimeout(timer.current); timer.current = null }
+  const onMove = useCallback((e) => {
+    if (!start.current) return
+    const p = e.touches ? e.touches[0] : e
+    if (movedTooFar(start.current, { x: p.clientX, y: p.clientY })) {
+      moved.current = true
+      clear()
+    }
   }, [])
 
-  const move = useCallback((e) => {
-    if (!startPos.current) return
-    const point = e.touches ? e.touches[0] : e
-    const dx = Math.abs(point.clientX - startPos.current.x)
-    const dy = Math.abs(point.clientY - startPos.current.y)
-    if (dx > 10 || dy > 10) cancel() // treat as a scroll, not a press
-  }, [cancel])
+  const onEnd = useCallback(() => {
+    clear()
+    if (shouldCountTap({ moved: moved.current, longFired: longFired.current })) onTap?.()
+    start.current = null
+  }, [onTap])
 
-  const end = useCallback(() => {
-    cancel()
-    if (!longFired.current) onTap?.()
-  }, [cancel, onTap])
+  const onCancel = useCallback(() => {
+    moved.current = true
+    clear()
+    start.current = null
+  }, [])
 
   return {
-    onTouchStart: start,
-    onTouchMove: move,
-    onTouchEnd: end,
-    onMouseDown: start,
-    onMouseMove: move,
-    onMouseUp: end,
-    onMouseLeave: cancel,
+    onTouchStart: onStart,
+    onTouchMove: onMove,
+    onTouchEnd: onEnd,
+    onTouchCancel: onCancel,
+    onMouseDown: onStart,
+    onMouseMove: onMove,
+    onMouseUp: onEnd,
+    onMouseLeave: onCancel,
     onContextMenu: (e) => e.preventDefault(),
   }
 }

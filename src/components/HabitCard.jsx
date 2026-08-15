@@ -1,21 +1,19 @@
-import { useState } from 'react'
 import { useLongPress } from './useLongPress.js'
 import { useStore } from '../store.jsx'
+import { useToast } from './Toast.jsx'
 import { habitStatusOn, weekProgress, riskSignals } from '../lib/logic.js'
 
 /**
- * A single large tap target.
- *   tap            → full rep ✓
- *   long-press     → minimum (2-minute) rep ◐
- *   tap again      → cycles off
- * perWeek habits show week progress (e.g. 2/3) and never nag daily.
- *
- * Completion is quiet and satisfying: the card fills with a whisper of gold and
- * the marker draws in. No confetti.
+ * The card body is not tappable. Only the marker on the right — a generous ~48px
+ * zone — completes the habit, so you can scroll past a card without logging it.
+ *   tap the marker   → full rep ✓ (cycles full → min → off)
+ *   hold the marker  → minimum (2-minute) rep ◐
+ * Both ignore the press if the finger was scrolling. Every completion drops a
+ * 4-second "Undo" toast so an accident is one tap to reverse.
  */
 export default function HabitCard({ habit, dayKey }) {
-  const { state, toggleHabit } = useStore()
-  const [pressed, setPressed] = useState(false)
+  const { state, setHabitStatus } = useStore()
+  const toast = useToast()
 
   const status = habitStatusOn(state, habit, dayKey)
   const isWeekly = habit.frequency.kind === 'perWeek'
@@ -23,10 +21,16 @@ export default function HabitCard({ habit, dayKey }) {
   const risk = riskSignals(state, habit, dayKey)
   const done = status === 'full' || status === 'min'
 
-  const press = useLongPress(
-    () => toggleHabit(dayKey, habit.id),           // tap → cycle full/off
-    () => toggleHabit(dayKey, habit.id, 'min'),    // long-press → min
-  )
+  const set = (next) => {
+    setHabitStatus(dayKey, habit.id, next)
+    if (next) {
+      const label = next === 'full' ? 'full rep' : 'min rep'
+      toast(`${habit.name} · ${label}`, () => setHabitStatus(dayKey, habit.id, status))
+    }
+  }
+  const onTap = () => set(status === null ? 'full' : status === 'full' ? 'min' : null)
+  const onHold = () => set(status === 'min' ? null : 'min')
+  const press = useLongPress(onTap, onHold)
 
   const surface =
     status === 'full' ? 'border-[var(--color-accent)]/55 bg-[var(--color-accent-soft)]/60'
@@ -35,19 +39,11 @@ export default function HabitCard({ habit, dayKey }) {
     : 'border-[var(--color-line)] bg-[var(--color-surface)]'
 
   return (
-    <button
-      {...press}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-      className={`no-callout w-full text-left rounded-2xl border px-4 py-4 flex items-center gap-3.5
-        transition-[background-color,border-color,transform] duration-300 ${surface}
-        ${pressed ? 'scale-[0.985]' : 'scale-100'}`}
+    <div
+      className={`rounded-2xl border px-4 py-4 flex items-center gap-3.5 transition-[background-color,border-color] duration-300 ${surface}`}
       style={{ boxShadow: 'var(--shadow-card)' }}
     >
-      <span className={`text-[26px] w-9 shrink-0 text-center transition-opacity duration-300 ${done ? '' : 'opacity-90'}`}>
-        {habit.emoji}
-      </span>
+      <span className={`text-[26px] w-9 shrink-0 text-center ${done ? '' : 'opacity-90'}`}>{habit.emoji}</span>
 
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
@@ -65,20 +61,26 @@ export default function HabitCard({ habit, dayKey }) {
               ? `${wp.count} of ${wp.target} this week`
               : risk.atRisk
                 ? 'Missed yesterday — lock it in today'
-                : 'Hold for the 2-minute version'}
+                : 'Tap the ring · hold for the 2-minute version'}
         </span>
       </span>
 
-      {isWeekly
-        ? <WeekPips count={wp.count} target={wp.target} />
-        : <Marker status={status} />}
-    </button>
+      {/* The only tap target — a roomy pressable zone around the marker. */}
+      <button
+        {...press}
+        aria-label={`Log ${habit.name}`}
+        className="no-callout shrink-0 min-w-[48px] min-h-[48px] -mr-1.5 grid place-items-center rounded-xl active:scale-90 transition"
+        style={{ touchAction: 'pan-y' }}
+      >
+        {isWeekly ? <WeekPips count={wp.count} target={wp.target} /> : <Marker status={status} />}
+      </button>
+    </div>
   )
 }
 
 /** Circular completion marker with a calm draw-in animation. */
 function Marker({ status }) {
-  const base = 'w-8 h-8 shrink-0 rounded-full grid place-items-center border transition-colors duration-300'
+  const base = 'w-8 h-8 rounded-full grid place-items-center border transition-colors duration-300'
   if (status === 'full') {
     return (
       <span key="full" className={`${base} border-transparent bg-[var(--color-accent)] text-[#231a09] animate-check`}>
@@ -101,14 +103,9 @@ function Marker({ status }) {
 function WeekPips({ count, target }) {
   const met = count >= target
   return (
-    <span className="flex items-center gap-1.5 shrink-0">
+    <span className="flex items-center gap-1.5">
       {Array.from({ length: target }).map((_, i) => (
-        <span
-          key={i}
-          className={`h-2 rounded-full transition-all duration-300 ${
-            i < count ? 'w-2 bg-[var(--color-accent)]' : 'w-2 bg-[var(--color-line-2)]'
-          }`}
-        />
+        <span key={i} className={`h-2 w-2 rounded-full transition-all duration-300 ${i < count ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-line-2)]'}`} />
       ))}
       {met && <span className="text-[var(--color-accent)] ml-0.5 text-sm animate-check">✓</span>}
     </span>

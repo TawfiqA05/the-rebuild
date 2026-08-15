@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StoreProvider } from './store.jsx'
+import { ToastProvider } from './components/Toast.jsx'
 import Today from './screens/Today.jsx'
 import Stats from './screens/Stats.jsx'
 import Shutdown from './screens/Shutdown.jsx'
@@ -32,6 +33,7 @@ export default function App() {
 
   return (
     <StoreProvider>
+      <ToastProvider>
       <div className="min-h-[100dvh] bg-[var(--color-ink)]">
         <main>
           {activeScreen === 'today' && <Today navigate={navigate} />}
@@ -43,6 +45,7 @@ export default function App() {
         </main>
         <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
       </div>
+      </ToastProvider>
     </StoreProvider>
   )
 }
