@@ -10,9 +10,9 @@ PWA.
 
 ## Screenshots
 
-Today, and the stats screen with the wins list and streak heatmaps.
+First-run setup, the Today screen, and Stats with the wins list and streak heatmaps.
 
-<img src="screenshots/today.png" width="300" alt="Today screen"> <img src="screenshots/stats.png" width="300" alt="Stats screen">
+<img src="screenshots/onboarding.png" width="250" alt="First-run setup"> <img src="screenshots/today.png" width="250" alt="Today screen"> <img src="screenshots/stats.png" width="250" alt="Stats screen">
 
 ## The system it enforces
 
