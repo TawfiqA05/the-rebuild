@@ -3,6 +3,7 @@ import { useStore } from '../store.jsx'
 import { PHASES, phaseMeta } from '../lib/seed.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
+import { downloadBackup } from '../lib/backup.js'
 import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -366,16 +367,13 @@ function agoLabel(ts) {
 // --- Backup controls --------------------------------------------------------
 
 function BackupControls({ exportJSON, importJSON, resetAll }) {
+  const { markExported, state } = useStore()
   const fileRef = useRef(null)
+  const lastExport = state.settings.lastExportAt
 
   const doExport = () => {
-    const blob = new Blob([exportJSON()], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `the-rebuild-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBackup(exportJSON())
+    markExported()
   }
 
   const doImport = (e) => {
@@ -401,12 +399,23 @@ function BackupControls({ exportJSON, importJSON, resetAll }) {
         <Button onClick={() => fileRef.current?.click()}>Import JSON</Button>
       </div>
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={doImport} />
+      <div className="text-[11px] text-[var(--color-faint)] text-center">
+        {lastExport ? `Last export: ${fmtExport(lastExport)}` : 'No backup exported yet'}
+      </div>
       <Button variant="danger" className="w-full"
         onClick={() => { if (confirm('Erase ALL data and start over? Export a backup first.')) resetAll() }}>
         Reset everything
       </Button>
     </Card>
   )
+}
+
+function fmtExport(ts) {
+  const d = new Date(ts)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const days = Math.floor((Date.now() - ts) / 86400000)
+  const ago = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`
+  return `${months[d.getMonth()]} ${d.getDate()} (${ago})`
 }
 
 // --- helpers ----------------------------------------------------------------

@@ -3,6 +3,7 @@ import { useStore } from '../store.jsx'
 import { addDaysKey, weekKeyFor, prettyDate } from '../lib/time.js'
 import { activeHabits, habitStatusOn, isRequiredOnDay, isDone } from '../lib/logic.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
+import { downloadBackup } from '../lib/backup.js'
 
 // Completion for one habit across a specific week → { done, total, pct }.
 function weekHabitScore(state, habit, weekStart) {
@@ -39,8 +40,13 @@ function weekOverall(state, habits, weekStart) {
 }
 
 export default function WeeklyReview({ navigate }) {
-  const { state, today, saveWeeklyReview } = useStore()
+  const { state, today, saveWeeklyReview, exportJSON, markExported } = useStore()
   const habits = activeHabits(state)
+
+  // Nudge a backup once a week. Show it if it's been more than 6 days, or never.
+  const lastExport = state.settings.lastExportAt
+  const needsBackup = !lastExport || (Date.now() - lastExport) > 6 * 86400000
+  const backupNow = () => { downloadBackup(exportJSON()); markExported() }
 
   const thisWeek = weekKeyFor(today)          // the week you're planning
   const lastWeek = addDaysKey(thisWeek, -7)   // the week you're reviewing
@@ -81,6 +87,19 @@ export default function WeeklyReview({ navigate }) {
           {trend > 0 ? '▲' : trend < 0 ? '▼' : '—'} {Math.abs(trend)}% <span className="text-[var(--color-faint)]">vs prior</span>
         </div>
       </Card>
+
+      {/* Weekly backup nudge ---------------------------------------------- */}
+      {needsBackup && (
+        <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5 flex items-center gap-3">
+          <div className="flex-1">
+            <div className="text-sm font-medium">Back up your data</div>
+            <div className="text-xs text-[var(--color-muted)] mt-0.5">
+              {lastExport ? 'It’s been over a week. One tap saves a JSON copy.' : 'Everything lives on this device. Save a copy while you’re here.'}
+            </div>
+          </div>
+          <Button variant="primary" onClick={backupNow}>Export</Button>
+        </div>
+      )}
 
       {/* Per-habit last week ---------------------------------------------- */}
       <SectionLabel>How last week went</SectionLabel>
