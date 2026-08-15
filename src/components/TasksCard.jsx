@@ -116,16 +116,19 @@ function TaskRow({ task, dayKey, onToggle, onDelete, onRestore, toast }) {
     toast(`${done ? 'Reopened' : 'Done'} · ${task.text}`, () => onToggle(task.id, dayKey))
   })
 
-  // Row body: long-press to delete (undoable). Not tappable otherwise.
+  // Delete — the visible × is the obvious path; long-press stays as a shortcut.
+  // Both drop the same undo toast, so there's no confirm dialog: undo is the net.
   const remove = () => {
     if (navigator.vibrate) navigator.vibrate(15)
     onDelete(task.id)
     toast(`Deleted · ${task.text}`, () => onRestore(task))
   }
+  // Long-press anywhere on the row body also deletes. `no-callout` on the row
+  // kills the iOS text-selection magnifier/callout that would otherwise eat it.
   const body = useLongPress(undefined, remove)
 
   return (
-    <div className="flex items-center gap-3 py-1.5">
+    <div className="no-callout flex items-center gap-3 py-1.5">
       <button
         {...ring}
         aria-label={`${done ? 'Reopen' : 'Complete'} ${task.text}`}
@@ -135,9 +138,11 @@ function TaskRow({ task, dayKey, onToggle, onDelete, onRestore, toast }) {
         <TaskMarker done={done} />
       </button>
 
+      {/* Long-press lives on the text body only, so it can't collide with the
+          ring or × (siblings don't share bubbled touch events). */}
       <span
         {...body}
-        className={`flex-1 min-w-0 select-none transition ${done ? 'opacity-45' : ''}`}
+        className={`no-callout flex-1 min-w-0 transition ${done ? 'opacity-45' : ''}`}
         style={{ touchAction: 'pan-y' }}
       >
         <span className={`block text-[15px] leading-snug truncate ${done ? 'line-through text-[var(--color-muted)]' : 'text-[var(--color-fg)]'}`}>
@@ -147,6 +152,15 @@ function TaskRow({ task, dayKey, onToggle, onDelete, onRestore, toast }) {
           <span className="block text-[11px] text-[var(--color-faint)] mt-0.5">{since}</span>
         )}
       </span>
+
+      {/* Visible, always-on delete affordance — quiet muted ×, no red, no trash. */}
+      <button
+        onClick={remove}
+        aria-label={`Delete ${task.text}`}
+        className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[36px] grid place-items-center rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
+      >
+        ×
+      </button>
     </div>
   )
 }

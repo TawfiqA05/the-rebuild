@@ -98,6 +98,34 @@ export function toggleTaskDone(tasks, id, dayKey, now = Date.now()) {
   return { tasks: next, becameDone }
 }
 
+/** Remove a task by id. Pure — never touches votes or any other state. */
+export function deleteTaskById(tasks, id) {
+  return (tasks || []).filter((t) => t.id !== id)
+}
+
+/** Re-insert a whole task object (used to undo a delete), preserving it exactly. */
+export function insertTask(tasks, task) {
+  return task ? [...(tasks || []), task] : (tasks || [])
+}
+
+/**
+ * Reconcile the evening-shutdown plan into `dueDay`'s tasks: drop the
+ * previously-planned *still-open* shutdown tasks for that day and recreate from
+ * `texts`. Already-completed shutdown tasks are left untouched, so re-running
+ * shutdown is idempotent and never duplicates. Kept pure so the idempotency is
+ * unit-testable; the store just supplies `createdDay`.
+ */
+export function planShutdownTasks(tasks, dueDay, texts, { createdDay } = {}) {
+  const kept = (tasks || []).filter(
+    (t) => !(t.source === 'shutdown' && t.dueDay === dueDay && !t.doneDay),
+  )
+  const added = (texts || [])
+    .map((x) => String(x || '').trim())
+    .filter(Boolean)
+    .map((text) => makeTask({ text, dueDay, createdDay, source: 'shutdown' }))
+  return [...kept, ...added]
+}
+
 /** Lifetime count of completed tasks — the simple number shown on Stats. */
 export function completedTaskCount(tasks) {
   return (tasks || []).filter((t) => !!t.doneDay).length

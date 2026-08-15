@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   makeTask, visibleTasks, carryOverLabel, toggleTaskDone, completedTaskCount,
+  deleteTaskById, insertTask, planShutdownTasks,
 } from './tasks.js'
 import { dayScore, currentStreak } from './logic.js'
 
@@ -115,5 +116,58 @@ describe('completion toggles both ways', () => {
       { ...t({ id: 'c' }), doneDay: '2026-01-10' },
     ]
     expect(completedTaskCount(list)).toBe(2)
+  })
+})
+
+describe('explicit delete + undo', () => {
+  it('the × removes only the targeted task and undo restores it exactly', () => {
+    const keep = t({ id: 'keep', dueDay: '2026-01-12', source: 'manual' })
+    const gone = t({ id: 'gone', dueDay: '2026-01-13', source: 'shutdown' })
+    const list = [keep, gone]
+
+    const afterDelete = deleteTaskById(list, 'gone')
+    expect(afterDelete.map((x) => x.id)).toEqual(['keep'])
+
+    // Undo re-inserts the very same object — id, dueDay, source all preserved.
+    const afterUndo = insertTask(afterDelete, gone)
+    const restored = afterUndo.find((x) => x.id === 'gone')
+    expect(restored).toEqual(gone)
+    expect(restored.dueDay).toBe('2026-01-13')
+    expect(restored.source).toBe('shutdown')
+  })
+
+  it('deleting a completed task does not touch votes (mirrors the store)', () => {
+    // The store's deleteTask only swaps `tasks`; votes ride through untouched.
+    const doneTask = { ...t({ id: 'd' }), doneDay: '2026-01-15', doneAt: 1000 }
+    const prev = { tasks: [doneTask, t({ id: 'o' })], votes: 7 }
+    const next = { ...prev, tasks: deleteTaskById(prev.tasks, 'd') }
+    expect(next.votes).toBe(7) // no claw-back — votes only ever grow
+    expect(next.tasks.map((x) => x.id)).toEqual(['o'])
+  })
+
+  it('deleting a shutdown task keeps the next shutdown run idempotent', () => {
+    const opts = { createdDay: '2026-01-14' }
+    // Plan three tasks for tomorrow, then the user deletes one of them.
+    const planned = planShutdownTasks([], '2026-01-15', ['a', 'b', 'c'], opts)
+    expect(planned).toHaveLength(3)
+    const afterDelete = deleteTaskById(planned, planned[1].id)
+    expect(afterDelete).toHaveLength(2)
+
+    // Re-running shutdown reconciles cleanly: the leftover open shutdown tasks
+    // are dropped and the plan is rebuilt — exactly three, no duplicates.
+    const rerun = planShutdownTasks(afterDelete, '2026-01-15', ['a', 'b', 'c'], opts)
+    const shutdownForDay = rerun.filter((x) => x.source === 'shutdown' && x.dueDay === '2026-01-15')
+    expect(shutdownForDay).toHaveLength(3)
+    expect(shutdownForDay.map((x) => x.text).sort()).toEqual(['a', 'b', 'c'])
+  })
+
+  it('a completed shutdown task survives a re-run, so its vote is never lost', () => {
+    const opts = { createdDay: '2026-01-14' }
+    const planned = planShutdownTasks([], '2026-01-15', ['a', 'b'], opts)
+    // Mark one done (as if it was finished the next day).
+    const withDone = planned.map((x, i) => (i === 0 ? { ...x, doneDay: '2026-01-15', doneAt: 1 } : x))
+    const rerun = planShutdownTasks(withDone, '2026-01-15', ['a', 'b'], opts)
+    expect(rerun.filter((x) => x.doneDay)).toHaveLength(1)           // the finished one stayed
+    expect(rerun.filter((x) => x.source === 'shutdown')).toHaveLength(3) // 1 done + 2 fresh
   })
 })
