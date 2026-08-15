@@ -3,6 +3,7 @@ import { useStore } from '../store.jsx'
 import { phaseMeta } from '../lib/seed.js'
 import { Screen, Card, SectionLabel, Button, ProgressBar } from '../components/ui.jsx'
 import Heatmap from '../components/Heatmap.jsx'
+import WinsCard from '../components/WinsCard.jsx'
 import {
   activeHabits, habitStats, phaseProgress, shouldSuggestUnlock,
 } from '../lib/logic.js'
@@ -30,6 +31,10 @@ export default function Stats({ navigate }) {
           Every completion, ever. This number only goes up.
         </div>
       </Card>
+
+      {/* Wins — proud moments, surfaced on rough days ---------------------- */}
+      <SectionLabel>Wins</SectionLabel>
+      <WinsCard />
 
       {/* Phase progress ---------------------------------------------------- */}
       <SectionLabel>Phase {phase.n} · {phase.name}</SectionLabel>

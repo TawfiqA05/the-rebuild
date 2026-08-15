@@ -178,6 +178,7 @@ export function freshState() {
       pinLockUntil: 0,
       dismissedUnlock: {},       // { phaseN: true } — user dismissed the suggestion
       prayerAdjustMin: {},       // manual per-prayer minute offsets
+      lastExportAt: null,        // timestamp of the last JSON backup
     },
     habits: SEED_HABITS.map((h) => ({ ...h, archived: false, createdAt: now })),
     // logs[dayKey][habitId] = { status: 'full'|'min', at } | salah shape
@@ -188,5 +189,6 @@ export function freshState() {
     focusThisWeek: null,         // { text, weekKey }
     privateLog: { entries: [], waves: [] },
     votes: 0,                    // lifetime completions — only ever goes up
+    wins: [],                    // proud moments, shown back on rough days
   }
 }

@@ -59,6 +59,7 @@ function migrate(state) {
   merged.days = state.days || {}
   merged.privateLog = state.privateLog || { entries: [], waves: [] }
   merged.votes = typeof state.votes === 'number' ? state.votes : 0
+  merged.wins = Array.isArray(state.wins) ? state.wins : []
   return merged
 }
 
@@ -233,6 +234,26 @@ function makeActions(setState, stateRef) {
       setState((prev) => ({
         ...prev,
         habits: prev.habits.map((h) => (h.id === id ? { ...h, archived } : h)),
+      }))
+    },
+
+    // -- wins (proud moments, surfaced on rough days) --
+    addWin(text) {
+      const t = text.trim()
+      if (!t) return
+      setState((prev) => ({
+        ...prev,
+        wins: [{ id: crypto.randomUUID(), at: Date.now(), text: t }, ...prev.wins],
+      }))
+    },
+    removeWin(id) {
+      setState((prev) => ({ ...prev, wins: prev.wins.filter((w) => w.id !== id) }))
+    },
+    // record that a JSON backup was taken (for the "last export" line + nudge)
+    markExported() {
+      setState((prev) => ({
+        ...prev,
+        settings: { ...prev.settings, lastExportAt: Date.now() },
       }))
     },
 

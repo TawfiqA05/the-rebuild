@@ -37,6 +37,12 @@ export default function Today({ navigate }) {
   const roughDay = state.days[today]?.roughDay
   const mvdWin = isMVDWin(state, today)
 
+  // On a rough day, or coming back from a gap, pull up one thing I was proud of.
+  // Rotates by date so it isn't the same line every hard day.
+  const wins = state.wins || []
+  const showWin = (roughDay || gap >= 2) && wins.length > 0
+  const winForToday = showWin ? wins[parseInt(today.slice(-2), 10) % wins.length] : null
+
   // The "one thing to improve" from Sunday's weekly review, shown all week.
   const focus = state.focusThisWeek && state.focusThisWeek.weekKey === weekKeyFor(today)
     ? state.focusThisWeek.text : null
@@ -125,6 +131,14 @@ export default function Today({ navigate }) {
               ? 'Salah + bed + one rep. Your streak survives. That counts.'
               : 'Salah, make your bed, and one 2-minute rep — and today still counts as a win.'}
           </div>
+        </div>
+      )}
+
+      {/* A past win, brought back on hard days ----------------------------- */}
+      {winForToday && (
+        <div className="mt-3 rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-soft)]/25 px-4 py-3.5 animate-fade">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent)]/90">You’ve done hard things</div>
+          <div className="text-[15px] mt-1.5 leading-snug">{winForToday.text}</div>
         </div>
       )}
 
