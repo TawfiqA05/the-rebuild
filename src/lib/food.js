@@ -14,7 +14,33 @@
 // Stored as a flat array (like tasks), so edit/delete/undo are simple id ops.
 // ---------------------------------------------------------------------------
 
-import { dayKeyFor, lastNKeys } from './time.js'
+import { dayKeyFor, lastNKeys, addDaysKey, keyToDate } from './time.js'
+
+// A yesterday entry defaults to the evening — the meal you most often forget to
+// log before the 3am rollover.
+export const DEFAULT_YESTERDAY_HOUR = 19
+
+/**
+ * Resolve where a new entry should land. The only reach-back allowed is a single
+ * day: if `targetDay` is exactly yesterday, the entry gets an evening timestamp
+ * on yesterday. Anything else — today, day-before-yesterday, or junk — lands on
+ * today at `now`. This is the guard that keeps older days permanently sealed.
+ */
+export function resolveEntryTime(targetDay, { today, now = Date.now(), yesterdayHour = DEFAULT_YESTERDAY_HOUR } = {}) {
+  const yesterday = addDaysKey(today, -1)
+  if (targetDay === yesterday) {
+    const d = keyToDate(yesterday)
+    d.setHours(yesterdayHour, 0, 0, 0)
+    return { day: yesterday, at: d.getTime() }
+  }
+  return { day: today, at: now }
+}
+
+// "Add to yesterday" is one-shot: after any add the quick-add target snaps back
+// to today, so you can never keep logging to yesterday by accident.
+export function quickAddResetTarget() {
+  return 'today'
+}
 
 /** Build a food entry, bucketed to its logical day via the rollover hour. */
 export function makeFoodEntry({ text, at, rolloverHour = 3, id }) {

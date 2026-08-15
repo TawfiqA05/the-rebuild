@@ -49,6 +49,7 @@ describe('backup roundtrip preserves food', () => {
       food: [
         { id: 'f1', text: 'eggs', at: 1700000000000, day: '2026-01-15' },
         { id: 'f2', text: 'rice', at: 1700003600000, day: '2026-01-15' },
+        { id: 'f3', text: 'late dinner', at: 1699920000000, day: '2026-01-14' }, // an "add to yesterday" entry
       ],
     }
     // export = JSON.stringify(state); import = migrate(JSON.parse(...))

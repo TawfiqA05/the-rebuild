@@ -16,7 +16,7 @@ import { migrate } from './lib/migrate.js'
 import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
 import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
-import { makeFoodEntry, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
+import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -310,12 +310,16 @@ function makeActions(setState, stateRef) {
       }))
     },
     // -- food log (awareness only; never touches score/streaks/votes) --
-    // Returns the created entry so the caller can offer an undo if it wants.
-    addFood(text) {
+    // `targetDay` optionally logs to yesterday (evening default); resolveEntryTime
+    // seals off anything older. Returns the created entry so the caller can undo.
+    addFood(text, targetDay) {
       const clean = String(text || '').trim()
       if (!clean) return null
       const s = stateRef.current
-      const entry = makeFoodEntry({ text: clean, rolloverHour: s.settings.dayRolloverHour })
+      const rolloverHour = s.settings.dayRolloverHour
+      const today = todayKey(rolloverHour)
+      const { at } = resolveEntryTime(targetDay ?? today, { today })
+      const entry = makeFoodEntry({ text: clean, at, rolloverHour })
       setState((prev) => ({ ...prev, food: [...(prev.food || []), entry] }))
       return entry
     },

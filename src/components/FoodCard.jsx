@@ -3,7 +3,8 @@ import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
 import { QuickAddInput, InlineEditText, useCommitOnOutside } from './entryInput.jsx'
-import { foodForDay, groupFoodByBand, frequentFoods } from '../lib/food.js'
+import { foodForDay, groupFoodByBand, frequentFoods, quickAddResetTarget } from '../lib/food.js'
+import { addDaysKey } from '../lib/time.js'
 
 /**
  * The Food card on Today: a plain, awareness-only food log. Type + Enter to log
@@ -23,6 +24,11 @@ export default function FoodCard({ dayKey }) {
   const entries = useMemo(() => foodForDay(state.food, dayKey), [state.food, dayKey])
   const groups = useMemo(() => groupFoodByBand(entries), [entries])
   const chips = useMemo(() => frequentFoods(state.food, dayKey), [state.food, dayKey])
+
+  // Yesterday entries (added via "add to yesterday") show read-only here, but
+  // their time stays tappable so a forgotten meal can be placed within the day.
+  const yesterday = addDaysKey(dayKey, -1)
+  const yesterdayEntries = useMemo(() => foodForDay(state.food, yesterday), [state.food, yesterday])
 
   const [editing, setEditing] = useState(null) // { id, mode: 'text' | 'time' }
 
@@ -49,6 +55,21 @@ export default function FoodCard({ dayKey }) {
       />
     )
 
+  // Yesterday rows are read-only text (no edit, no delete) — only the time is
+  // tappable, and only within yesterday.
+  const renderYesterday = (entry) => (
+    <FoodRow
+      key={entry.id}
+      entry={entry}
+      timeEditing={editing?.id === entry.id && editing.mode === 'time'}
+      onEditTime={(id) => setEditing({ id, mode: 'time' })}
+      onSetTime={(id, hhmm) => setFoodTime(id, hhmm)}
+      onCloseTime={() => setEditing(null)}
+      canEditText={false}
+      canDelete={false}
+    />
+  )
+
   return (
     <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5" style={{ boxShadow: 'var(--shadow-card)' }}>
       <button
@@ -65,7 +86,11 @@ export default function FoodCard({ dayKey }) {
 
       {!collapsed && (
         <div className="mt-2.5 animate-fade">
-          <FoodQuickAdd onAdd={addFood} />
+          <FoodQuickAdd
+            dayKey={dayKey}
+            onAdd={addFood}
+            onYesterdayAdded={(e) => toast(`Added to yesterday · ${e.text}`, () => deleteFood(e.id))}
+          />
 
           {/* Quick re-add — most frequent recent entries, one tap logs now. */}
           {chips.length > 0 && (
@@ -94,23 +119,55 @@ export default function FoodCard({ dayKey }) {
               ))}
             </div>
           )}
+
+          {/* Yesterday — anything logged back a day, read-only but time-tappable. */}
+          {yesterdayEntries.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-[var(--color-line)]">
+              <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1.5">Yesterday</div>
+              <div className="space-y-0.5">{yesterdayEntries.map(renderYesterday)}</div>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function FoodQuickAdd({ onAdd }) {
+function FoodQuickAdd({ dayKey, onAdd, onYesterdayAdded }) {
   const [text, setText] = useState('')
+  const [target, setTarget] = useState('today') // 'today' | 'yesterday'
+  const yesterday = addDaysKey(dayKey, -1)
+  const toYesterday = target === 'yesterday'
+
   const submit = () => {
-    const e = onAdd(text)
+    const e = onAdd(text, toYesterday ? yesterday : dayKey)
     if (!e) return
     setText('')
+    setTarget(quickAddResetTarget()) // one-shot: snap back to today
     if (navigator.vibrate) navigator.vibrate(6)
+    if (toYesterday) onYesterdayAdded(e)
   }
+
   return (
-    <QuickAddInput value={text} onChange={setText} onSubmit={submit}
-      placeholder="What did you eat?" ariaLabel="Log food" />
+    <div>
+      <QuickAddInput value={text} onChange={setText} onSubmit={submit}
+        placeholder={toYesterday ? 'What did you eat yesterday?' : 'What did you eat?'}
+        ariaLabel={toYesterday ? 'Log food to yesterday' : 'Log food'} />
+      {/* Quiet, unbadged one-shot toggle. Clearly labelled while active. */}
+      <div className="mt-1.5 text-[11px]">
+        {toYesterday ? (
+          <span className="text-[var(--color-muted)]">
+            logging to yesterday ·{' '}
+            <button onClick={() => setTarget('today')} className="underline decoration-dotted text-[var(--color-faint)]">back to today</button>
+          </span>
+        ) : (
+          <button onClick={() => setTarget('yesterday')}
+            className="text-[var(--color-faint)] hover:text-[var(--color-muted)] transition">
+            + add to yesterday
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -132,15 +189,19 @@ function FoodTextEditor({ entry, onSave, onCancel }) {
   )
 }
 
-function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onCloseTime, onDelete, onRestore, toast }) {
+function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onCloseTime, onDelete, onRestore, toast, canEditText = true, canDelete = true }) {
   const remove = () => {
     if (navigator.vibrate) navigator.vibrate(15)
     onDelete(entry.id)
     toast(`Deleted · ${entry.text}`, () => onRestore(entry))
   }
   // On the text body: tap edits, long-press deletes — same as tasks. `no-callout`
-  // keeps the iOS selection magnifier from eating the long-press.
-  const body = useLongPress(() => onEditText(entry.id), remove)
+  // keeps the iOS selection magnifier from eating the long-press. When read-only
+  // (yesterday rows) neither handler is armed, so the text is inert.
+  const body = useLongPress(
+    canEditText ? () => onEditText(entry.id) : undefined,
+    canDelete ? remove : undefined,
+  )
 
   return (
     <div className="no-callout flex items-center gap-3 py-1.5">
@@ -166,20 +227,22 @@ function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onClos
       )}
 
       <span
-        {...body}
+        {...(canEditText ? body : {})}
         className="no-callout flex-1 min-w-0"
-        style={{ touchAction: 'pan-y' }}
+        style={canEditText ? { touchAction: 'pan-y' } : undefined}
       >
         <span className="block text-[15px] leading-snug truncate text-[var(--color-fg)]">{entry.text}</span>
       </span>
 
-      <button
-        onClick={remove}
-        aria-label={`Delete ${entry.text}`}
-        className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[36px] grid place-items-center rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
-      >
-        ×
-      </button>
+      {canDelete && (
+        <button
+          onClick={remove}
+          aria-label={`Delete ${entry.text}`}
+          className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[36px] grid place-items-center rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
+        >
+          ×
+        </button>
+      )}
     </div>
   )
 }

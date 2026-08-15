@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   makeFoodEntry, foodForDay, foodBand, groupFoodByBand, frequentFoods,
   daysLoggedCount, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood,
+  resolveEntryTime, quickAddResetTarget,
 } from './food.js'
 import { dayScore, currentStreak } from './logic.js'
 
@@ -113,6 +114,66 @@ describe('frequent quick-add chips', () => {
   it('caps at 6 chips', () => {
     const food = Array.from({ length: 9 }, (_, i) => mk(`item${i}`, 2026, 0, 15, 8 + i))
     expect(frequentFoods(food, '2026-01-15')).toHaveLength(6)
+  })
+})
+
+describe('add to yesterday', () => {
+  const today = '2026-01-15'
+  const yesterday = '2026-01-14'
+
+  // Mirror the store's add path: resolve the time, then build the entry.
+  const addTo = (text, targetDay, now) => {
+    const { at } = resolveEntryTime(targetDay, { today, now })
+    return makeFoodEntry({ text, at, rolloverHour: 3, id: `${text}` })
+  }
+
+  it('lands on yesterday’s day-key, defaulting to the evening', () => {
+    const e = addTo('late dinner', yesterday)
+    expect(e.day).toBe(yesterday)
+    expect(new Date(e.at).getHours()).toBe(19) // sensible evening default
+    // shows in yesterday's detail list, not today's
+    expect(foodForDay([e], yesterday).map((x) => x.text)).toEqual(['late dinner'])
+    expect(foodForDay([e], today)).toEqual([])
+  })
+
+  it('is one-shot — the quick-add target snaps back to today after an add', () => {
+    expect(quickAddResetTarget()).toBe('today')
+  })
+
+  it('can only adjust a yesterday entry within yesterday (day never changes)', () => {
+    const e = addTo('dinner', yesterday)
+    const [morning] = setFoodEntryTime([e], e.id, '07:30')
+    expect(new Date(morning.at).getHours()).toBe(7)
+    expect(morning.day).toBe(yesterday) // still yesterday, never crosses out
+  })
+
+  it('seals off day-before-yesterday and older — they resolve to today', () => {
+    const now = new Date(2026, 0, 15, 10, 30).getTime()
+    for (const older of ['2026-01-13', '2026-01-01', '2020-06-06']) {
+      const r = resolveEntryTime(older, { today, now })
+      expect(r.day).toBe(today)
+      expect(r.at).toBe(now)
+    }
+  })
+
+  it('a yesterday entry is a normal entry — in chips and day counts', () => {
+    const list = [addTo('ramen', yesterday)]
+    expect(frequentFoods(list, today)).toContain('ramen')
+    expect(daysLoggedCount(list)).toBe(1)
+  })
+
+  it('has zero effect on score or streaks, exactly like a today entry', () => {
+    const habit = { id: 'read', type: 'standard', phase: 1, frequency: { kind: 'daily' } }
+    const base = {
+      settings: { dayRolloverHour: 3, currentPhase: 1 },
+      habits: [habit],
+      logs: { '2026-01-14': { read: { status: 'full' } }, '2026-01-15': { read: { status: 'full' } } },
+      days: {}, votes: 0, food: [],
+    }
+    const withYesterdayFood = { ...base, food: [addTo('late dinner', yesterday)] }
+    expect(dayScore(withYesterdayFood, today)).toEqual(dayScore(base, today))
+    expect(currentStreak(withYesterdayFood, habit, today)).toBe(currentStreak(base, habit, today))
+    expect(currentStreak(withYesterdayFood, habit, today)).toBe(2)
   })
 })
 
