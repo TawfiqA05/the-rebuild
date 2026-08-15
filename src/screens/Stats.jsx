@@ -9,6 +9,7 @@ import { lastNKeys } from '../lib/time.js'
 import {
   activeHabits, habitStats, phaseProgress, shouldSuggestUnlock,
 } from '../lib/logic.js'
+import { weekdayInsight, overallWeekday, WEEKDAY_NAMES, WEEKDAY_SHORT } from '../lib/insights.js'
 
 export default function Stats({ navigate }) {
   const { state, today, unlockNextPhase, dismissUnlock } = useStore()
@@ -18,6 +19,7 @@ export default function Stats({ navigate }) {
   const habits = activeHabits(state)
   const [editDay, setEditDay] = useState(null)
   const recentDays = lastNKeys(today, 14).reverse() // most recent first
+  const overall = overallWeekday(state, today)
 
   return (
     <Screen
@@ -73,6 +75,34 @@ export default function Stats({ navigate }) {
             </div>
           )
         )}
+      </Card>
+
+      {/* Insights ---------------------------------------------------------- */}
+      <SectionLabel>Insights</SectionLabel>
+      <Card className="px-4 py-4 text-sm">
+        {overall && (
+          <p className="text-[var(--color-muted)] leading-relaxed">
+            You’re strongest on <b className="text-[var(--color-fg)]">{WEEKDAY_NAMES[overall.best.w]}s</b> ({overall.best.pct}%)
+            and toughest on <b className="text-[var(--color-fg)]">{WEEKDAY_NAMES[overall.worst.w]}s</b> ({overall.worst.pct}%).
+          </p>
+        )}
+        <div className={overall ? 'mt-3 pt-3 border-t border-[var(--color-line)]' : ''}>
+          <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-2">Completion by phase · last 21 days</div>
+          <div className="space-y-1.5">
+            {Array.from({ length: state.settings.currentPhase }, (_, i) => i + 1).map((n) => {
+              const pp = phaseProgress(state, n, today)
+              return (
+                <div key={n} className="flex items-center gap-3">
+                  <span className="text-xs w-32 shrink-0 text-[var(--color-muted)] truncate">Phase {n} · {phaseMeta(n).name}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
+                    <div className="h-full bg-[var(--color-accent)]" style={{ width: `${pp.pct}%` }} />
+                  </div>
+                  <span className="text-xs tabular-nums w-9 text-right">{pp.pct}%</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </Card>
 
       {/* Fix a past day ---------------------------------------------------- */}
@@ -134,6 +164,14 @@ function HabitStatRow({ habit, onPick }) {
             <Legend cls="bg-[var(--color-accent)]/45" label="min" />
             <Legend cls="bg-[var(--color-surface-2)] ring-1 ring-inset ring-[var(--color-line-2)]/60" label="missed" />
           </div>
+          {(() => {
+            const wi = weekdayInsight(state, habit, today)
+            return wi ? (
+              <div className="text-[11px] text-[var(--color-muted)] mt-2">
+                Strongest on {WEEKDAY_SHORT[wi.best.w]} · toughest on {WEEKDAY_SHORT[wi.worst.w]}
+              </div>
+            ) : null
+          })()}
         </div>
       )}
     </Card>
