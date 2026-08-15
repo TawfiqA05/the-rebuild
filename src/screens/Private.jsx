@@ -364,7 +364,7 @@ function Patterns({ entries, waves }) {
                   {e.rodeOut ? '🌊' : '•'}
                 </span>
                 <span className="text-[var(--color-muted)] w-28 shrink-0">{fmtWhen(e.at)}</span>
-                <span className="capitalize flex-1 truncate">{e.trigger}{e.note ? ` — ${e.note}` : ''}</span>
+                <span className="capitalize flex-1 min-w-0 break-words">{e.trigger}{e.note ? ` — ${e.note}` : ''}</span>
               </div>
             ))}
           </div>

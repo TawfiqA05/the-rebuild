@@ -109,7 +109,7 @@ export default function WeeklyReview({ navigate }) {
           return (
             <div key={h.id} className="flex items-center gap-3 px-1">
               <span className="w-6 text-center">{h.emoji}</span>
-              <span className="flex-1 text-sm truncate">{h.name}</span>
+              <span className="flex-1 min-w-0 text-sm break-words">{h.name}</span>
               <div className="w-24 h-1.5 rounded-full bg-[var(--color-line)] overflow-hidden">
                 <div className="h-full bg-[var(--color-accent)]" style={{ width: `${s.pct ?? 0}%` }} />
               </div>

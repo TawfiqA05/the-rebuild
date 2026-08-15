@@ -105,7 +105,7 @@ export default function Stats({ navigate }) {
               const pp = phaseProgress(state, n, today)
               return (
                 <div key={n} className="flex items-center gap-3">
-                  <span className="text-xs w-32 shrink-0 text-[var(--color-muted)] truncate">Phase {n} · {phaseMeta(n).name}</span>
+                  <span className="text-xs w-32 shrink-0 text-[var(--color-muted)] leading-tight break-words">Phase {n} · {phaseMeta(n).name}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
                     <div className="h-full bg-[var(--color-accent)]" style={{ width: `${pp.pct}%` }} />
                   </div>
@@ -156,7 +156,7 @@ function HabitStatRow({ habit, onPick }) {
       <button className="w-full text-left" onClick={() => setOpen((o) => !o)}>
         <div className="flex items-center gap-3">
           <span className="text-xl w-7 text-center">{habit.emoji}</span>
-          <span className="flex-1 font-medium truncate">{habit.name}</span>
+          <span className="flex-1 min-w-0 font-medium break-words">{habit.name}</span>
           <span className="text-sm tabular-nums">
             <span className="text-[var(--color-accent-ink)]">🔥{s.current}</span>
           </span>

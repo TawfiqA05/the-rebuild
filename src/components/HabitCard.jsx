@@ -50,21 +50,21 @@ export default function HabitCard({ habit, dayKey }) {
 
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
-          <span className="font-[500] text-[15.5px] truncate">{habit.name}</span>
+          <span className="font-[500] text-[15.5px] break-words min-w-0">{habit.name}</span>
           {habit.optional && (
             <span className="text-[9px] uppercase tracking-wide text-[var(--color-faint)] border border-[var(--color-line-2)] rounded px-1 py-px">
               optional
             </span>
           )}
         </span>
-        <span className="block text-[12.5px] text-[var(--color-muted)] truncate mt-0.5">
+        <span className="block text-[12.5px] text-[var(--color-muted)] break-words mt-0.5">
           {status === 'min'
             ? `Min rep · ${habit.minVersion}`
             : isWeekly
               ? `${wp.count} of ${wp.target} this week`
               : risk.atRisk
-                ? 'Missed yesterday — lock it in today'
-                : 'Tap the ring · hold for the 2-minute version'}
+                ? 'Missed yesterday — lock it in'
+                : 'Tap the ring · hold for 2-min'}
         </span>
       </span>
 

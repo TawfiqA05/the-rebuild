@@ -222,19 +222,22 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
   const body = useLongPress(canEdit ? () => onEdit(task.id) : undefined, remove)
 
   return (
-    <div className="no-callout flex items-center gap-3 py-1.5">
+    // items-start: on a wrapped multi-line row the ring / × / move stay pinned to
+    // the first line instead of floating in the vertical centre of a tall row.
+    <div className="no-callout flex items-start gap-3 py-1.5">
       {upcoming ? (
-        <span className="shrink-0 w-[40px] -ml-1.5 grid place-items-center text-[var(--color-line-2)]" aria-hidden="true">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-line-2)]" />
+        <span className="shrink-0 w-[40px] -ml-1.5 flex items-start justify-center text-[var(--color-line-2)]" aria-hidden="true">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-line-2)] mt-2" />
         </span>
       ) : (
         <button
           {...ring}
           aria-label={`${done ? 'Reopen' : 'Complete'} ${task.text}`}
-          className="no-callout shrink-0 min-w-[40px] min-h-[40px] grid place-items-center rounded-lg active:scale-90 transition -ml-1.5"
+          className="no-callout shrink-0 min-w-[40px] flex items-start justify-center rounded-lg active:scale-90 transition -ml-1.5"
           style={{ touchAction: 'pan-y' }}
         >
-          <TaskMarker done={done} />
+          {/* nudge up so the 32px marker centres on the ~20px first line */}
+          <span className="-mt-1.5"><TaskMarker done={done} /></span>
         </button>
       )}
 
@@ -246,7 +249,7 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
         className={`no-callout flex-1 min-w-0 transition ${done ? 'opacity-45' : ''}`}
         style={{ touchAction: 'pan-y' }}
       >
-        <span className={`block text-[15px] leading-snug truncate ${done ? 'line-through text-[var(--color-muted)]' : 'text-[var(--color-fg)]'}`}>
+        <span className={`block text-[15px] leading-snug break-words ${done ? 'line-through text-[var(--color-muted)]' : 'text-[var(--color-fg)]'}`}>
           {task.text}
         </span>
         {since && !done && (
@@ -258,7 +261,7 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
         <button
           onClick={() => onMoveToday(task)}
           aria-label={`Move ${task.text} to today`}
-          className="no-callout shrink-0 text-[11px] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] border border-[var(--color-line-2)] rounded-full px-2 py-1 active:scale-95 transition"
+          className="no-callout shrink-0 mt-0.5 text-[11px] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] border border-[var(--color-line-2)] rounded-full px-2 py-1 active:scale-95 transition"
         >
           → Today
         </button>
@@ -268,7 +271,7 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
       <button
         onClick={remove}
         aria-label={`Delete ${task.text}`}
-        className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[36px] grid place-items-center rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
+        className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[26px] flex items-start justify-center pt-0.5 rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
       >
         ×
       </button>

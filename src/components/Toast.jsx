@@ -22,14 +22,16 @@ export function ToastProvider({ children }) {
       {toast && (
         <div
           key={toast.key}
-          className="fixed left-1/2 -translate-x-1/2 z-50 animate-rise"
+          className="fixed left-1/2 -translate-x-1/2 z-50 animate-rise w-max max-w-[92vw]"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 74px)' }}
         >
-          <div className="flex items-center gap-4 rounded-full border border-[var(--color-line)] bg-[var(--color-surface-2)] pl-4 pr-2 py-2 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
-            <span className="text-[13px] text-[var(--color-muted)] whitespace-nowrap">{toast.msg}</span>
+          {/* rounded-3xl reads as a pill on one line and a rounded card when a
+              long entry name wraps — the message never gets clipped. */}
+          <div className="flex items-center gap-3 rounded-3xl border border-[var(--color-line)] bg-[var(--color-surface-2)] pl-4 pr-2 py-2 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+            <span className="text-[13px] text-[var(--color-muted)] min-w-0 break-words">{toast.msg}</span>
             <button
               onClick={() => { toast.onUndo?.(); dismiss() }}
-              className="text-[13px] font-medium text-[var(--color-accent-ink)] px-3 py-1 rounded-full"
+              className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-3 py-1 rounded-full"
             >
               Undo
             </button>

@@ -197,8 +197,8 @@ function HabitManager() {
                   className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-3 text-left transition ${
                     h.archived ? 'border-[var(--color-line)] opacity-45' : 'border-[var(--color-line)]'}`}>
                   <span className="text-lg w-6 text-center">{h.emoji}</span>
-                  <span className="flex-1 text-sm truncate">{h.name}</span>
-                  <span className="text-[10px] text-[var(--color-faint)]">{freqLabel(h.frequency)}</span>
+                  <span className="flex-1 min-w-0 text-sm break-words">{h.name}</span>
+                  <span className="shrink-0 text-[10px] text-[var(--color-faint)]">{freqLabel(h.frequency)}</span>
                   {h.archived && <span className="text-[10px] text-[var(--color-faint)]">archived</span>}
                 </button>
                 {editing === h.id && <HabitEditor habit={h} onClose={() => setEditing(null)} />}

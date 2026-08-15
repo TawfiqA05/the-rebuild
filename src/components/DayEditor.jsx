@@ -50,7 +50,7 @@ export default function DayEditor({ dayKey, onClose }) {
                       {g.entries.map((e) => (
                         <div key={e.id} className="flex items-baseline gap-3 py-0.5">
                           <span className="shrink-0 w-12 text-[12px] tabular-nums text-[var(--color-faint)]">{clock(e.at)}</span>
-                          <span className="flex-1 text-[15px] leading-snug text-[var(--color-fg)]">{e.text}</span>
+                          <span className="flex-1 min-w-0 text-[15px] leading-snug break-words text-[var(--color-fg)]">{e.text}</span>
                         </div>
                       ))}
                     </div>

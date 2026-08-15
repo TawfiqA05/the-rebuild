@@ -99,7 +99,7 @@ export default function FoodCard({ dayKey }) {
                 <button
                   key={c}
                   onClick={() => { addFood(c); if (navigator.vibrate) navigator.vibrate(6) }}
-                  className="no-callout text-[12px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] px-2.5 py-1 active:scale-95 transition"
+                  className="no-callout text-[12px] rounded-2xl border border-[var(--color-line-2)] text-[var(--color-muted)] px-2.5 py-1 max-w-full text-left break-words active:scale-95 transition"
                 >
                   {c}
                 </button>
@@ -204,7 +204,9 @@ function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onClos
   )
 
   return (
-    <div className="no-callout flex items-center gap-3 py-1.5">
+    // items-start keeps the time on the first line and the × pinned to the top
+    // of a wrapped, multi-line entry.
+    <div className="no-callout flex items-start gap-3 py-1.5">
       {timeEditing ? (
         <input
           type="time"
@@ -220,7 +222,7 @@ function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onClos
         <button
           onClick={() => onEditTime(entry.id)}
           aria-label={`Adjust time for ${entry.text}`}
-          className="no-callout shrink-0 w-12 text-left text-[12px] tabular-nums text-[var(--color-faint)] hover:text-[var(--color-muted)] transition"
+          className="no-callout shrink-0 w-12 pt-0.5 text-left text-[12px] leading-snug tabular-nums text-[var(--color-faint)] hover:text-[var(--color-muted)] transition"
         >
           {toClock(entry.at)}
         </button>
@@ -231,14 +233,14 @@ function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onClos
         className="no-callout flex-1 min-w-0"
         style={canEditText ? { touchAction: 'pan-y' } : undefined}
       >
-        <span className="block text-[15px] leading-snug truncate text-[var(--color-fg)]">{entry.text}</span>
+        <span className="block text-[15px] leading-snug break-words text-[var(--color-fg)]">{entry.text}</span>
       </span>
 
       {canDelete && (
         <button
           onClick={remove}
           aria-label={`Delete ${entry.text}`}
-          className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[36px] grid place-items-center rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
+          className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[26px] flex items-start justify-center pt-0.5 rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
         >
           ×
         </button>
