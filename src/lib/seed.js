@@ -169,7 +169,13 @@ export function freshState() {
       dayRolloverHour: 3,        // day rolls over at 3am
       currentPhase: 1,           // highest unlocked phase
       city: 'Fishers, Indiana',
-      pinHash: null,             // private log PIN (hashed)
+      // Single-owner private-log PIN. Salt is random per-device (never in code);
+      // there's no reset except wiping all data. Fails/lock enforce a 1-hour
+      // lockout after 5 wrong attempts, persisted so a reload can't bypass it.
+      pinHash: null,
+      pinSalt: null,
+      pinFails: 0,
+      pinLockUntil: 0,
       dismissedUnlock: {},       // { phaseN: true } — user dismissed the suggestion
       prayerAdjustMin: {},       // manual per-prayer minute offsets
     },

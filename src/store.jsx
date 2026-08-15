@@ -17,6 +17,10 @@ import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
+// Private-log lockout policy.
+const MAX_PIN_FAILS = 5
+const PIN_LOCK_MS = 60 * 60 * 1000 // 1 hour
+
 // --- persistence ------------------------------------------------------------
 
 function loadState() {
@@ -36,6 +40,14 @@ function migrate(state) {
   const base = freshState()
   const merged = { ...base, ...state }
   merged.settings = { ...base.settings, ...(state.settings || {}) }
+  // A PIN from the old static-salt scheme has no per-device salt and can't be
+  // verified anymore. Clear it (private-log entries are kept) so the owner is
+  // re-prompted to set a fresh PIN instead of being locked out with no reset.
+  if (merged.settings.pinHash && !merged.settings.pinSalt) {
+    merged.settings.pinHash = null
+    merged.settings.pinFails = 0
+    merged.settings.pinLockUntil = 0
+  }
   // Add habits that exist in seed but not yet in the saved state (new phases,
   // etc.) without clobbering the user's edits to existing ones.
   const existingIds = new Set((state.habits || []).map((h) => h.id))
@@ -243,15 +255,37 @@ function makeActions(setState, stateRef) {
         },
       }))
     },
-    setPinHash(pinHash) {
-      setState((prev) => ({ ...prev, settings: { ...prev.settings, pinHash } }))
-    },
-    /** Clear the PIN and wipe the private log (used by "Reset PIN"). */
-    resetPrivateLog() {
+    /** Set the one-and-only owner PIN (hash + per-device salt). Clears lockout. */
+    setOwnerPin(pinHash, pinSalt) {
       setState((prev) => ({
         ...prev,
-        settings: { ...prev.settings, pinHash: null },
-        privateLog: { entries: [], waves: [] },
+        settings: { ...prev.settings, pinHash, pinSalt, pinFails: 0, pinLockUntil: 0 },
+      }))
+    },
+    /**
+     * Record a wrong PIN attempt. After MAX_PIN_FAILS in a row, lock the tab for
+     * PIN_LOCK_MS. The count/lock live in persisted settings so reloading the app
+     * can't reset the strike count or skip the lockout.
+     */
+    registerPinFailure() {
+      setState((prev) => {
+        const fails = (prev.settings.pinFails || 0) + 1
+        const locked = fails >= MAX_PIN_FAILS
+        return {
+          ...prev,
+          settings: {
+            ...prev.settings,
+            pinFails: locked ? 0 : fails,
+            pinLockUntil: locked ? Date.now() + PIN_LOCK_MS : (prev.settings.pinLockUntil || 0),
+          },
+        }
+      })
+    },
+    /** Reset strikes + lockout (called on a successful unlock). */
+    clearPinFailures() {
+      setState((prev) => ({
+        ...prev,
+        settings: { ...prev.settings, pinFails: 0, pinLockUntil: 0 },
       }))
     },
 

@@ -7,9 +7,9 @@ import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-export default function Settings() {
+export default function Settings({ onRevealPrivate }) {
   const {
-    state, updateSettings, unlockNextPhase, setPhase, resetPrivateLog,
+    state, updateSettings, unlockNextPhase, setPhase,
     exportJSON, importJSON, resetAll,
   } = useStore()
   const s = state.settings
@@ -73,30 +73,53 @@ export default function Settings() {
       <SectionLabel>Prayer times</SectionLabel>
       <PrayerTimes />
 
-      {/* Private log PIN --------------------------------------------------- */}
-      <SectionLabel>Private log</SectionLabel>
-      <Card className="px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium">{s.pinHash ? 'PIN is set' : 'No PIN set'}</div>
-            <div className="text-xs text-[var(--color-muted)]">Stored as a hash, never plain text.</div>
-          </div>
-          {s.pinHash && (
-            <Button variant="danger" onClick={() => {
-              if (confirm('Reset the PIN? This also clears everything in the private log.')) resetPrivateLog()
-            }}>Reset PIN</Button>
-          )}
-        </div>
-      </Card>
-
       {/* Backup ------------------------------------------------------------ */}
       <SectionLabel>Backup & data</SectionLabel>
       <BackupControls exportJSON={exportJSON} importJSON={importJSON} resetAll={resetAll} />
 
-      <p className="text-center text-[11px] text-[var(--color-faint)] mt-8">
-        The Rebuild · everything stays on this device.
-      </p>
+      {/* Version — tap 5× to reveal the owner-only Private tab -------------- */}
+      <VersionTapper onReveal={onRevealPrivate} />
     </Screen>
+  )
+}
+
+const APP_VERSION = '0.1.0'
+
+/**
+ * The app version, doubling as the hidden entry point to the Private tab.
+ * Tap it 5 times (within a few seconds) to reveal the tab for this session.
+ * No visible hint before then — the tab is meant to be discoverable only by
+ * the owner who knows the gesture.
+ */
+function VersionTapper({ onReveal }) {
+  const [count, setCount] = useState(0)
+  const [revealed, setRevealed] = useState(false)
+  const timer = useRef(null)
+
+  const tap = () => {
+    if (revealed) return
+    const n = count + 1
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCount(0), 1500)
+    if (n >= 5) {
+      setRevealed(true)
+      setCount(0)
+      if (navigator.vibrate) navigator.vibrate([10, 40, 10])
+      onReveal?.()
+    } else {
+      setCount(n)
+    }
+  }
+
+  return (
+    <button onClick={tap} className="w-full text-center mt-8 select-none">
+      <div className="text-[11px] text-[var(--color-faint)]">
+        The Rebuild · v{APP_VERSION} · everything stays on this device
+      </div>
+      {revealed && (
+        <div className="text-[11px] text-[var(--color-accent)] mt-1 animate-fade">Private tab revealed</div>
+      )}
+    </button>
   )
 }
 

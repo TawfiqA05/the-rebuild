@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { hashPin, verifyPin } from '../lib/crypto.js'
+import { generateSalt, hashPin, verifyPin } from '../lib/crypto.js'
 import { URGE_PROMPTS } from '../lib/seed.js'
 import { Screen, Card, SectionLabel, Button, TextInput, TextArea } from '../components/ui.jsx'
 
+const MAX_PIN_FAILS = 5
+
 /**
- * The private log is PIN-gated and deliberately neutral — zero shame language.
- * It's a space to log urges/slips for a habit being broken, and to *ride out*
- * urges with a 20-minute timer. The PIN is stored only as a SHA-256 hash
- * (see lib/crypto.js); the raw PIN never touches localStorage. Unlock state
- * lives in component memory only, so it re-locks on reload.
+ * The private log is a single-owner space: exactly one PIN, set by the owner on
+ * first use, stored as a salted SHA-256 hash on this device only (see
+ * lib/crypto.js — the salt is random per install, never in the code). There is
+ * no change-PIN and no reset; the only way to clear it is wiping all app data.
+ * Five wrong attempts locks the tab for an hour (enforced in the store, and
+ * persisted so a reload can't bypass it). Unlock state lives in component memory
+ * only, so it re-locks on reload.
  */
 export default function Private() {
   const { state } = useStore()
@@ -23,7 +27,7 @@ export default function Private() {
 // --- PIN screens ------------------------------------------------------------
 
 function CreatePin({ onCreated }) {
-  const { setPinHash } = useStore()
+  const { setOwnerPin } = useStore()
   const [a, setA] = useState('')
   const [b, setB] = useState('')
   const [err, setErr] = useState('')
@@ -31,42 +35,91 @@ function CreatePin({ onCreated }) {
   const submit = async () => {
     if (a.length < 4) return setErr('Use at least 4 digits.')
     if (a !== b) return setErr('The two entries don’t match.')
-    setPinHash(await hashPin(a))
+    const salt = generateSalt()
+    setOwnerPin(await hashPin(a, salt), salt)
     onCreated()
   }
 
   return (
-    <Screen title="Private log" subtitle="Set a PIN. It’s stored hashed — never in plain text.">
+    <Screen title="Set your PIN" subtitle="This device is now the owner. Choose one PIN.">
       <Card className="px-4 py-4 space-y-3">
-        <PinField label="Choose a PIN" value={a} onChange={setA} />
+        <PinField label="Choose a PIN" value={a} onChange={setA} autoFocus />
         <PinField label="Confirm PIN" value={b} onChange={setB} />
         {err && <div className="text-xs text-[var(--color-min)]">{err}</div>}
         <Button variant="primary" className="w-full" onClick={submit}>Set PIN & open</Button>
-        <p className="text-[11px] text-[var(--color-faint)]">
-          Forgot it later? You can reset from Settings (this clears the private log).
-        </p>
+        <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2.5">
+          <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
+            <b className="text-[var(--color-fg)]">This is the one and only PIN.</b> It’s stored as a
+            salted hash on this device — never in plain text, never in the cloud. There is no
+            change or reset: the only way to clear it is <b>Settings → Reset everything</b>, which
+            wipes all app data. So pick something you won’t forget.
+          </p>
+        </div>
       </Card>
     </Screen>
   )
 }
 
 function UnlockPin({ onUnlock }) {
-  const { state } = useStore()
+  const { state, registerPinFailure, clearPinFailures } = useStore()
+  const { pinHash, pinSalt, pinFails = 0, pinLockUntil = 0 } = state.settings
   const [pin, setPin] = useState('')
   const [err, setErr] = useState('')
+  const [now, setNow] = useState(Date.now())
+
+  const locked = now < pinLockUntil
+
+  // Tick once a second while locked so the countdown updates and auto-clears.
+  useEffect(() => {
+    if (!locked) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [locked])
 
   const submit = async () => {
-    if (await verifyPin(pin, state.settings.pinHash)) onUnlock()
-    else { setErr('Not quite. Try again.'); setPin('') }
+    if (locked) return
+    if (await verifyPin(pin, pinSalt, pinHash)) {
+      clearPinFailures()
+      onUnlock()
+    } else {
+      registerPinFailure()
+      setPin('')
+      const left = MAX_PIN_FAILS - (pinFails + 1)
+      setErr(left > 0
+        ? `Incorrect. ${left} attempt${left === 1 ? '' : 's'} left.`
+        : 'Too many attempts. Locked for 1 hour.')
+    }
+  }
+
+  if (locked) {
+    const mins = Math.ceil((pinLockUntil - now) / 60000)
+    return (
+      <Screen title="Private log" subtitle="Temporarily locked.">
+        <Card className="px-4 py-8 text-center">
+          <div className="text-4xl mb-3">⏳</div>
+          <div className="font-medium">Too many attempts</div>
+          <div className="text-sm text-[var(--color-muted)] mt-1">
+            Locked for another <b className="text-[var(--color-fg)]">{mins} minute{mins === 1 ? '' : 's'}</b>.
+          </div>
+          <div className="text-[11px] text-[var(--color-faint)] mt-3">
+            The only reset is wiping all app data in Settings.
+          </div>
+        </Card>
+      </Screen>
+    )
   }
 
   return (
     <Screen title="Private log" subtitle="Enter your PIN.">
       <Card className="px-4 py-4 space-y-3">
-        <PinField label="PIN" value={pin} onChange={setPin} autoFocus
-          onEnter={submit} />
+        <PinField label="PIN" value={pin} onChange={setPin} autoFocus onEnter={submit} />
         {err && <div className="text-xs text-[var(--color-min)]">{err}</div>}
         <Button variant="primary" className="w-full" onClick={submit}>Unlock</Button>
+        {pinFails > 0 && (
+          <p className="text-[11px] text-[var(--color-faint)] text-center">
+            {MAX_PIN_FAILS - pinFails} attempt{MAX_PIN_FAILS - pinFails === 1 ? '' : 's'} left before a 1-hour lock.
+          </p>
+        )}
       </Card>
     </Screen>
   )
