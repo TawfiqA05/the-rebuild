@@ -17,6 +17,20 @@ import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
+// Some browsers (private mode, storage disabled) throw on any localStorage
+// access. Detect it once so the app can run in-memory and warn instead of
+// white-screening.
+export const storageAvailable = (() => {
+  try {
+    const t = '__rebuild_probe__'
+    localStorage.setItem(t, '1')
+    localStorage.removeItem(t)
+    return true
+  } catch {
+    return false
+  }
+})()
+
 // Private-log lockout policy.
 const MAX_PIN_FAILS = 5
 const PIN_LOCK_MS = 60 * 60 * 1000 // 1 hour

@@ -26,6 +26,7 @@ export default function HabitCard({ habit, dayKey }) {
   // either direction is one tap to reverse.
   const set = (next) => {
     const prev = status
+    if (navigator.vibrate) navigator.vibrate(6) // a light tick where the browser allows it
     setHabitStatus(dayKey, habit.id, next)
     const label = next === 'full' ? 'full rep' : next === 'min' ? 'min rep' : 'cleared'
     toast(`${habit.name} · ${label}`, () => setHabitStatus(dayKey, habit.id, prev))

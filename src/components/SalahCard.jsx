@@ -68,6 +68,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
 
   const onTap = () => {
     const next = nextSalah(value)
+    if (navigator.vibrate) navigator.vibrate(6)
     setSalah(dayKey, p, next)
     const label = next === 'ontime' ? 'on time' : next === 'late' ? 'late' : 'cleared'
     toast(`${SALAH_LABELS[p]} · ${label}`, () => setSalah(dayKey, p, value ?? null))
@@ -83,6 +84,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
   return (
     <button
       {...press}
+      aria-label={`${SALAH_LABELS[p]}: ${value === 'ontime' ? 'on time' : value === 'late' ? 'late' : 'not prayed'}`}
       className={`press no-callout relative rounded-xl border py-2.5 flex flex-col items-center gap-0.5 ${cls}`}
       style={{ touchAction: 'pan-y' }}
     >

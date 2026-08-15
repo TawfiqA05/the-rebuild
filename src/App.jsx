@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { StoreProvider, useStore } from './store.jsx'
+import { StoreProvider, useStore, storageAvailable } from './store.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import Welcome from './screens/Welcome.jsx'
 import Today from './screens/Today.jsx'
@@ -48,6 +48,11 @@ function AppShell() {
 
   return (
     <div className="min-h-[100dvh] bg-[var(--color-ink)]">
+      {!storageAvailable && (
+        <div className="bg-[var(--color-min-soft)] text-[var(--color-min)] text-[12.5px] text-center px-4 py-2 leading-snug">
+          Storage is blocked in this browser, so nothing you log will be saved. Try leaving private mode.
+        </div>
+      )}
       <main>
         {activeScreen === 'today' && <Today navigate={navigate} />}
         {activeScreen === 'stats' && <Stats navigate={navigate} />}

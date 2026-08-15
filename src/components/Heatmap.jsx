@@ -46,7 +46,7 @@ export default function Heatmap({ habit, weeks = 20, onPick }) {
         <div key={i} className="flex flex-col gap-[3px]">
           {col.map((d) => (
             (onPick && d.kind !== 'future')
-              ? <button key={d.key} title={d.key} onClick={() => onPick(d.key)}
+              ? <button key={d.key} title={d.key} aria-label={`Edit ${d.key}`} onClick={() => onPick(d.key)}
                   className={`w-2.5 h-2.5 rounded-[3px] transition-colors ${cell[d.kind]}`} />
               : <div key={d.key} title={d.key} className={`w-2.5 h-2.5 rounded-[3px] transition-colors ${cell[d.kind]}`} />
           ))}
