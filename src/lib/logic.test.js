@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { dayKeyFor, addDaysKey } from './time.js'
 import {
   currentStreak, longestStreak, riskSignals,
-  isMVDWin, daySurvives, salahSummary,
+  isMVDWin, daySurvives, salahSummary, dayScore,
 } from './logic.js'
 
 // These tests pin down the rules the whole app leans on. If someone changes the
@@ -168,5 +168,33 @@ describe('salahSummary', () => {
   })
   it('four prayed is not done', () => {
     expect(salahSummary({ fajr: 'ontime', dhuhr: 'late', asr: 'ontime', maghrib: 'late' }).done).toBe(false)
+  })
+})
+
+describe('daily score respects the active phase', () => {
+  // two Phase 1 dailies and one Phase 3 daily that's still locked
+  const habits = [
+    { id: 'a', type: 'standard', phase: 1, frequency: { kind: 'daily' } },
+    { id: 'b', type: 'standard', phase: 1, frequency: { kind: 'daily' } },
+    { id: 'c', type: 'standard', phase: 3, frequency: { kind: 'daily' } },
+  ]
+  const day = '2026-01-15'
+  const withPhase = (currentPhase) => ({
+    settings: { dayRolloverHour: 3, currentPhase },
+    habits,
+    logs: { [day]: { a: { status: 'full' } } }, // only 'a' done
+    days: {},
+    votes: 0,
+  })
+
+  it('on Phase 1, the locked Phase 3 habit is not in the denominator', () => {
+    const { done, total } = dayScore(withPhase(1), day)
+    expect(total).toBe(2) // a and b, not c
+    expect(done).toBe(1)  // a
+  })
+
+  it('once Phase 3 is unlocked, that habit counts', () => {
+    const { total } = dayScore(withPhase(3), day)
+    expect(total).toBe(3)
   })
 })

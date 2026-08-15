@@ -101,9 +101,13 @@ export function weekProgress(state, habit, dayKey) {
  * elsewhere and don't count here.
  */
 export function dayScore(state, dayKey) {
+  // Only phases you've unlocked count toward the score. A Phase 1 user shouldn't
+  // see "3 / 18" because habits from Phase 5 are sitting locked in the denominator.
+  const activePhase = state.settings.currentPhase ?? 5
   let done = 0
   let total = 0
   for (const h of state.habits) {
+    if ((h.phase ?? 1) > activePhase) continue
     if (!isRequiredOnDay(h, dayKey)) continue
     total++
     if (isDone(habitStatusOn(state, h, dayKey))) done++
