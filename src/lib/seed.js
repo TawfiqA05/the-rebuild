@@ -172,11 +172,13 @@ export const URGE_PROMPTS = [
 export function freshState() {
   const now = new Date().toISOString()
   return {
-    version: 1,
+    version: 2,
     settings: {
       dayRolloverHour: 3,        // day rolls over at 3am
       currentPhase: 1,           // highest unlocked phase
       city: 'Fishers, Indiana',
+      foodCollapsed: false,      // Food card collapsed? remembered per-day…
+      foodCollapsedDay: null,    // …but only for this day; a new day reopens it
       // Single-owner private-log PIN. Salt is random per-device (never in code);
       // there's no reset except wiping all data. Fails/lock enforce a 1-hour
       // lockout after 5 wrong attempts, persisted so a reload can't bypass it.
@@ -201,5 +203,6 @@ export function freshState() {
     wins: [],                    // proud moments, shown back on rough days
     tasks: [],                   // one-off to-dos — separate from habits, no streaks
     myQuotes: [],                // my own lines, merged into the Daily anchor pool
+    food: [],                    // plain food log — awareness only, no scoring
   }
 }

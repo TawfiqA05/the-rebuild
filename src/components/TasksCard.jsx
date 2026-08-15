@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
+import { QuickAddInput, InlineEditText, useCommitOnOutside } from './entryInput.jsx'
 import { visibleTasks, carryOverLabel, upcomingTasks, groupByDueDay } from '../lib/tasks.js'
 import { addDaysKey, prettyDate } from '../lib/time.js'
 
@@ -120,30 +121,11 @@ function QuickAdd({ dayKey, onAdd }) {
   }
 
   return (
-    <div>
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-ink-2)] px-3 py-2 focus-within:border-[var(--color-accent)]/60 transition">
-        <span className="text-[var(--color-faint)] text-sm shrink-0">＋</span>
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
-          placeholder="Add a task…"
-          aria-label="Add a task"
-          className="flex-1 min-w-0 bg-transparent text-[15px] text-[var(--color-fg)] placeholder:text-[var(--color-faint)] outline-none"
-        />
-        {text.trim() && (
-          <button onClick={submit} aria-label="Add task"
-            className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">Add</button>
-        )}
-      </div>
-
+    <QuickAddInput value={text} onChange={setText} onSubmit={submit}
+      placeholder="Add a task…" ariaLabel="Add a task">
       {/* Due-day control — quiet, only shown while composing. Default is today. */}
-      {text.trim() && (
-        <div className="mt-2 animate-fade">
-          <DueControl due={due} setDue={setDue} dayKey={dayKey} />
-        </div>
-      )}
-    </div>
+      <DueControl due={due} setDue={setDue} dayKey={dayKey} />
+    </QuickAddInput>
   )
 }
 
@@ -203,32 +185,11 @@ function TaskEditor({ task, dayKey, onSave, onCancel }) {
     if (!t) return onCancel()               // empty cancels, never deletes
     onSave({ text: t, dueDay: latest.current.due })
   }
-
-  // Tapping away (anywhere outside this editor) saves.
-  useEffect(() => {
-    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) commit() }
-    document.addEventListener('pointerdown', onDown, true)
-    return () => document.removeEventListener('pointerdown', onDown, true)
-  }, [])
+  useCommitOnOutside(ref, commit) // tapping away saves
 
   return (
     <div ref={ref} className="py-1.5">
-      <div className="flex items-center gap-2">
-        <input
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commit() }
-            else if (e.key === 'Escape') onCancel()
-          }}
-          aria-label="Edit task"
-          className="flex-1 min-w-0 rounded-lg border border-[var(--color-line)] bg-[var(--color-ink-2)] px-3 py-2 text-[15px]
-            text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]/60 transition"
-        />
-        <button onClick={commit} aria-label="Save task"
-          className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">Save</button>
-      </div>
+      <InlineEditText value={text} onChange={setText} onCommit={commit} onCancel={onCancel} ariaLabel="Edit task" />
       <div className="mt-2">
         <DueControl due={due} setDue={setDue} dayKey={dayKey} />
       </div>

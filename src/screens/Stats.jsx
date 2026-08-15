@@ -11,6 +11,7 @@ import {
 } from '../lib/logic.js'
 import { weekdayInsight, overallWeekday, WEEKDAY_NAMES, WEEKDAY_SHORT } from '../lib/insights.js'
 import { completedTaskCount } from '../lib/tasks.js'
+import { daysLoggedCount } from '../lib/food.js'
 
 export default function Stats({ navigate }) {
   const { state, today, unlockNextPhase, dismissUnlock } = useStore()
@@ -37,9 +38,14 @@ export default function Stats({ navigate }) {
         <div className="text-xs text-[var(--color-muted)] mt-1">
           Every completion, ever. This number only goes up.
         </div>
-        {completedTaskCount(state.tasks) > 0 && (
-          <div className="text-xs text-[var(--color-faint)] mt-3 pt-3 border-t border-[var(--color-line)]">
-            <span className="tabular-nums text-[var(--color-muted)]">{completedTaskCount(state.tasks).toLocaleString()}</span> one-off tasks finished
+        {(completedTaskCount(state.tasks) > 0 || daysLoggedCount(state.food) > 0) && (
+          <div className="text-xs text-[var(--color-faint)] mt-3 pt-3 border-t border-[var(--color-line)] space-y-0.5">
+            {completedTaskCount(state.tasks) > 0 && (
+              <div><span className="tabular-nums text-[var(--color-muted)]">{completedTaskCount(state.tasks).toLocaleString()}</span> one-off tasks finished</div>
+            )}
+            {daysLoggedCount(state.food) > 0 && (
+              <div><span className="tabular-nums text-[var(--color-muted)]">{daysLoggedCount(state.food).toLocaleString()}</span> days food logged</div>
+            )}
           </div>
         )}
       </Card>

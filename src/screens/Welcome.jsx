@@ -36,7 +36,8 @@ export default function Welcome() {
             bad day you shrink it instead of skipping it.
           </p>
           <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">
-            Add one-off tasks for the day alongside your habits — they don’t affect your streaks.
+            Add one-off tasks alongside your habits, and jot down what you eat — both sit off to the
+            side and never affect your streaks.
           </p>
           <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">
             Everything stays on your device. No account, nothing to sign up for.

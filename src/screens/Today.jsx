@@ -9,6 +9,7 @@ import {
 import HabitCard from '../components/HabitCard.jsx'
 import SalahCard from '../components/SalahCard.jsx'
 import TasksCard from '../components/TasksCard.jsx'
+import FoodCard from '../components/FoodCard.jsx'
 import AnchorCard from '../components/AnchorCard.jsx'
 
 // The Phase-1 anchors, shown as a compact emoji row in the score header.
@@ -153,6 +154,11 @@ export default function Today({ navigate }) {
       {/* Tasks — one-off to-dos, alongside the routines but off the scoreboard */}
       <div className="mt-4">
         <TasksCard dayKey={today} />
+      </div>
+
+      {/* Food — a plain awareness log, no numbers and off the scoreboard too */}
+      <div className="mt-3">
+        <FoodCard dayKey={today} />
       </div>
 
       {/* Evening shutdown entry (emphasized after 8pm) --------------------- */}

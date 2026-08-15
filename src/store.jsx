@@ -11,10 +11,12 @@
 // ---------------------------------------------------------------------------
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { freshState, SEED_HABITS } from './lib/seed.js'
+import { freshState } from './lib/seed.js'
+import { migrate } from './lib/migrate.js'
 import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
 import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
+import { makeFoodEntry, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -48,39 +50,6 @@ function loadState() {
     console.warn('Failed to load state, starting fresh:', err)
     return freshState()
   }
-}
-
-/** Merge any newly-shipped seed habits / settings into an older saved state. */
-function migrate(state) {
-  const base = freshState()
-  const merged = { ...base, ...state }
-  merged.settings = { ...base.settings, ...(state.settings || {}) }
-  // Any state we're migrating already belongs to a real user — never show them
-  // onboarding. Only a truly fresh install (which skips migrate) starts false.
-  merged.settings.onboarded = state.settings?.onboarded ?? true
-  // A PIN from the old static-salt scheme has no per-device salt and can't be
-  // verified anymore. Clear it (private-log entries are kept) so the owner is
-  // re-prompted to set a fresh PIN instead of being locked out with no reset.
-  if (merged.settings.pinHash && !merged.settings.pinSalt) {
-    merged.settings.pinHash = null
-    merged.settings.pinFails = 0
-    merged.settings.pinLockUntil = 0
-  }
-  // Add habits that exist in seed but not yet in the saved state (new phases,
-  // etc.) without clobbering the user's edits to existing ones.
-  const existingIds = new Set((state.habits || []).map((h) => h.id))
-  const addl = SEED_HABITS
-    .filter((h) => !existingIds.has(h.id))
-    .map((h) => ({ ...h, archived: false, createdAt: new Date().toISOString() }))
-  merged.habits = [...(state.habits || []), ...addl]
-  merged.logs = state.logs || {}
-  merged.days = state.days || {}
-  merged.privateLog = state.privateLog || { entries: [], waves: [] }
-  merged.votes = typeof state.votes === 'number' ? state.votes : 0
-  merged.wins = Array.isArray(state.wins) ? state.wins : []
-  merged.tasks = Array.isArray(state.tasks) ? state.tasks : []
-  merged.myQuotes = Array.isArray(state.myQuotes) ? state.myQuotes : []
-  return merged
 }
 
 function saveState(state) {
@@ -340,6 +309,40 @@ function makeActions(setState, stateRef) {
         }),
       }))
     },
+    // -- food log (awareness only; never touches score/streaks/votes) --
+    // Returns the created entry so the caller can offer an undo if it wants.
+    addFood(text) {
+      const clean = String(text || '').trim()
+      if (!clean) return null
+      const s = stateRef.current
+      const entry = makeFoodEntry({ text: clean, rolloverHour: s.settings.dayRolloverHour })
+      setState((prev) => ({ ...prev, food: [...(prev.food || []), entry] }))
+      return entry
+    },
+    /** Edit an entry's text only — id, timestamp, and day are preserved. */
+    updateFood(id, text) {
+      setState((prev) => ({ ...prev, food: updateFoodText(prev.food, id, text) }))
+    },
+    /** Backdate an entry within its day by setting its "HH:MM". */
+    setFoodTime(id, hhmm) {
+      setState((prev) => ({ ...prev, food: setFoodEntryTime(prev.food, id, hhmm) }))
+    },
+    deleteFood(id) {
+      setState((prev) => ({ ...prev, food: deleteFoodById(prev.food, id) }))
+    },
+    /** Re-insert a food entry exactly as it was (used to undo a delete). */
+    restoreFood(entry) {
+      if (!entry) return
+      setState((prev) => ({ ...prev, food: insertFood(prev.food, entry) }))
+    },
+    /** Remember the Food card's collapsed state, scoped to `dayKey`. */
+    setFoodCollapsed(collapsed, dayKey) {
+      setState((prev) => ({
+        ...prev,
+        settings: { ...prev.settings, foodCollapsed: collapsed, foodCollapsedDay: dayKey },
+      }))
+    },
+
     // -- my quotes (added to the Daily anchor's curated pool) --
     addMyQuote(text) {
       const t = String(text || '').trim()

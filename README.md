@@ -55,6 +55,11 @@ Two things round out the day without touching the discipline machinery:
   curated set of verified quotes (with your own additions from Settings) and,
   once you've logged enough, your own past wins and journal lines — which it
   leans on during rough-day and restart states.
+- **Food log.** A plain, awareness-only card on Today: type what you ate and it's
+  timestamped and grouped under quiet time-of-day headers. Text only — no photos,
+  calories, macros, goals, windows, or streaks, and it never touches the score.
+  Frequent items become one-tap re-add chips; a day with nothing logged is
+  neutral, not a warning.
 
 ## Run it
 
