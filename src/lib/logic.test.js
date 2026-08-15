@@ -218,3 +218,24 @@ describe('un-checking today recalculates the derived state', () => {
     expect(riskSignals(risky, read, '2026-01-15').atRisk).toBe(true)
   })
 })
+
+describe('fixing a past day reconnects streaks', () => {
+  const read = daily('read')
+
+  it('filling a missed middle day joins the two runs', () => {
+    // 11,12 done, 13 missed, 14,15 done → current run is just 14,15
+    const gap = makeState({
+      '2026-01-11': { read: 'full' }, '2026-01-12': { read: 'full' },
+      '2026-01-14': { read: 'full' }, '2026-01-15': { read: 'full' },
+    }, [read])
+    expect(currentStreak(gap, read, '2026-01-15')).toBe(2)
+
+    // go back and fix the 13th
+    const fixed = makeState({
+      '2026-01-11': { read: 'full' }, '2026-01-12': { read: 'full' }, '2026-01-13': { read: 'full' },
+      '2026-01-14': { read: 'full' }, '2026-01-15': { read: 'full' },
+    }, [read])
+    expect(currentStreak(fixed, read, '2026-01-15')).toBe(5)
+    expect(longestStreak(fixed, read, '2026-01-15')).toBe(5)
+  })
+})

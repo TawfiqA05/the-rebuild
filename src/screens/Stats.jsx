@@ -4,6 +4,8 @@ import { phaseMeta } from '../lib/seed.js'
 import { Screen, Card, SectionLabel, Button, ProgressBar } from '../components/ui.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import WinsCard from '../components/WinsCard.jsx'
+import DayEditor from '../components/DayEditor.jsx'
+import { lastNKeys } from '../lib/time.js'
 import {
   activeHabits, habitStats, phaseProgress, shouldSuggestUnlock,
 } from '../lib/logic.js'
@@ -14,6 +16,8 @@ export default function Stats({ navigate }) {
   const pp = phaseProgress(state, state.settings.currentPhase, today)
   const suggest = shouldSuggestUnlock(state, today)
   const habits = activeHabits(state)
+  const [editDay, setEditDay] = useState(null)
+  const recentDays = lastNKeys(today, 14).reverse() // most recent first
 
   return (
     <Screen
@@ -71,16 +75,36 @@ export default function Stats({ navigate }) {
         )}
       </Card>
 
+      {/* Fix a past day ---------------------------------------------------- */}
+      <SectionLabel>Fix a past day</SectionLabel>
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {recentDays.map((k) => (
+          <button key={k} onClick={() => setEditDay(k)}
+            className="shrink-0 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-center active:scale-95 transition">
+            <div className="text-[10px] uppercase tracking-wide text-[var(--color-faint)]">{dayName(k)}</div>
+            <div className="text-sm font-medium tabular-nums">{k.slice(-2)}</div>
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-[var(--color-faint)] mt-1.5">Tap a day to fix a forgotten check-in. Streaks recalculate from the corrected history.</p>
+
       {/* Per-habit ---------------------------------------------------------- */}
       <SectionLabel>Habits</SectionLabel>
       <div className="space-y-2.5">
-        {habits.map((h) => <HabitStatRow key={h.id} habit={h} />)}
+        {habits.map((h) => <HabitStatRow key={h.id} habit={h} onPick={setEditDay} />)}
       </div>
+
+      {editDay && <DayEditor dayKey={editDay} onClose={() => setEditDay(null)} />}
     </Screen>
   )
 }
 
-function HabitStatRow({ habit }) {
+function dayName(key) {
+  const [y, m, d] = key.split('-').map(Number)
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(y, m - 1, d).getDay()]
+}
+
+function HabitStatRow({ habit, onPick }) {
   const { state, today } = useStore()
   const s = habitStats(state, habit, today)
   const [open, setOpen] = useState(false)
@@ -104,7 +128,7 @@ function HabitStatRow({ habit }) {
       </button>
       {open && (
         <div className="mt-3 pt-3 border-t border-[var(--color-line)] animate-fade">
-          <Heatmap habit={habit} />
+          <Heatmap habit={habit} onPick={onPick} />
           <div className="flex gap-3 text-[10px] text-[var(--color-faint)] mt-2">
             <Legend cls="bg-[var(--color-accent)]" label="full" />
             <Legend cls="bg-[var(--color-accent)]/45" label="min" />
