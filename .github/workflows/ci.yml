@@ -1,6 +1,6 @@
-# Build check for pull requests — verifies the app still builds before merge.
-# Pushes to main are built + deployed by deploy.yml, so this only runs on PRs
-# (and on-demand) to avoid building twice on every push.
+# Build + test check for pull requests, before anything merges to main.
+# Pushes to main are built, tested, and deployed by deploy.yml, so this runs on
+# PRs (and on demand) to catch a broken build or a broken rule early.
 
 name: CI
 
@@ -13,16 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run tests
+        run: npm test
 
       - name: Build
         run: npm run build
