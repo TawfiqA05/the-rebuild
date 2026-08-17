@@ -72,10 +72,14 @@ export default function HabitCard({ habit, dayKey }) {
         </span>
       </span>
 
-      {/* The only tap target — a roomy pressable zone around the marker. */}
+      {/* The only tap target — a roomy pressable zone around the marker. The
+          label carries the current state so a screen reader announces it. */}
       <button
         {...press}
-        aria-label={t('habit.log', { name })}
+        aria-label={`${t('habit.log', { name })} — ${
+          status === 'full' ? t('habit.toastFull') : status === 'min' ? t('habit.toastMin') : t('habit.hint')
+        }`}
+        aria-pressed={done}
         className="no-callout shrink-0 min-w-[48px] min-h-[48px] -mr-1.5 grid place-items-center rounded-xl active:scale-90 transition"
         style={{ touchAction: 'pan-y' }}
       >

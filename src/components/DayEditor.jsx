@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store.jsx'
 import { fmtFullDate } from '../lib/time.js'
@@ -16,6 +17,15 @@ import { useT } from '../i18n.jsx'
 export default function DayEditor({ dayKey, onClose }) {
   const { state } = useStore()
   const { t, language } = useT()
+  const panelRef = useRef(null)
+
+  // Move focus into the sheet on open and close it on Escape.
+  useEffect(() => {
+    panelRef.current?.focus()
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
   // Show the habits scheduled that day PLUS any that already have a check-in
   // logged that day — even if since archived or off-schedule — so a past
   // completion can always be toggled back off, not just added.
@@ -36,8 +46,13 @@ export default function DayEditor({ dayKey, onClose }) {
     <div className="fixed inset-0 z-40 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/25" onClick={onClose} />
       <div
+        ref={panelRef}
         data-testid="day-editor"
-        className="relative w-full max-w-md bg-[var(--color-ink)] rounded-t-3xl border-t border-[var(--color-line)] max-h-[85dvh] flex flex-col animate-rise"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('day.fixTitle')}
+        tabIndex={-1}
+        className="relative w-full max-w-md bg-[var(--color-ink)] rounded-t-3xl border-t border-[var(--color-line)] max-h-[85dvh] flex flex-col animate-rise outline-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-[var(--color-line)]">

@@ -207,8 +207,9 @@ function ScoreCard({ state, today, done, total }) {
         </div>
 
         {/* Four anchors — the load-bearing walls, lit as they're completed.
-            Salah drops out when the Islamic layer is off. */}
-        <div className="flex items-center gap-2">
+            Salah drops out when the Islamic layer is off. Decorative: the same
+            state is announced by the habit cards below, so hide from readers. */}
+        <div className="flex items-center gap-2" aria-hidden="true">
           {ANCHORS.filter((a) => a.key !== 'salah' || state.settings.includeIslamic !== false).map((a) => {
             const h = state.habits.find((x) => x.id === a.key)
             const status = h?.type === 'salah'

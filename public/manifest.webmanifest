@@ -1,7 +1,10 @@
 {
+  "id": "./",
   "name": "The Rebuild",
   "short_name": "The Rebuild",
   "description": "Build the person you're becoming, one rep at a time.",
+  "lang": "en",
+  "dir": "auto",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

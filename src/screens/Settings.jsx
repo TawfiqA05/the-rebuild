@@ -560,8 +560,8 @@ function PrayerTimes() {
                   {off > 0 ? `+${off}` : off}m
                 </span>
               )}
-              <button onClick={() => bump(p, -1)} className="w-7 h-7 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]">−</button>
-              <button onClick={() => bump(p, +1)} className="w-7 h-7 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]">＋</button>
+              <button aria-label={T('pt.earlier', { p: T(`salah.${p}`) })} onClick={() => bump(p, -1)} className="w-7 h-7 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]">−</button>
+              <button aria-label={T('pt.later', { p: T(`salah.${p}`) })} onClick={() => bump(p, +1)} className="w-7 h-7 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]">＋</button>
             </div>
           )
         })}

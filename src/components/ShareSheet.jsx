@@ -20,6 +20,15 @@ export default function ShareSheet({ onClose }) {
   const toast = useToast()
   const [note, setNote] = useState('')
   const canvasRef = useRef(null)
+  const panelRef = useRef(null)
+
+  // Move focus into the sheet on open and close it on Escape.
+  useEffect(() => {
+    panelRef.current?.focus()
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   const summary = useMemo(() => buildShareSummary(state, today, { note, lang: language }), [state, today, note, language])
   const text = useMemo(() => shareSummaryToText(summary), [summary])
@@ -93,8 +102,13 @@ export default function ShareSheet({ onClose }) {
     <div className="fixed inset-0 z-40 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/25" onClick={onClose} />
       <div
+        ref={panelRef}
         data-testid="share-sheet"
-        className="relative w-full max-w-md bg-[var(--color-ink)] rounded-t-3xl border-t border-[var(--color-line)] h-[92dvh] max-h-[92dvh] flex flex-col animate-rise"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('share.title')}
+        tabIndex={-1}
+        className="relative w-full max-w-md bg-[var(--color-ink)] rounded-t-3xl border-t border-[var(--color-line)] h-[92dvh] max-h-[92dvh] flex flex-col animate-rise outline-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-[var(--color-line)] shrink-0">

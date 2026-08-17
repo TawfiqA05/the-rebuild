@@ -155,4 +155,7 @@ button { font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise, .animate-fade, .animate-check, .animate-pop, .day-complete { animation: none; }
+  /* Also drop the tap-scale feedback and any transition-driven motion. */
+  .press:active { transform: none; }
+  *, *::before, *::after { transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }

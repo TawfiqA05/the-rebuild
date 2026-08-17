@@ -312,6 +312,8 @@ export default {
   'pt.source': 'AlAdhan API · ISNA method',
   'pt.refresh': '↻ Refresh',
   'pt.nudgeNote': 'Nudge any time by minutes to match your masjid’s iqamah. Times are cached, so they work offline once loaded.',
+  'pt.earlier': '{p}: one minute earlier',
+  'pt.later': '{p}: one minute later',
   'pt.setManual': 'Set manual fallback times',
   'pt.hideManual': 'Hide manual fallback',
   'pt.manualNote': 'Only used if you’re offline before any month has been cached.',
