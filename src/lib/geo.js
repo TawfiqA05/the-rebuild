@@ -1,9 +1,12 @@
 // ---------------------------------------------------------------------------
-// geo.js — thin wrappers over the browser geolocation + a free reverse geocoder.
+// geo.js — a thin wrapper over the browser geolocation API.
 //
-// Used to turn a "use my location" tap into a { lat, lng, label } we can feed to
-// the prayer-times API. Everything degrades gracefully: geolocation is often
-// denied, and reverse geocoding is best-effort (we fall back to raw coords).
+// Used to turn a "use my location" tap into { lat, lng }, which we feed straight
+// to the prayer-times API (AlAdhan takes coordinates natively). We deliberately
+// do NOT reverse-geocode: the coordinates only ever go to the one request the
+// prayer feature already needs, never to a separate geocoding service. The
+// display label is a local, human string ("Current location", or one the user
+// types) — see usePrayerLocation.
 // ---------------------------------------------------------------------------
 
 /** Promise wrapper around navigator.geolocation.getCurrentPosition. */
@@ -16,25 +19,6 @@ export function getPosition(opts = {}) {
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000, ...opts },
     )
   })
-}
-
-/** A human-readable "City, Region" for coords. Best-effort; never throws. */
-export async function reverseGeocode(lat, lng) {
-  const fallback = `${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}`
-  try {
-    const res = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
-    )
-    if (!res.ok) return fallback
-    const j = await res.json()
-    const city = j.city || j.locality || j.principalSubdivision || ''
-    const region = j.principalSubdivision && j.principalSubdivision !== city
-      ? j.principalSubdivision : j.countryName || ''
-    const label = [city, region].filter(Boolean).join(', ')
-    return label || fallback
-  } catch {
-    return fallback
-  }
 }
 
 /** Turn a geolocation error into a short, friendly message. */

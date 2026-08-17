@@ -483,16 +483,17 @@ function Swatch({ palette }) {
 // --- Prayer location (per-device: geolocation or city search) ----------------
 
 function PrayerLocation() {
-  const { state } = useStore()
+  const { state, setPrayerLocation } = useStore()
   const { t: T } = useT()
   const loc = state.settings.prayerLocation
   const [editing, setEditing] = useState(!loc)
+  const isCoords = loc?.mode === 'coords'
 
   return (
     <Card className="px-4 py-4">
       <div className="flex items-center justify-between">
         <div className="min-w-0">
-          <div className="text-sm font-medium truncate">{loc ? loc.label : T('settings.noLocation')}</div>
+          <div className="text-sm font-medium truncate">{locationLabel(loc, T)}</div>
           <div className="text-[11px] text-[var(--color-faint)]">
             {loc ? T('settings.locUsed') : T('settings.locPrompt')}
           </div>
@@ -501,6 +502,11 @@ function PrayerLocation() {
           <Button variant="ghost" onClick={() => setEditing(true)} className="!px-2 !py-1 text-xs shrink-0">{T('settings.change')}</Button>
         )}
       </div>
+
+      {/* Optional display name for a coordinates location — shown in the UI only,
+          never sent anywhere (the prayer query keeps using the raw coords). */}
+      {isCoords && !editing && <CoordsLabelEditor loc={loc} onSave={setPrayerLocation} T={T} />}
+
       {editing && (
         <div className="mt-3">
           <PrayerLocationPicker onSet={() => setEditing(false)} />
@@ -510,6 +516,35 @@ function PrayerLocation() {
         </div>
       )}
     </Card>
+  )
+}
+
+/** The label to show for a prayer location: a custom one, else "Current
+ *  location" for coords, else the typed city; "no location" when unset. */
+function locationLabel(loc, T) {
+  if (!loc) return T('settings.noLocation')
+  return loc.label || (loc.mode === 'coords' ? T('settings.currentLocation') : loc.address || T('settings.currentLocation'))
+}
+
+function CoordsLabelEditor({ loc, onSave, T }) {
+  const [text, setText] = useState(loc.label || '')
+  const commit = () => {
+    const v = text.trim()
+    if (v === (loc.label || '')) return
+    onSave({ ...loc, label: v || undefined })
+  }
+  return (
+    <div className="mt-3">
+      <div className="text-[11px] text-[var(--color-muted)] mb-1">{T('settings.labelOptional')}</div>
+      <TextInput
+        value={text}
+        onChange={setText}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        placeholder={T('settings.currentLocation')}
+        aria-label={T('settings.labelOptional')}
+      />
+    </div>
   )
 }
 
@@ -537,7 +572,7 @@ function PrayerTimes() {
   return (
     <Card className="px-4 py-4">
       <div className="flex items-center justify-between mb-1">
-        <div className="text-sm font-medium truncate min-w-0">{state.settings.prayerLocation?.label || T('settings.noLocation')}</div>
+        <div className="text-sm font-medium truncate min-w-0">{locationLabel(state.settings.prayerLocation, T)}</div>
         <span className={`text-[11px] shrink-0 ${badge[1]}`}>● {badge[0]}</span>
       </div>
       <div className="flex items-center justify-between mb-3">

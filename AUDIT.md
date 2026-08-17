@@ -65,7 +65,7 @@ Both workflows are consistent and correctly ordered, with no duplicate steps:
 - The E2E is wired in (`node scripts/e2e/viewport.mjs`) and reuses the build
   output (no double build).
 
-## E. Data promises — **PASS** (with disclosure nuance)
+## E. Data promises — **PASS**
 
 **The localStorage claim holds for app data:** habit logs, journal, food log,
 the private log, the PIN, and votes are never sent anywhere. Every outbound
@@ -75,14 +75,18 @@ request the app can make:
 |---|---|---|---|
 | `fonts.googleapis.com` / `fonts.gstatic.com` | every load | font request + IP | no |
 | `api.aladhan.com` | prayer times (Islamic layer on + location set) | location (coords or address) + year/month | no — location only |
-| `api.bigdatacloud.net` | "use my location" (reverse geocode) | **latitude + longitude** | no — location only |
 | `navigator.share` | user taps Share | the week card PNG + text (habits/streaks + typed line) | habits only — never private/food |
 
+- **Update (2026-08-17):** the BigDataCloud reverse-geocode call has been
+  **removed**. "Use my location" now stores the raw
+  coordinates and queries AlAdhan by lat/long directly (AlAdhan takes coordinates
+  natively), and the display label is a purely local string ("Current location",
+  or one the user types). So the **only** outbound request carrying location is
+  now the prayer-times call the feature requires. A CI E2E asserts this: it grants
+  a mock geolocation, taps "use my location", and fails if any reverse geocoder is
+  contacted or if AlAdhan isn't queried by coordinates.
 - With **Islamic practices off**, the prayer-times and geolocation calls don't
   happen at all — only Google Fonts remains.
-- 🔎 **Disclosure nuance:** AlAdhan is named in the UI ("Used for AlAdhan prayer
-  times"). **BigDataCloud is not named** anywhere — it receives raw GPS
-  coordinates during reverse-geocoding. Worth a one-line disclosure.
 - `navigator.share` hands data to the OS share sheet (user-initiated), and
   `share.js` reads only habits, so the private and food logs can't leak into a
   share. Confirmed in code + a unit test.
@@ -106,9 +110,8 @@ request the app can make:
 2. **Decide whether the-rebuild should be public.** It's serving to the open
    internet now; if you wanted Access-gated, it isn't. Low data-risk, but it's a
    stated-intent mismatch you should resolve deliberately.
-3. **Disclose (or drop) the BigDataCloud reverse-geocode call.** It's the one
-   outbound request that sends precise coordinates to an unnamed third party. A
-   line of copy — or switching to AlAdhan-only city entry — closes the gap.
+3. ~~**Disclose (or drop) the BigDataCloud reverse-geocode call.**~~ **Done** —
+   the call was removed; coordinates now go only to AlAdhan, guarded by a CI test.
 4. **Finish secrets hygiene on `deal-scout`.** It's linked from your profile but
    wasn't cloned here, so its history is unscanned. Clone + scan it the same way,
    and add an `.env` ignore rule across the repos as cheap prevention.

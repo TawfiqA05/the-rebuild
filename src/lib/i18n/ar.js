@@ -273,6 +273,8 @@ export default {
   'settings.noLocation': 'لا موقع محدد',
   'settings.locUsed': 'يُستخدم لأوقات صلاة AlAdhan',
   'settings.locPrompt': 'حدّد موقعًا لرؤية أوقات الصلاة',
+  'settings.currentLocation': 'الموقع الحالي',
+  'settings.labelOptional': 'اعرضه باسم (اختياري)',
   'settings.change': 'تغيير',
 
   'pt.live': 'مباشر',

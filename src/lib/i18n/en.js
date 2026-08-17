@@ -299,6 +299,8 @@ export default {
   'settings.noLocation': 'No location set',
   'settings.locUsed': 'Used for AlAdhan prayer times',
   'settings.locPrompt': 'Set a location to see prayer times',
+  'settings.currentLocation': 'Current location',
+  'settings.labelOptional': 'Show it as (optional)',
   'settings.change': 'Change',
 
   // settings — prayer times

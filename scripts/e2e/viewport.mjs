@@ -300,6 +300,63 @@ async function scanForTerms(page, ctx, onFail) {
   }
 }
 
+// Privacy: using "my location" must send the coordinates to AlAdhan (the prayer
+// query the feature needs) and to NObody else — in particular never to a reverse
+// geocoder. We grant a mock geolocation, record every request, and stub external
+// hosts so nothing actually leaves, then assert what the app tried to reach.
+async function checkNoReverseGeocode(browser, url) {
+  const origin = new URL(url).origin
+  const context = await browser.newContext({
+    ...devices['iPhone 13'],
+    viewport: VIEWPORT,
+    geolocation: { latitude: 39.9556, longitude: -86.0139 },
+    permissions: ['geolocation'],
+  })
+  const external = []
+  await context.route('**/*', (route) => {
+    const u = route.request().url()
+    if (u.startsWith(origin)) return route.continue() // local app assets
+    external.push(u)
+    if (u.includes('aladhan.com')) {
+      // Pretend AlAdhan answered, so useMyLocation completes without real network.
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 200, data: [] }) })
+    }
+    return route.abort() // fonts, and anything else — recorded, never sent
+  })
+  await context.addInitScript(
+    ([k, v]) => window.localStorage.setItem(k, v),
+    ['the-rebuild:v1', JSON.stringify({ settings: { onboarded: true, tourSeen: true, includeIslamic: true, currentPhase: 1, prayerLocation: null } })],
+  )
+  const page = await context.newPage()
+  try {
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.locator('nav button').nth(3).click() // Settings
+    // With no location set, the picker is shown inline; use my (mock) location.
+    await page.locator('[data-testid="use-my-location"]').click()
+    await page.waitForTimeout(600) // let useMyLocation → fetchMonth fire
+
+    const hitGeocoder = external.filter((u) => /bigdatacloud|nominatim|geocod|opencage|mapbox|googleapis\.com\/maps/i.test(u))
+    const aladhanByCoords = external.filter((u) => u.includes('aladhan.com') && /latitude=/.test(u))
+    const failures = []
+    if (hitGeocoder.length) failures.push(`reverse-geocoder was contacted: ${hitGeocoder[0]}`)
+    if (aladhanByCoords.length === 0) failures.push('AlAdhan was not queried by coordinates (expected latitude= in the URL)')
+
+    if (failures.length === 0) {
+      console.log('✓ location privacy · en — coords go to AlAdhan only; no reverse geocoder contacted')
+      return 0
+    }
+    console.log('✗ location privacy · en:')
+    for (const f of failures) console.log(`    · ${f}`)
+    if (external.length) console.log(`    external attempts: ${external.map((u) => new URL(u).host).join(', ')}`)
+    return 1
+  } catch (err) {
+    console.log(`✗ location privacy · en — threw: ${err.message}`)
+    return 1
+  } finally {
+    await context.close()
+  }
+}
+
 async function run() {
   const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
   const url = server.resolvedUrls.local[0]
@@ -360,11 +417,13 @@ async function run() {
   failed += await checkAnchorPosition(browser, url)
   // And no Islamic term may leak when the layer is off.
   failed += await checkNoFaithLeak(browser, url)
+  // And using my location must not touch a reverse geocoder.
+  failed += await checkNoReverseGeocode(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 3
+  const total = SCENARIOS.length + 4
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)

@@ -19,7 +19,7 @@ export default function PrayerLocationPicker({ onSet, compact = false }) {
 
   return (
     <div className={compact ? 'space-y-2' : 'space-y-2.5'}>
-      <Button variant="primary" className="w-full" onClick={locate} disabled={busy}>
+      <Button variant="primary" data-testid="use-my-location" className="w-full" onClick={locate} disabled={busy}>
         {busy ? t('loc.locating') : t('loc.useMyLocation')}
       </Button>
 
