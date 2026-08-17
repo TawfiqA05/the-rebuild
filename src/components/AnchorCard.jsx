@@ -13,8 +13,8 @@ export default function AnchorCard({ biasOwn = false }) {
   const { state, today } = useStore()
   const { t, language } = useT()
   const anchor = useMemo(
-    () => dailyAnchor(state, today, { biasOwn }),
-    [state, today, biasOwn],
+    () => dailyAnchor(state, today, { biasOwn, lang: language }),
+    [state, today, biasOwn, language],
   )
   if (!anchor) return null
 

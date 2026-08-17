@@ -23,10 +23,14 @@ function rr(ctx, x, y, w, h, r) {
 
 /**
  * Draw `summary` onto `canvas` using `colors`
- * ({ bg, surface, fg, muted, faint, accent, accentInk, line }). Sizes the
- * canvas to fit the rows. Returns the logical { width, height }.
+ * ({ bg, surface, fg, muted, faint, accent, accentInk, line }) and `opts`:
+ *   { dir: 'ltr' | 'rtl', labels: { brand, thisWeek, votes, footer } }
+ * In RTL the whole layout mirrors. Numbers stay Western for a shared image's
+ * cross-audience legibility. Returns the logical { width, height }.
  */
-export function drawShareCard(canvas, summary, colors) {
+export function drawShareCard(canvas, summary, colors, opts = {}) {
+  const { dir = 'ltr', labels = {} } = opts
+  const rtl = dir === 'rtl'
   const pad = 44
   const rows = summary.rows.slice(0, 9)
   const rowH = 54
@@ -39,29 +43,34 @@ export function drawShareCard(canvas, summary, colors) {
   canvas.height = H * SCALE
   const ctx = canvas.getContext('2d')
   ctx.scale(SCALE, SCALE)
+  ctx.direction = rtl ? 'rtl' : 'ltr'
 
-  // background
+  // edges that flip with direction
+  const startX = rtl ? W - pad : pad          // where headers/labels begin
+  const startAlign = rtl ? 'right' : 'left'
+  const endX = rtl ? pad : W - pad            // opposite edge (scores)
+  const endAlign = rtl ? 'left' : 'right'
+
   ctx.fillStyle = colors.bg
   ctx.fillRect(0, 0, W, H)
 
   // header
   ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = startAlign
   ctx.fillStyle = colors.accentInk
   ctx.font = '600 15px Inter, sans-serif'
-  ctx.fillText('THE REBUILD', pad, pad + 12)
+  ctx.fillText(labels.brand || 'THE REBUILD', startX, pad + 12)
 
   ctx.fillStyle = colors.fg
   ctx.font = '600 82px Fraunces, Georgia, serif'
-  ctx.fillText(`${summary.overallPct}%`, pad, pad + 96)
+  ctx.fillText(`${summary.overallPct}%`, startX, pad + 96)
 
   ctx.fillStyle = colors.muted
   ctx.font = '400 18px Inter, sans-serif'
-  ctx.fillText(`this week · ${summary.weekLabel}`, pad, pad + 126)
+  ctx.fillText(labels.thisWeek || `this week · ${summary.weekLabel}`, startX, pad + 126)
 
-  ctx.fillStyle = colors.muted
   ctx.font = '400 15px Inter, sans-serif'
-  const votes = `${summary.votes.toLocaleString()} votes for who I’m becoming`
-  ctx.fillText(votes, pad, pad + 154)
+  ctx.fillText(labels.votes || `${summary.votes.toLocaleString()} votes`, startX, pad + 154)
 
   // divider
   ctx.strokeStyle = colors.line
@@ -70,42 +79,44 @@ export function drawShareCard(canvas, summary, colors) {
 
   // rows
   const barW = 120
-  const barX = W - pad - barW - 62
+  const barX = rtl ? pad + 62 : W - pad - barW - 62
+  const emojiX = startX
+  const nameX = rtl ? W - pad - 34 : pad + 36
   rows.forEach((r, i) => {
-    const y = headerH + i * rowH
-    const cy = y + rowH / 2
+    const cy = headerH + i * rowH + rowH / 2
     ctx.textBaseline = 'middle'
+
+    ctx.textAlign = startAlign
     ctx.font = '400 22px Inter, sans-serif'
     ctx.fillStyle = colors.fg
-    ctx.fillText(r.emoji, pad, cy)
+    ctx.fillText(r.emoji, emojiX, cy)
 
-    // name (truncate to fit)
+    // name (truncate to fit the gap between it and the bar)
     ctx.font = '450 17px Inter, sans-serif'
     let name = r.name
-    const maxNameW = barX - (pad + 36)
+    const maxNameW = rtl ? (nameX - (barX + barW)) : (barX - nameX)
     while (ctx.measureText(name).width > maxNameW && name.length > 3) name = name.slice(0, -1)
     if (name !== r.name) name = name.slice(0, -1) + '…'
-    ctx.fillStyle = colors.fg
-    ctx.fillText(name, pad + 36, cy)
+    ctx.fillText(name, nameX, cy)
 
-    // bar track + fill
+    // bar track + fill (fill grows from the start edge)
     const pct = Math.max(0, Math.min(100, r.pct))
+    const fillW = Math.max(8, (barW * pct) / 100)
     ctx.fillStyle = colors.line
     rr(ctx, barX, cy - 4, barW, 8, 4); ctx.fill()
     ctx.fillStyle = colors.accent
-    rr(ctx, barX, cy - 4, Math.max(8, (barW * pct) / 100), 8, 4); ctx.fill()
+    rr(ctx, rtl ? barX + barW - fillW : barX, cy - 4, fillW, 8, 4); ctx.fill()
 
-    // score + streak
-    ctx.textAlign = 'right'
+    // score + streak at the far edge
+    ctx.textAlign = endAlign
     ctx.font = '500 15px Inter, sans-serif'
     ctx.fillStyle = colors.fg
-    ctx.fillText(scoreLabel(r), W - pad, cy - (r.streak > 0 ? 8 : 0))
+    ctx.fillText(scoreLabel(r), endX, cy - (r.streak > 0 ? 8 : 0))
     if (r.streak > 0) {
       ctx.font = '400 12px Inter, sans-serif'
       ctx.fillStyle = colors.muted
-      ctx.fillText(`🔥 ${r.streak}`, W - pad, cy + 9)
+      ctx.fillText(`🔥 ${r.streak}`, endX, cy + 9)
     }
-    ctx.textAlign = 'left'
   })
 
   // note
@@ -117,17 +128,19 @@ export function drawShareCard(canvas, summary, colors) {
     ctx.fillStyle = colors.fg
     ctx.font = 'italic 400 17px Fraunces, Georgia, serif'
     ctx.textBaseline = 'middle'
+    ctx.textAlign = startAlign
     let note = `“${summary.note}”`
     const maxW = W - pad * 2 - 36
     while (ctx.measureText(note).width > maxW && note.length > 4) note = note.slice(0, -1)
-    ctx.fillText(note, pad + 18, ny + 33)
+    ctx.fillText(note, rtl ? W - pad - 18 : pad + 18, ny + 33)
   }
 
   // footer
   ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = startAlign
   ctx.fillStyle = colors.faint
   ctx.font = '400 14px Inter, sans-serif'
-  ctx.fillText('Never miss twice.', pad, H - pad + 6)
+  ctx.fillText(labels.footer || 'Never miss twice.', startX, H - pad + 6)
 
   return { width: W, height: H }
 }

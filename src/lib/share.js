@@ -70,6 +70,7 @@ export function buildShareSummary(state, todayKey, { note = '' } = {}) {
 
   return {
     app: 'The Rebuild',
+    weekStart,                 // raw day-key, so callers can localize the date
     weekLabel: weekLabel(weekStart),
     overallPct,
     rows,

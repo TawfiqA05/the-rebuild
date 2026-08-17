@@ -4,6 +4,7 @@ import { useToast } from './Toast.jsx'
 import { Button, TextInput } from './ui.jsx'
 import { buildShareSummary, shareSummaryToText } from '../lib/share.js'
 import { drawShareCard, themeColors } from '../lib/shareCard.js'
+import { fmtMonthDay } from '../lib/time.js'
 import { useT } from '../i18n.jsx'
 
 /**
@@ -14,7 +15,7 @@ import { useT } from '../i18n.jsx'
  */
 export default function ShareSheet({ onClose }) {
   const { state, today } = useStore()
-  const { t } = useT()
+  const { t, language, dir } = useT()
   const toast = useToast()
   const [note, setNote] = useState('')
   const canvasRef = useRef(null)
@@ -22,13 +23,22 @@ export default function ShareSheet({ onClose }) {
   const summary = useMemo(() => buildShareSummary(state, today, { note }), [state, today, note])
   const text = useMemo(() => shareSummaryToText(summary), [summary])
 
-  // Redraw the card whenever the summary changes (and once fonts are ready).
+  // Redraw the card whenever the summary or language changes (and once fonts
+  // are ready). In Arabic the card mirrors and its labels translate.
   useEffect(() => {
     let alive = true
-    const paint = () => { if (alive && canvasRef.current) drawShareCard(canvasRef.current, summary, themeColors()) }
+    const labels = {
+      brand: 'THE REBUILD',
+      thisWeek: t('share.card.thisWeek', { date: fmtMonthDay(summary.weekStart, language) }),
+      votes: t('share.card.votes', { votes: summary.votes.toLocaleString(language) }),
+      footer: t('share.card.footer'),
+    }
+    const paint = () => { if (alive && canvasRef.current) drawShareCard(canvasRef.current, summary, themeColors(), { dir, labels }) }
     paint()
     if (document.fonts?.ready) document.fonts.ready.then(paint)
-  }, [summary])
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary, language, dir])
 
   const canvasBlob = () =>
     new Promise((resolve) => canvasRef.current.toBlob((b) => resolve(b), 'image/png'))

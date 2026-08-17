@@ -326,6 +326,9 @@ export default {
   'share.note': 'عاداتك وسلاسلك فقط. لا شيء من السجل الخاص أو الطعام.',
   'share.copied': 'نُسخ. الصقه أينما شئت.',
   'share.copyFail': 'تعذّر النسخ. حدّد النص وانسخه.',
+  'share.card.thisWeek': 'هذا الأسبوع · {date}',
+  'share.card.votes': '{votes} صوتًا لمن أصير إليه', // REVIEW: "votes for who I'm becoming"
+  'share.card.footer': 'لا تفوّت مرتين.',
 
   'priv.setPin': 'اضبط رمزك السرّي',
   'priv.setPinSub': 'هذا الجهاز هو المالك الآن. اختر رمزًا واحدًا.',

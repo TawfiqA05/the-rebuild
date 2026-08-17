@@ -61,9 +61,14 @@ export function ownPools(state) {
  * (the "You, <date>:" prefix is the attribution). The curated pool is never
  * empty, so this always returns something.
  */
-export function dailyAnchor(state, dayKey, { biasOwn = false } = {}) {
+export function dailyAnchor(state, dayKey, { biasOwn = false, lang = 'en' } = {}) {
+  // In a language we don't have a sourced translation for, a curated quote only
+  // qualifies if it ships that language's text (currently: scripture, which
+  // carries its exact Arabic). Everything else is dropped rather than shown in
+  // English or machine-translated. The user's own lines always qualify.
+  const qualifies = (q) => lang === 'en' || !!q.ar
   const curated = [
-    ...CURATED.map((q) => ({ text: q.text, author: q.author, ar: q.ar, arAuthor: q.arAuthor, pool: 'curated' })),
+    ...CURATED.filter(qualifies).map((q) => ({ text: q.text, author: q.author, ar: q.ar, arAuthor: q.arAuthor, pool: 'curated' })),
     ...(state.myQuotes || []).map((q) => ({ text: q.text, author: 'You', pool: 'mine' })),
   ]
   const { winPool, journalPool } = ownPools(state)

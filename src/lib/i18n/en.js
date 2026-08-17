@@ -357,6 +357,9 @@ export default {
   'share.note': 'Only your habits and streaks. Nothing from the private log or food.',
   'share.copied': 'Copied. Paste it wherever.',
   'share.copyFail': 'Could not copy. Select the text and copy it.',
+  'share.card.thisWeek': 'this week · {date}',
+  'share.card.votes': '{votes} votes for who I’m becoming',
+  'share.card.footer': 'Never miss twice.',
 
   // private tab
   'priv.setPin': 'Set your PIN',

@@ -48,6 +48,22 @@ function fullState() {
   }
 }
 
+describe('Arabic only surfaces quotes it can show in Arabic', () => {
+  const bare = { settings: {}, habits: [], logs: {}, days: {}, wins: [], myQuotes: [] }
+  it('over a month, every curated pick in Arabic carries Arabic text', () => {
+    for (let i = 0; i < 40; i++) {
+      const a = dailyAnchor(bare, addDaysKey('2026-03-01', i), { lang: 'ar' })
+      if (a.pool === 'curated') expect(a.ar, `${a.text}`).toBeTruthy()
+    }
+  })
+  it('English still shows the full pool (secular quotes included)', () => {
+    const seen = new Set()
+    for (let i = 0; i < 120; i++) seen.add(dailyAnchor(bare, addDaysKey('2026-03-01', i), { lang: 'en' }).text)
+    // more than the 7 scripture lines → secular quotes are present in English
+    expect(seen.size).toBeGreaterThan(7)
+  })
+})
+
 describe('deterministic by date', () => {
   it('returns the same line for the same day, every call', () => {
     const s = fullState()
