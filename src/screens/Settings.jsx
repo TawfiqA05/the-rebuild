@@ -5,6 +5,7 @@ import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { downloadBackup } from '../lib/backup.js'
 import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
+import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
@@ -73,6 +74,10 @@ export default function Settings({ onRevealPrivate }) {
       {/* My quotes --------------------------------------------------------- */}
       <SectionLabel>My quotes</SectionLabel>
       <MyQuotes />
+
+      {/* Prayer location --------------------------------------------------- */}
+      <SectionLabel>Prayer location</SectionLabel>
+      <PrayerLocation />
 
       {/* Prayer times ------------------------------------------------------ */}
       <SectionLabel>Prayer times</SectionLabel>
@@ -317,6 +322,38 @@ function HabitEditor({ habit, onClose }) {
   )
 }
 
+// --- Prayer location (per-device: geolocation or city search) ----------------
+
+function PrayerLocation() {
+  const { state } = useStore()
+  const loc = state.settings.prayerLocation
+  const [editing, setEditing] = useState(!loc)
+
+  return (
+    <Card className="px-4 py-4">
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <div className="text-sm font-medium truncate">{loc ? loc.label : 'No location set'}</div>
+          <div className="text-[11px] text-[var(--color-faint)]">
+            {loc ? 'Used for AlAdhan prayer times' : 'Set a location to see prayer times'}
+          </div>
+        </div>
+        {loc && !editing && (
+          <Button variant="ghost" onClick={() => setEditing(true)} className="!px-2 !py-1 text-xs shrink-0">Change</Button>
+        )}
+      </div>
+      {editing && (
+        <div className="mt-3">
+          <PrayerLocationPicker onSet={() => setEditing(false)} />
+          {loc && (
+            <button onClick={() => setEditing(false)} className="text-[12px] text-[var(--color-faint)] mt-2">Cancel</button>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 // --- Prayer times (AlAdhan live + cache + per-prayer adjust) -----------------
 
 function PrayerTimes() {
@@ -340,8 +377,8 @@ function PrayerTimes() {
   return (
     <Card className="px-4 py-4">
       <div className="flex items-center justify-between mb-1">
-        <div className="text-sm font-medium">{state.settings.city}</div>
-        <span className={`text-[11px] ${badge[1]}`}>● {badge[0]}</span>
+        <div className="text-sm font-medium truncate min-w-0">{state.settings.prayerLocation?.label || 'No location set'}</div>
+        <span className={`text-[11px] shrink-0 ${badge[1]}`}>● {badge[0]}</span>
       </div>
       <div className="flex items-center justify-between mb-3">
         <span className="text-[11px] text-[var(--color-faint)]">

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
 import { Button } from '../components/ui.jsx'
+import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
 
 /**
- * Shown only on a brand-new install (settings.onboarded === false). Two steps:
- * a short pitch, then pick which Phase 1 anchors to start with. Whatever you
- * turn off is archived, not deleted, so it's easy to add back later. Existing
- * devices never reach here — migrate() marks them onboarded.
+ * Shown only on a brand-new install (settings.onboarded === false). Three steps:
+ * a short pitch, pick which Phase 1 anchors to start with, then set a prayer
+ * location (skippable — the Salah card prompts later if skipped). Whatever
+ * anchors you turn off are archived, not deleted. Existing devices never reach
+ * here — migrate() marks them onboarded.
  */
 export default function Welcome() {
   const { state, finishOnboarding } = useStore()
@@ -20,11 +22,11 @@ export default function Welcome() {
     return n
   })
 
-  const start = () => finishOnboarding([...chosen])
+  const finish = () => finishOnboarding([...chosen])
 
   return (
     <div className="min-h-[100dvh] flex flex-col px-6 pt-16 pb-10 max-w-md mx-auto animate-rise">
-      {step === 0 ? (
+      {step === 0 && (
         <div className="flex-1 flex flex-col">
           <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-accent-ink)] mb-3">The Rebuild</div>
           <h1 className="font-display text-[2.6rem] leading-[1.05]">
@@ -47,7 +49,9 @@ export default function Welcome() {
             Get started
           </Button>
         </div>
-      ) : (
+      )}
+
+      {step === 1 && (
         <div className="flex-1 flex flex-col">
           <h1 className="font-display text-[2rem] leading-tight">Pick your anchors</h1>
           <p className="text-[14px] text-[var(--color-muted)] mt-2 leading-relaxed">
@@ -79,14 +83,28 @@ export default function Welcome() {
           </div>
 
           <div className="flex-1" />
-          <Button
-            variant="primary"
-            className="w-full mt-8 py-3.5"
-            onClick={start}
-          >
-            {chosen.size === 0 ? 'Start with a clean slate' : `Start with ${chosen.size} ${chosen.size === 1 ? 'anchor' : 'anchors'}`}
+          <Button variant="primary" className="w-full mt-8 py-3.5" onClick={() => setStep(2)}>
+            {chosen.size === 0 ? 'Continue with a clean slate' : `Continue with ${chosen.size} ${chosen.size === 1 ? 'anchor' : 'anchors'}`}
           </Button>
           <button onClick={() => setStep(0)} className="text-[13px] text-[var(--color-faint)] mt-4">Back</button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="flex-1 flex flex-col">
+          <h1 className="font-display text-[2rem] leading-tight">Prayer times</h1>
+          <p className="text-[14px] text-[var(--color-muted)] mt-2 leading-relaxed">
+            Set your location and the Salah card shows accurate athan times, cached to work
+            offline. You can change it anytime in Settings.
+          </p>
+
+          <div className="mt-6">
+            <PrayerLocationPicker onSet={finish} />
+          </div>
+
+          <div className="flex-1" />
+          <button onClick={finish} className="text-[13px] text-[var(--color-faint)] mt-8 py-2">Skip for now</button>
+          <button onClick={() => setStep(1)} className="text-[13px] text-[var(--color-faint)] mt-1">Back</button>
         </div>
       )}
     </div>

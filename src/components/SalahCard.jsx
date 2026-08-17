@@ -5,6 +5,7 @@ import { nextSalah } from '../lib/gesture.js'
 import { SALAH_PRAYERS, SALAH_LABELS, salahSummary } from '../lib/logic.js'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { fmtDuration } from '../lib/prayerTimes.js'
+import PrayerLocationPicker from './PrayerLocationPicker.jsx'
 
 /**
  * Salah is special: five sub-checkboxes, each cycling
@@ -19,6 +20,7 @@ export default function SalahCard({ dayKey }) {
   const { state } = useStore()
   const log = state.logs[dayKey]?.['salah'] || {}
   const sum = salahSummary(log)
+  const location = state.settings.prayerLocation
 
   const { times, source, status, current, next, minsToNext } = usePrayerTimes(dayKey)
 
@@ -41,20 +43,37 @@ export default function SalahCard({ dayKey }) {
         <NextBadge times={times} next={next} minsToNext={minsToNext} status={status} />
       </div>
 
-      {/* source hint, only when it's worth saying */}
-      {(source === 'manual' || source === 'none' || status === 'error') && (
-        <div className="text-[10px] text-[var(--color-faint)] mb-2 pl-11">
-          {source === 'manual' ? 'offline — using your manual times'
-            : status === 'loading' ? 'loading prayer times…'
-            : 'prayer times unavailable — set them in Settings'}
-        </div>
+      {/* Current city, so you can tell at a glance the times are for where you are. */}
+      {location && (
+        <div className="text-[10px] text-[var(--color-faint)] mb-2 pl-11 truncate">📍 {location.label}</div>
       )}
 
-      <div className="grid grid-cols-5 gap-1.5 mt-2">
-        {SALAH_PRAYERS.map((p) => (
-          <PrayerCell key={p} dayKey={dayKey} p={p} value={log[p]} isNow={current === p} time={times?.[p]} />
-        ))}
-      </div>
+      {/* No location yet → prompt to set one right here (first Salah-card view). */}
+      {!location ? (
+        <div className="mt-1 pl-1">
+          <div className="text-[12px] text-[var(--color-muted)] mb-2">
+            Set your location to see prayer times — it stays on this device.
+          </div>
+          <PrayerLocationPicker compact />
+        </div>
+      ) : (
+        <>
+          {/* source hint, only when it's worth saying */}
+          {(source === 'manual' || source === 'none' || status === 'error') && (
+            <div className="text-[10px] text-[var(--color-faint)] mb-2 pl-11">
+              {source === 'manual' ? 'offline — using your manual times'
+                : status === 'loading' ? 'loading prayer times…'
+                : 'prayer times unavailable — set a location in Settings'}
+            </div>
+          )}
+
+          <div className="grid grid-cols-5 gap-1.5 mt-2">
+            {SALAH_PRAYERS.map((p) => (
+              <PrayerCell key={p} dayKey={dayKey} p={p} value={log[p]} isNow={current === p} time={times?.[p]} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

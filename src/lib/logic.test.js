@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { dayKeyFor, addDaysKey } from './time.js'
 import {
   currentStreak, longestStreak, riskSignals,
-  isMVDWin, daySurvives, salahSummary, dayScore,
+  isMVDWin, daySurvives, salahSummary, dayScore, missGapBeforeToday,
 } from './logic.js'
 
 // These tests pin down the rules the whole app leans on. If someone changes the
@@ -216,6 +216,40 @@ describe('un-checking today recalculates the derived state', () => {
     // and if yesterday was a miss, clearing today brings back the at-risk flag
     const risky = makeState({ '2026-01-13': { read: 'full' } }, [read]) // 14th missed, 15th pending
     expect(riskSignals(risky, read, '2026-01-15').atRisk).toBe(true)
+  })
+})
+
+describe('un-checking a past day recalculates everything', () => {
+  const read = daily('read')
+
+  it('removing a past completion breaks the streak from that point and drops the score', () => {
+    const before = makeState({
+      '2026-01-13': { read: 'full' }, '2026-01-14': { read: 'full' }, '2026-01-15': { read: 'full' },
+    }, [read])
+    expect(currentStreak(before, read, '2026-01-15')).toBe(3)
+    expect(dayScore(before, '2026-01-14').done).toBe(1)
+
+    // Un-check the 14th (its log entry is gone).
+    const after = makeState({ '2026-01-13': { read: 'full' }, '2026-01-15': { read: 'full' } }, [read])
+    expect(dayScore(after, '2026-01-14').done).toBe(0)        // score recalculates
+    expect(currentStreak(after, read, '2026-01-15')).toBe(1)  // only today survives the gap
+    expect(longestStreak(after, read, '2026-01-15')).toBe(1)
+  })
+
+  it('removing a check-in next to an existing miss creates a two-day gap (never-miss-twice failure)', () => {
+    // 12 and 13 done; the 14th was already missed; today (the 15th) is pending.
+    const before = makeState({ '2026-01-12': { read: 'full' }, '2026-01-13': { read: 'full' } }, [read])
+    const rBefore = riskSignals(before, read, '2026-01-15')
+    expect(rBefore.missedYesterday).toBe(true)  // the 14th
+    expect(rBefore.missedTwice).toBe(false)     // the 13th still holds the line
+    expect(missGapBeforeToday(before, '2026-01-15')).toBe(1)
+
+    // Now un-check the 13th → the 13th and 14th are both misses in a row.
+    const after = makeState({ '2026-01-12': { read: 'full' } }, [read])
+    const rAfter = riskSignals(after, read, '2026-01-15')
+    expect(rAfter.missedYesterday).toBe(true)
+    expect(rAfter.missedTwice).toBe(true)       // two consecutive misses now
+    expect(missGapBeforeToday(after, '2026-01-15')).toBe(2) // the gap grew to two days
   })
 })
 

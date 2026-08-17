@@ -208,6 +208,10 @@ function makeActions(setState, stateRef) {
     updateSettings(patch) {
       setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))
     },
+    /** Set the per-device prayer location ({mode,label,address?,lat?,lng?} or null). */
+    setPrayerLocation(loc) {
+      setState((prev) => ({ ...prev, settings: { ...prev.settings, prayerLocation: loc } }))
+    },
 
     // -- habit CRUD --
     upsertHabit(habit) {

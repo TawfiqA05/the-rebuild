@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
 import {
-  computeTimes, currentPrayer, fetchMonth, getRawTimes,
+  computeTimes, currentPrayer, fetchMonth, getRawTimes, locKey,
 } from '../lib/prayerTimes.js'
 
 /**
@@ -14,25 +14,29 @@ import {
  */
 export function usePrayerTimes(dateKey) {
   const { state } = useStore()
+  const loc = state.settings.prayerLocation
+  const lk = locKey(loc)
   const [status, setStatus] = useState('loading')
   const [tick, setTick] = useState(0) // bumps to force recompute (fetch done / minute passed)
 
   const bump = useCallback(() => setTick((t) => t + 1), [])
 
-  // Ensure the month is available; fetch if missing.
+  // Ensure the month is available for the current location; fetch if missing.
+  // Re-runs whenever the location changes (travel / manual edit).
   useEffect(() => {
     let cancelled = false
-    if (getRawTimes(dateKey)) {
+    if (!loc) { setStatus('none'); return }
+    if (getRawTimes(dateKey, loc)) {
       setStatus('cache')
       return
     }
     setStatus('loading')
-    fetchMonth(dateKey)
+    fetchMonth(dateKey, loc)
       .then(() => { if (!cancelled) { setStatus('live'); bump() } })
       .catch(() => { if (!cancelled) { setStatus(computeTimes(dateKey, state.settings).times ? 'cache' : 'error'); bump() } })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateKey])
+  }, [dateKey, lk])
 
   // Re-evaluate the current window each minute.
   useEffect(() => {
@@ -43,7 +47,7 @@ export function usePrayerTimes(dateKey) {
   const { times, source, fetchedAt } = useMemo(
     () => computeTimes(dateKey, state.settings),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dateKey, state.settings.prayerAdjustMin, state.settings.prayerTimes, tick],
+    [dateKey, lk, state.settings.prayerAdjustMin, state.settings.prayerTimes, tick],
   )
 
   const window = useMemo(
@@ -53,11 +57,13 @@ export function usePrayerTimes(dateKey) {
   )
 
   const refresh = useCallback(() => {
+    if (!loc) { setStatus('none'); return }
     setStatus('loading')
-    fetchMonth(dateKey)
+    fetchMonth(dateKey, loc)
       .then(() => { setStatus('live'); bump() })
       .catch(() => { setStatus('error'); bump() })
-  }, [dateKey, bump])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateKey, lk, bump])
 
   return { times, source, fetchedAt, status, ...window, refresh }
 }

@@ -1,27 +1,44 @@
 // ---------------------------------------------------------------------------
-// prayerTimes.js — real prayer times for Fishers, Indiana via the free AlAdhan
-// API, built to work offline.
+// prayerTimes.js — real prayer times via the free AlAdhan API, per-device and
+// built to work offline.
+//
+// Location is per-device (settings.prayerLocation): either coordinates (from
+// the browser's geolocation) or a free-form address/city string. There is no
+// hardcoded city anymore.
 //
 // Strategy:
-//   • We fetch a WHOLE MONTH at a time (AlAdhan's calendar endpoint) and cache
-//     it in localStorage. One fetch covers ~30 days offline.
+//   • We fetch a WHOLE MONTH at a time and cache it in localStorage, keyed by
+//     LOCATION as well as month — so travelling to a new place caches its own
+//     month without clobbering home. One fetch covers ~30 days offline.
 //   • Reads always come from the cache; a missing month triggers a background
-//     fetch. If you're offline and the month isn't cached, we fall back to any
-//     times you entered manually in Settings.
-//   • Per-prayer minute offsets (settings.prayerAdjustMin) let you nudge any
-//     time to match your local masjid's iqamah.
+//     fetch. Offline with nothing cached → fall back to any manual times set
+//     in Settings.
+//   • Per-prayer minute offsets (settings.prayerAdjustMin) nudge any time to
+//     match the local masjid's iqamah.
 //
 // Method 2 = ISNA, the usual North-American calculation method.
 // This module is framework-free; the React glue lives in hooks/usePrayerTimes.js
 // ---------------------------------------------------------------------------
 
-const CACHE_KEY = 'rebuild:prayer-cache:v1'
+const CACHE_KEY = 'rebuild:prayer-cache:v2' // v2: cache is now keyed by location
 const METHOD = 2 // ISNA
-const LOCATION = { city: 'Fishers', country: 'USA', state: 'Indiana' }
 
 export const PRAYER_KEYS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
 // Order including sunrise, used when finding the "current window".
 export const TIME_KEYS = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
+
+/**
+ * A stable cache/identity key for a location. Coordinates round to ~100m so
+ * tiny GPS jitter doesn't fragment the cache; addresses normalise on case.
+ * Returns 'none' for an unset location.
+ */
+export function locKey(loc) {
+  if (!loc) return 'none'
+  if (loc.mode === 'coords' && loc.lat != null && loc.lng != null) {
+    return `geo:${Number(loc.lat).toFixed(3)},${Number(loc.lng).toFixed(3)}`
+  }
+  return `addr:${String(loc.address || loc.label || '').trim().toLowerCase()}`
+}
 
 // --- cache ------------------------------------------------------------------
 
@@ -33,14 +50,14 @@ function saveCache(c) {
 }
 const monthOf = (dateKey) => dateKey.slice(0, 7) // "YYYY-MM"
 
-/** The cached month record for a date, or null. */
-export function getCachedMonth(dateKey) {
-  return loadCache()[monthOf(dateKey)] || null
+/** The cached month record for a date at a location, or null. */
+export function getCachedMonth(dateKey, loc) {
+  return loadCache()[locKey(loc)]?.[monthOf(dateKey)] || null
 }
 
 /** Raw (unadjusted) times for a day from cache: { times, source:'cache' } | null. */
-export function getRawTimes(dateKey) {
-  const m = getCachedMonth(dateKey)
+export function getRawTimes(dateKey, loc) {
+  const m = getCachedMonth(dateKey, loc)
   if (m && m.days[dateKey]) return { times: m.days[dateKey], source: 'cache', fetchedAt: m.fetchedAt }
   return null
 }
@@ -64,21 +81,25 @@ function shiftHM(hm, minutes) {
 
 // --- fetching ---------------------------------------------------------------
 
-/**
- * Fetch and cache the month containing dateKey. Returns that day's raw times
- * (or null). Throws on network/API failure so callers can fall back to cache.
- */
-export async function fetchMonth(dateKey) {
-  const [y, m] = dateKey.split('-')
-  // Path-style URL (calendarByCity/YEAR/MONTH). The query-param form 302-redirects
-  // to this; hitting it directly avoids an extra round-trip.
-  const url = `https://api.aladhan.com/v1/calendarByCity/${y}/${Number(m)}`
-    + `?city=${encodeURIComponent(LOCATION.city)}`
-    + `&country=${encodeURIComponent(LOCATION.country)}`
-    + `&state=${encodeURIComponent(LOCATION.state)}`
-    + `&method=${METHOD}`
+/** Build the AlAdhan month URL for a location (coords → calendar, else address). */
+function monthUrl(y, mNum, loc) {
+  if (loc.mode === 'coords' && loc.lat != null && loc.lng != null) {
+    return `https://api.aladhan.com/v1/calendar/${y}/${mNum}`
+      + `?latitude=${loc.lat}&longitude=${loc.lng}&method=${METHOD}`
+  }
+  return `https://api.aladhan.com/v1/calendarByAddress/${y}/${mNum}`
+    + `?address=${encodeURIComponent(loc.address || loc.label)}&method=${METHOD}`
+}
 
-  const res = await fetch(url)
+/**
+ * Fetch and cache the month containing dateKey for `loc`. Returns that day's
+ * raw times (or null). Throws on network/API failure so callers can fall back
+ * to cache — and so the manual city search can validate an address.
+ */
+export async function fetchMonth(dateKey, loc) {
+  if (!loc) throw new Error('no prayer location set')
+  const [y, m] = dateKey.split('-')
+  const res = await fetch(monthUrl(y, Number(m), loc))
   if (!res.ok) throw new Error(`AlAdhan HTTP ${res.status}`)
   const json = await res.json()
   if (json.code !== 200 || !Array.isArray(json.data)) throw new Error('AlAdhan bad payload')
@@ -95,9 +116,12 @@ export async function fetchMonth(dateKey) {
       asr: parseHM(t.Asr), maghrib: parseHM(t.Maghrib), isha: parseHM(t.Isha),
     }
   }
+  if (Object.keys(days).length === 0) throw new Error('AlAdhan returned no days')
 
   const cache = loadCache()
-  cache[monthOf(dateKey)] = { fetchedAt: Date.now(), method: METHOD, city: LOCATION.city, days }
+  const lk = locKey(loc)
+  cache[lk] = cache[lk] || {}
+  cache[lk][monthOf(dateKey)] = { fetchedAt: Date.now(), method: METHOD, label: loc.label, days }
   saveCache(cache)
   return days[dateKey] || null
 }
@@ -111,7 +135,8 @@ export async function fetchMonth(dateKey) {
  */
 export function computeTimes(dateKey, settings) {
   const adjust = settings.prayerAdjustMin || {}
-  const raw = getRawTimes(dateKey)
+  const loc = settings.prayerLocation
+  const raw = loc ? getRawTimes(dateKey, loc) : null
   if (raw) {
     const out = {}
     for (const k of TIME_KEYS) out[k] = shiftHM(raw.times[k], adjust[k] || 0)

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { migrate } from './migrate.js'
-import { freshState } from './seed.js'
+import { freshState, FISHERS_LOCATION } from './seed.js'
 
 // Migration has to be lossless: an older save (and the JSON backup that mirrors
 // it) must come back with every field intact and any newly-shipped slots filled
@@ -31,6 +31,19 @@ describe('existing users migrate without loss', () => {
     expect(m.wins).toEqual(legacy.wins)        // …wins…
     expect(m.votes).toBe(42)                   // …and the vote counter
     expect(m.habits.find((h) => h.id === 'custom')).toBeTruthy() // custom habit kept
+  })
+
+  it('keeps a pre-feature device on Fishers (no prayerLocation key → default)', () => {
+    expect('prayerLocation' in legacy.settings).toBe(false)
+    expect(migrate(legacy).settings.prayerLocation).toEqual(FISHERS_LOCATION)
+  })
+
+  it('respects an explicit prayerLocation, including a new user who skipped (null)', () => {
+    const skipped = { ...legacy, settings: { ...legacy.settings, prayerLocation: null } }
+    expect(migrate(skipped).settings.prayerLocation).toBe(null)
+    const set = { mode: 'coords', label: 'Cairo', lat: 30.04, lng: 31.24 }
+    const traveller = { ...legacy, settings: { ...legacy.settings, prayerLocation: set } }
+    expect(migrate(traveller).settings.prayerLocation).toEqual(set)
   })
 
   it('is idempotent — migrating an already-migrated state changes nothing material', () => {

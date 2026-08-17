@@ -10,7 +10,7 @@
 // unit-tested directly.
 // ---------------------------------------------------------------------------
 
-import { freshState, SEED_HABITS } from './seed.js'
+import { freshState, SEED_HABITS, FISHERS_LOCATION } from './seed.js'
 
 /** Merge any newly-shipped seed habits / settings into an older saved state. */
 export function migrate(state) {
@@ -28,6 +28,13 @@ export function migrate(state) {
     merged.settings.pinFails = 0
     merged.settings.pinLockUntil = 0
   }
+  // Prayer location is per-device now. A save from before this feature has no
+  // `prayerLocation` key at all → keep those users on Fishers so nothing changes
+  // under them. A key that's present (even explicit null from a new user who
+  // skipped onboarding) is respected as-is.
+  merged.settings.prayerLocation = ('prayerLocation' in (state.settings || {}))
+    ? state.settings.prayerLocation
+    : FISHERS_LOCATION
   // Add habits that exist in seed but not yet in the saved state (new phases,
   // etc.) without clobbering the user's edits to existing ones.
   const existingIds = new Set((state.habits || []).map((h) => h.id))

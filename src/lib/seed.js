@@ -168,6 +168,12 @@ export const URGE_PROMPTS = [
   'Every minute you wait, it gets weaker.',
 ]
 
+// The prayer location existing devices keep, so nothing changes for them.
+// New installs start with `null` and are asked during onboarding.
+export const FISHERS_LOCATION = {
+  mode: 'address', label: 'Fishers, Indiana', address: 'Fishers, Indiana, USA', lat: null, lng: null,
+}
+
 // Default fresh-install state.
 export function freshState() {
   const now = new Date().toISOString()
@@ -176,7 +182,9 @@ export function freshState() {
     settings: {
       dayRolloverHour: 3,        // day rolls over at 3am
       currentPhase: 1,           // highest unlocked phase
-      city: 'Fishers, Indiana',
+      // Per-device prayer location. null on a fresh install → onboarding asks,
+      // and the Salah card prompts until it's set.
+      prayerLocation: null,
       foodCollapsed: false,      // Food card collapsed? remembered per-day…
       foodCollapsedDay: null,    // …but only for this day; a new day reopens it
       // Single-owner private-log PIN. Salt is random per-device (never in code);

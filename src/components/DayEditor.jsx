@@ -12,7 +12,15 @@ import SalahCard from './SalahCard.jsx'
  */
 export default function DayEditor({ dayKey, onClose }) {
   const { state } = useStore()
-  const habits = activeHabits(state).filter((h) => appearsOnDay(h, dayKey))
+  // Show the habits scheduled that day PLUS any that already have a check-in
+  // logged that day — even if since archived or off-schedule — so a past
+  // completion can always be toggled back off, not just added.
+  const scheduled = activeHabits(state).filter((h) => appearsOnDay(h, dayKey))
+  const shownIds = new Set(scheduled.map((h) => h.id))
+  const loggedExtra = state.habits.filter(
+    (h) => h.type !== 'salah' && !shownIds.has(h.id) && state.logs[dayKey]?.[h.id],
+  )
+  const habits = [...scheduled, ...loggedExtra]
   const { done, total } = dayScore(state, dayKey)
   const foodGroups = groupFoodByBand(foodForDay(state.food, dayKey))
 
