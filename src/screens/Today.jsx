@@ -11,6 +11,7 @@ import SalahCard from '../components/SalahCard.jsx'
 import TasksCard from '../components/TasksCard.jsx'
 import FoodCard from '../components/FoodCard.jsx'
 import AnchorCard from '../components/AnchorCard.jsx'
+import { useT } from '../i18n.jsx'
 
 // The Phase-1 anchors, shown as a compact emoji row in the score header.
 const ANCHORS = [
@@ -22,6 +23,7 @@ const ANCHORS = [
 
 export default function Today({ navigate }) {
   const { state, today, setRoughDay } = useStore()
+  const { t } = useT()
   const phase = phaseMeta(state.settings.currentPhase)
 
   const habits = useMemo(
@@ -65,7 +67,7 @@ export default function Today({ navigate }) {
       <header className="mb-5">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent-ink)]/90 mb-1.5">
           <span className="w-4 h-px bg-[var(--color-accent)]/50" />
-          Phase {phase.n} · {phase.name}
+          {t('common.phase', { n: phase.n })} · {t(`phase.${phase.n}`)}
         </div>
         <div className="flex items-baseline justify-between">
           <h1 className="font-display text-[2.5rem] leading-none">{prettyDate(today).split(',')[0]}</h1>
@@ -79,7 +81,7 @@ export default function Today({ navigate }) {
       {/* This week's focus (from the weekly review) ------------------------ */}
       {focus && (
         <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-          <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)]">This week’s focus</div>
+          <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)]">{t('today.focus')}</div>
           <div className="text-sm font-medium mt-0.5">{focus}</div>
         </div>
       )}
@@ -87,13 +89,13 @@ export default function Today({ navigate }) {
       {/* Sunday nudge to run the weekly review ----------------------------- */}
       {isSunday(today) && (
         <button onClick={() => navigate('weekly')}
-          className="mt-3 w-full rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-left active:scale-[0.99] transition">
+          className="mt-3 w-full rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-start active:scale-[0.99] transition">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium">It’s Sunday. Run your weekly review.</div>
-              <div className="text-xs text-[var(--color-muted)] mt-0.5">Score the week, pick one thing to improve.</div>
+              <div className="text-sm font-medium">{t('today.sunday.title')}</div>
+              <div className="text-xs text-[var(--color-muted)] mt-0.5">{t('today.sunday.sub')}</div>
             </div>
-            <span className="text-[var(--color-accent-ink)]">→</span>
+            <span className="text-[var(--color-accent-ink)] rtl:rotate-180">→</span>
           </div>
         </button>
       )}
@@ -101,21 +103,16 @@ export default function Today({ navigate }) {
       {/* At-risk banner (supportive, only when missed yesterday) ----------- */}
       {atRisk && !roughDay && (
         <div className="mt-3 rounded-2xl border border-[var(--color-risk)]/50 bg-[var(--color-risk-soft)]/40 px-4 py-3 animate-fade">
-          <div className="text-sm font-medium text-[var(--color-fg)]">Don’t miss twice.</div>
-          <div className="text-xs text-[var(--color-muted)] mt-0.5">
-            You slipped yesterday. That’s allowed. One rep today locks it back in.
-          </div>
+          <div className="text-sm font-medium text-[var(--color-fg)]">{t('today.atRisk.title')}</div>
+          <div className="text-xs text-[var(--color-muted)] mt-0.5">{t('today.atRisk.sub')}</div>
         </div>
       )}
 
       {/* Restart protocol (after a 2+ day gap) ----------------------------- */}
       {gap >= 2 && (
         <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5 animate-fade">
-          <div className="text-sm font-medium">Welcome back. Restart protocol.</div>
-          <div className="text-xs text-[var(--color-muted)] mt-1 leading-relaxed">
-            No lecture. First day back = <span className="text-[var(--color-min)]">2-minute versions only</span>.
-            Hold any habit to log its min rep. Momentum beats intensity.
-          </div>
+          <div className="text-sm font-medium">{t('today.restart.title')}</div>
+          <div className="text-xs text-[var(--color-muted)] mt-1 leading-relaxed">{t('today.restart.body')}</div>
         </div>
       )}
 
@@ -125,12 +122,10 @@ export default function Today({ navigate }) {
           mvdWin ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)]/30'
                  : 'border-[var(--color-min)]/50 bg-[var(--color-min-soft)]/30'}`}>
           <div className="text-sm font-medium">
-            {mvdWin ? 'Rough day, logged as a win ✓' : 'Rough day, minimum viable day'}
+            {mvdWin ? t('today.roughWin.title') : t('today.roughMvd.title')}
           </div>
           <div className="text-xs text-[var(--color-muted)] mt-0.5">
-            {mvdWin
-              ? 'Salah + bed + one rep. Your streak survives. That counts.'
-              : 'Salah, make your bed, and one 2-minute rep. Today still counts as a win.'}
+            {mvdWin ? t('today.roughWin.sub') : t('today.roughMvd.sub')}
           </div>
         </div>
       )}
@@ -138,7 +133,7 @@ export default function Today({ navigate }) {
       {/* A past win, brought back on hard days ----------------------------- */}
       {winForToday && (
         <div className="mt-3 rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-soft)]/25 px-4 py-3.5 animate-fade">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent-ink)]/90">You’ve done hard things</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent-ink)]/90">{t('today.win.label')}</div>
           <div className="text-[15px] mt-1.5 leading-snug">{winForToday.text}</div>
         </div>
       )}
@@ -174,23 +169,24 @@ export default function Today({ navigate }) {
           isEvening && !shutdownDone
             ? 'border-[var(--color-risk)]/50 bg-[var(--color-risk-soft)]/40 text-[var(--color-fg)]'
             : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-        {shutdownDone ? '☾ Shutdown done. Rest well.' : '☾ Start evening shutdown'}
+        {shutdownDone ? t('today.shutdown.done') : t('today.shutdown.start')}
       </button>
 
       {/* Rough-day toggle -------------------------------------------------- */}
       <div className="mt-3">
-        <RoughDayButton roughDay={roughDay} onToggle={() => setRoughDay(today, !roughDay)} />
+        <RoughDayButton roughDay={roughDay} onToggle={() => setRoughDay(today, !roughDay)} t={t} />
       </div>
 
       <p className="text-center text-[11px] text-[var(--color-faint)] mt-6 leading-relaxed">
-        Tap = full rep · Hold = 2-minute rep.<br />
-        One missed day is fine. Never miss twice.
+        {t('today.hint1')}<br />
+        {t('today.hint2')}
       </p>
     </div>
   )
 }
 
 function ScoreCard({ state, today, done, total }) {
+  const { t } = useT()
   const pct = total ? Math.round((done / total) * 100) : 0
   const complete = total > 0 && done === total
 
@@ -202,7 +198,7 @@ function ScoreCard({ state, today, done, total }) {
             {done}<span className="text-[var(--color-faint)] text-[2.25rem]">/{total}</span>
           </div>
           <div className={`text-[12.5px] mt-1.5 transition-colors ${complete ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-muted)]'}`}>
-            {complete ? 'Day done. Every anchor held.' : 'reps locked in today'}
+            {complete ? t('today.score.complete') : t('today.score.pending')}
           </div>
         </div>
 
@@ -242,7 +238,7 @@ function ScoreCard({ state, today, done, total }) {
   )
 }
 
-function RoughDayButton({ roughDay, onToggle }) {
+function RoughDayButton({ roughDay, onToggle, t }) {
   return (
     <button
       onClick={onToggle}
@@ -252,7 +248,7 @@ function RoughDayButton({ roughDay, onToggle }) {
           : 'border-[var(--color-line)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
       }`}
     >
-      {roughDay ? '✓ Marked as a rough day' : 'Rough day? → Minimum viable day'}
+      {roughDay ? t('today.rough.on') : t('today.rough.off')}
     </button>
   )
 }

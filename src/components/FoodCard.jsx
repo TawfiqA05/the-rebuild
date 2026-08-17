@@ -5,6 +5,7 @@ import { QuickAddInput } from './entryInput.jsx'
 import FoodEntryList from './FoodEntryList.jsx'
 import { foodForDay, frequentFoods, quickAddResetTarget } from '../lib/food.js'
 import { addDaysKey } from '../lib/time.js'
+import { useT } from '../i18n.jsx'
 
 /**
  * The Food card on Today: a plain, awareness-only food log. Type + Enter to log
@@ -15,6 +16,7 @@ import { addDaysKey } from '../lib/time.js'
  */
 export default function FoodCard({ dayKey }) {
   const { state, addFood, deleteFood, setFoodCollapsed } = useStore()
+  const { t } = useT()
   const toast = useToast()
 
   const collapsed = state.settings.foodCollapsed
@@ -31,10 +33,10 @@ export default function FoodCard({ dayKey }) {
         aria-expanded={!collapsed}
         className="w-full flex items-center justify-between"
       >
-        <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">Food</span>
+        <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">{t('food.title')}</span>
         <span className="flex items-center gap-2 text-[11px] text-[var(--color-faint)]">
-          {entries.length > 0 && <span>{entries.length} logged</span>}
-          <span className="text-[13px] leading-none">{collapsed ? '›' : '⌄'}</span>
+          {entries.length > 0 && <span>{t('food.logged', { n: entries.length })}</span>}
+          <span className="text-[13px] leading-none rtl:rotate-180">{collapsed ? '›' : '⌄'}</span>
         </span>
       </button>
 
@@ -43,7 +45,7 @@ export default function FoodCard({ dayKey }) {
           <FoodQuickAdd
             dayKey={dayKey}
             onAdd={addFood}
-            onYesterdayAdded={(e) => toast(`Added to yesterday · ${e.text}`, () => deleteFood(e.id))}
+            onYesterdayAdded={(e) => toast(t('food.addedYesterdayToast', { text: e.text }), () => deleteFood(e.id))}
           />
 
           {/* Quick re-add — most frequent recent entries, one tap logs now. */}
@@ -62,13 +64,13 @@ export default function FoodCard({ dayKey }) {
           )}
 
           <div className="mt-3">
-            <FoodEntryList dayKey={dayKey} emptyText="Nothing logged." />
+            <FoodEntryList dayKey={dayKey} emptyText={t('food.nothing')} />
           </div>
 
           {/* Yesterday — anything logged back a day, with the same edit/delete. */}
           {yesterdayEntries.length > 0 && (
             <div className="mt-4 pt-3 border-t border-[var(--color-line)]">
-              <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1.5">Yesterday</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1.5">{t('food.yesterday')}</div>
               <FoodEntryList dayKey={yesterday} showBandLabels={false} />
             </div>
           )}
@@ -79,6 +81,7 @@ export default function FoodCard({ dayKey }) {
 }
 
 function FoodQuickAdd({ dayKey, onAdd, onYesterdayAdded }) {
+  const { t } = useT()
   const [text, setText] = useState('')
   const [target, setTarget] = useState('today') // 'today' | 'yesterday'
   const yesterday = addDaysKey(dayKey, -1)
@@ -96,19 +99,19 @@ function FoodQuickAdd({ dayKey, onAdd, onYesterdayAdded }) {
   return (
     <div>
       <QuickAddInput value={text} onChange={setText} onSubmit={submit}
-        placeholder={toYesterday ? 'What did you eat yesterday?' : 'What did you eat?'}
-        ariaLabel={toYesterday ? 'Log food to yesterday' : 'Log food'} />
+        placeholder={toYesterday ? t('food.addYesterdayPlaceholder') : t('food.addPlaceholder')}
+        ariaLabel={toYesterday ? t('food.addYesterdayPlaceholder') : t('food.addPlaceholder')} />
       {/* Quiet, unbadged one-shot toggle. Clearly labelled while active. */}
       <div className="mt-1.5 text-[11px]">
         {toYesterday ? (
           <span className="text-[var(--color-muted)]">
-            logging to yesterday ·{' '}
-            <button onClick={() => setTarget('today')} className="underline decoration-dotted text-[var(--color-faint)]">back to today</button>
+            {t('food.loggingYesterday')} ·{' '}
+            <button onClick={() => setTarget('today')} className="underline decoration-dotted text-[var(--color-faint)]">{t('food.backToToday')}</button>
           </span>
         ) : (
           <button onClick={() => setTarget('yesterday')}
             className="text-[var(--color-faint)] hover:text-[var(--color-muted)] transition">
-            + add to yesterday
+            {t('food.toggleYesterday')}
           </button>
         )}
       </div>

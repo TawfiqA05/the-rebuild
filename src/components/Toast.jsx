@@ -1,10 +1,12 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { useT } from '../i18n.jsx'
 
 // A quiet, one-line toast with an Undo button. Used to make accidental habit
 // completions a single tap to reverse. Auto-dismisses after 4 seconds.
 const ToastContext = createContext(() => {})
 
 export function ToastProvider({ children }) {
+  const { t } = useT()
   const [toast, setToast] = useState(null) // { msg, onUndo, key }
   const timer = useRef(null)
 
@@ -33,7 +35,7 @@ export function ToastProvider({ children }) {
               onClick={() => { toast.onUndo?.(); dismiss() }}
               className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-3 py-1 rounded-full"
             >
-              Undo
+              {t('common.undo')}
             </button>
           </div>
         </div>

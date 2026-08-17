@@ -1,6 +1,6 @@
-// العربية — Arabic overlay. Anything missing here falls back to English, so
-// partial coverage is safe. Register is friendly and plain, not stiff.
-// (Arabic plural rules are simplified for now: the anchors count uses one form.)
+// العربية — Arabic overlay. Missing keys fall back to English. Register is
+// friendly and plain, not stiff. Lines marked "REVIEW" are ones I wasn't fully
+// sure how to phrase naturally — Tawfiq to check.
 export default {
   'nav.today': 'اليوم',
   'nav.stats': 'الإحصائيات',
@@ -13,6 +13,19 @@ export default {
   'common.back': 'رجوع',
   'common.gotIt': 'فهمت',
   'common.notNow': 'ليس الآن',
+  'common.save': 'حفظ',
+  'common.add': 'إضافة',
+  'common.close': 'إغلاق',
+  'common.done': 'تم',
+  'common.cancel': 'إلغاء',
+  'common.undo': 'تراجع',
+  'common.phase': 'المرحلة {n}',
+
+  'phase.1': 'الركائز',
+  'phase.2': 'العقل والنظام',
+  'phase.3': 'الجسد والتركيز',
+  'phase.4': 'المال والإدارة',
+  'phase.5': 'الأخلاق',
 
   'ob.pitchTitle': 'ابْنِ الشخص الذي تريد أن تكونه، خطوة تلو الأخرى.',
   'ob.pitch1': 'تطبيق لتتبّع العادات بقاعدة واحدة تهمّ: لا تفوّت مرتين. فوّت يومًا، لا بأس. فقط لا تفوّت اليوم التالي. لكل عادة نسخة من دقيقتين، فبدل أن تتخطّاها في يوم صعب، صغّرها.',
@@ -25,19 +38,108 @@ export default {
   'ob.anchorsTitle': 'اختر ركائزك',
   'ob.anchorsIntro': 'هذه ركائز المرحلة الأولى. أبقِها، أو أطفئ ما لا يناسبك. يمكنك إضافة عاداتك لاحقًا من الإعدادات.',
   'ob.startClean': 'ابدأ بصفحة بيضاء',
-  'ob.startN': 'تابِع مع {n} {unit}',
+  'ob.startN': 'تابِع مع {n} {unit}', // REVIEW: Arabic plural of "anchors" isn't handled by count
   'ob.anchor': 'ركائز',
   'ob.anchors': 'ركائز',
   'ob.prayerTitle': 'أوقات الصلاة',
   'ob.prayerIntro': 'حدّد موقعك لتظهر أوقات الأذان بدقّة، محفوظة لتعمل دون إنترنت. يمكنك تغييره في أي وقت من الإعدادات.',
   'ob.skipForNow': 'تخطَّ الآن',
 
+  'today.focus': 'تركيز هذا الأسبوع',
+  'today.score.complete': 'انتهى اليوم. صمدت كل الركائز.',
+  'today.score.pending': 'تكرارات أنجزتها اليوم',
+  'today.hint1': 'اضغط = تكرار كامل · اضغط مطوّلًا = تكرار الدقيقتين.',
+  'today.hint2': 'تفويت يوم لا بأس به. لا تفوّت مرتين.',
+
+  'today.sunday.title': 'إنه الأحد. راجِع أسبوعك.',
+  'today.sunday.sub': 'قيّم أسبوعك، واختر شيئًا واحدًا لتحسّنه.',
+  'today.atRisk.title': 'لا تفوّت مرتين.',
+  'today.atRisk.sub': 'تعثّرت أمس، لا بأس. تكرار واحد اليوم يعيدك إلى المسار.',
+  'today.restart.title': 'أهلًا بعودتك. لنبدأ من جديد.', // REVIEW: "Restart protocol"
+  'today.restart.body': 'بلا محاضرات. أول يوم بعد الانقطاع نسخ الدقيقتين فقط. اضغط مطوّلًا على أي عادة لتسجّل نسختها المصغّرة. الاستمرارية تغلب الشدّة.',
+  'today.roughWin.title': 'يوم صعب، سُجّل كإنجاز ✓',
+  'today.roughWin.sub': 'صلاة + ترتيب السرير + تكرار واحد. سلسلتك تصمد. هذا يكفي.',
+  'today.roughMvd.title': 'يوم صعب، الحد الأدنى ليوم ناجح', // REVIEW: "minimum viable day" is coined jargon
+  'today.roughMvd.sub': 'صلِّ، ورتّب سريرك، وأنجز تكرارًا من دقيقتين. يبقى اليوم إنجازًا.',
+  'today.win.label': 'لقد أنجزت أمورًا صعبة',
+  'today.shutdown.done': '☾ انتهى الاسترخاء. استرِح جيدًا.',
+  'today.shutdown.start': '☾ ابدأ استرخاء المساء',
+  'today.rough.on': '✓ مُعلَّم كيوم صعب',
+  'today.rough.off': 'يوم صعب؟ → الحد الأدنى ليوم ناجح', // REVIEW: same jargon
+
+  'habit.minRep': 'نسخة مصغّرة · {v}',
+  'habit.weekProgress': '{count} من {target} هذا الأسبوع',
+  'habit.atRisk': 'فوّتّها أمس. ثبّتها اليوم',
+  'habit.hint': 'اضغط الحلقة · مطوّلًا لنسخة الدقيقتين',
+  'habit.optional': 'اختياري',
+  'habit.log': 'سجّل {name}',
+  'habit.toastFull': 'تكرار كامل',
+  'habit.toastMin': 'نسخة مصغّرة',
+  'habit.toastCleared': 'أُزيلت',
+
+  'salah.title': 'الصلاة في وقتها',
   'salah.fajr': 'فجر',
   'salah.dhuhr': 'ظهر',
   'salah.asr': 'عصر',
   'salah.maghrib': 'مغرب',
   'salah.isha': 'عشاء',
-  'salah.title': 'الصلاة في وقتها',
+  'salah.allOnTime': 'الخمس كلها في وقتها ✓',
+  'salah.prayedLate': 'صُلّيت الخمس ({n} متأخرة)', // REVIEW: plural agreement with {n}
+  'salah.prayedCount': '{n}/5 صُلّيت',
+  'salah.setLocation': 'حدّد موقعك لرؤية أوقات الصلاة. يبقى على جهازك.',
+  'salah.offline': 'دون إنترنت، نستخدم أوقاتك اليدوية',
+  'salah.loadingTimes': 'جارٍ تحميل أوقات الصلاة…',
+  'salah.unavailable': 'لا أوقات صلاة بعد. حدّد موقعًا من الإعدادات',
+  'salah.next': 'التالية',
+  'salah.in': 'بعد {dur}',
+  'salah.loading': 'جارٍ التحميل…',
+  'salah.onTime': 'في وقتها',
+  'salah.late': 'متأخرة',
+  'salah.cleared': 'أُزيلت',
+  'salah.notPrayed': 'لم تُصلَّ',
+  'salah.now': 'الآن',
+
+  'loc.useMyLocation': '📍 استخدم موقعي',
+  'loc.locating': 'جارٍ تحديد الموقع…',
+  'loc.orSearch': 'أو ابحث عن مدينة',
+  'loc.cityPlaceholder': 'المدينة، الدولة',
+  'loc.set': 'تعيين',
+
+  'anchor.own': 'من واقعك أنت', // REVIEW: "Your own evidence"
+
+  'tasks.title': 'المهام',
+  'tasks.toDo': '{n} للإنجاز',
+  'tasks.allClear': 'لا شيء',
+  'tasks.addPlaceholder': 'أضف مهمة…',
+  'tasks.today': 'اليوم',
+  'tasks.tomorrow': 'غدًا',
+  'tasks.pick': 'اختر',
+  'tasks.upcoming': '{n} قادمة',
+  'tasks.moveToday': '→ اليوم',
+  'tasks.movedToast': 'نُقلت إلى اليوم · {text}',
+  'tasks.deletedToast': 'حُذفت · {text}',
+  'tasks.doneToast': 'تم · {text}',
+  'tasks.reopenedToast': 'أُعيدت · {text}',
+  'tasks.editAria': 'تعديل المهمة',
+  'tasks.complete': 'إكمال',
+  'tasks.reopen': 'إعادة فتح',
+
+  'food.title': 'الطعام',
+  'food.logged': '{n} مُسجّلة',
+  'food.nothing': 'لا شيء مُسجّل.',
+  'food.addPlaceholder': 'ماذا أكلت؟',
+  'food.addYesterdayPlaceholder': 'ماذا أكلت أمس؟',
+  'food.toggleYesterday': '+ أضف إلى الأمس',
+  'food.loggingYesterday': 'تسجيل في الأمس',
+  'food.backToToday': 'العودة إلى اليوم',
+  'food.yesterday': 'الأمس',
+  'food.addedYesterdayToast': 'أُضيفت إلى الأمس · {text}',
+  'food.deletedToast': 'حُذفت · {text}',
+  'food.morning': 'الصباح',
+  'food.midday': 'الظهيرة',
+  'food.evening': 'المساء',
+  'food.night': 'الليل',
+  'food.editAria': 'تعديل الإدخال',
 
   'settings.title': 'الإعدادات',
   'settings.appearance': 'المظهر',
@@ -51,4 +153,9 @@ export default {
   'settings.dayRollover': 'بداية اليوم',
   'settings.backup': 'النسخ الاحتياطي والبيانات',
   'settings.langNote': 'نعمل على ترجمة المزيد من التطبيق. لاحظت ترجمة ركيكة؟ أخبر توفيق.',
+
+  'tour.1': 'اضغط حلقة العادة لتسجّلها.',
+  'tour.2': 'يوم صعب؟ اضغط الحلقة مطوّلًا لنسخة الدقيقتين. تُحتسب أيضًا.',
+  'tour.3': 'نتيجتك هي تكرارات اليوم. فوّت يومًا، لا بأس. فقط لا تفوّت مرتين.',
+  'tour.4': 'الإحصائيات والاسترخاء في الشريط بالأسفل.',
 }

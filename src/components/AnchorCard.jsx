@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../store.jsx'
 import { dailyAnchor } from '../lib/anchor.js'
+import { useT } from '../i18n.jsx'
 
 /**
  * The Daily anchor — one quiet line of motivation, fixed for the whole day.
@@ -10,6 +11,7 @@ import { dailyAnchor } from '../lib/anchor.js'
  */
 export default function AnchorCard({ biasOwn = false }) {
   const { state, today } = useStore()
+  const { t } = useT()
   const anchor = useMemo(
     () => dailyAnchor(state, today, { biasOwn }),
     [state, today, biasOwn],
@@ -22,7 +24,7 @@ export default function AnchorCard({ biasOwn = false }) {
     <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5">
       {own ? (
         <>
-          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent-ink)]/80">Your own evidence</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent-ink)]/80">{t('anchor.own')}</div>
           <p className="text-[14.5px] leading-snug mt-1.5 text-[var(--color-fg)]">{anchor.text}</p>
         </>
       ) : (

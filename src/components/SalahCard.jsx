@@ -38,23 +38,23 @@ export default function SalahCard({ dayKey }) {
           <div className="font-medium">{t('salah.title')}</div>
           <div className="text-xs text-[var(--color-muted)]">
             {sum.done
-              ? sum.rep === 'full' ? 'All five, on time ✓' : `Prayed all five (${5 - sum.onTime} late)`
-              : `${sum.prayed}/5 prayed`}
+              ? sum.rep === 'full' ? t('salah.allOnTime') : t('salah.prayedLate', { n: 5 - sum.onTime })
+              : t('salah.prayedCount', { n: sum.prayed })}
           </div>
         </div>
-        <NextBadge times={times} next={next} minsToNext={minsToNext} status={status} />
+        <NextBadge times={times} next={next} minsToNext={minsToNext} status={status} t={t} />
       </div>
 
       {/* Current city, so you can tell at a glance the times are for where you are. */}
       {location && (
-        <div className="text-[10px] text-[var(--color-faint)] mb-2 pl-11 truncate">📍 {location.label}</div>
+        <div className="text-[10px] text-[var(--color-faint)] mb-2 ps-11 truncate">📍 {location.label}</div>
       )}
 
       {/* No location yet → prompt to set one right here (first Salah-card view). */}
       {!location ? (
-        <div className="mt-1 pl-1">
+        <div className="mt-1 ps-1">
           <div className="text-[12px] text-[var(--color-muted)] mb-2">
-            Set your location to see prayer times. It stays on this device.
+            {t('salah.setLocation')}
           </div>
           <PrayerLocationPicker compact />
         </div>
@@ -62,10 +62,10 @@ export default function SalahCard({ dayKey }) {
         <>
           {/* source hint, only when it's worth saying */}
           {(source === 'manual' || source === 'none' || status === 'error') && (
-            <div className="text-[10px] text-[var(--color-faint)] mb-2 pl-11">
-              {source === 'manual' ? 'offline, using your manual times'
-                : status === 'loading' ? 'loading prayer times…'
-                : 'no prayer times yet. Set a location in Settings'}
+            <div className="text-[10px] text-[var(--color-faint)] mb-2 ps-11">
+              {source === 'manual' ? t('salah.offline')
+                : status === 'loading' ? t('salah.loadingTimes')
+                : t('salah.unavailable')}
             </div>
           )}
 
@@ -93,7 +93,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
     const next = nextSalah(value)
     if (navigator.vibrate) navigator.vibrate(6)
     setSalah(dayKey, p, next)
-    const label = next === 'ontime' ? 'on time' : next === 'late' ? 'late' : 'cleared'
+    const label = next === 'ontime' ? t('salah.onTime') : next === 'late' ? t('salah.late') : t('salah.cleared')
     toast(`${name} · ${label}`, () => setSalah(dayKey, p, value ?? null))
   }
   const press = useLongPress(onTap)
@@ -107,33 +107,33 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
   return (
     <button
       {...press}
-      aria-label={`${name}: ${value === 'ontime' ? 'on time' : value === 'late' ? 'late' : 'not prayed'}`}
+      aria-label={`${name}: ${value === 'ontime' ? t('salah.onTime') : value === 'late' ? t('salah.late') : t('salah.notPrayed')}`}
       className={`press no-callout relative rounded-xl border py-2.5 flex flex-col items-center gap-0.5 ${cls}`}
       style={{ touchAction: 'pan-y' }}
     >
       {isNow && (
         <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wide
-          bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-full px-1.5 py-px leading-none">now</span>
+          bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-full px-1.5 py-px leading-none">{t('salah.now')}</span>
       )}
       <span className="text-[11px] font-medium">{name}</span>
       <span className="text-[10px] tabular-nums">{time ? compact(time) : '—'}</span>
       <span className="text-[9px] opacity-80">
-        {value === 'ontime' ? 'on time' : value === 'late' ? 'late' : '·'}
+        {value === 'ontime' ? t('salah.onTime') : value === 'late' ? t('salah.late') : '·'}
       </span>
     </button>
   )
 }
 
-function NextBadge({ times, next, minsToNext, status }) {
+function NextBadge({ times, next, minsToNext, status, t }) {
   if (status === 'loading' && !times) {
-    return <span className="text-[10px] text-[var(--color-faint)]">loading…</span>
+    return <span className="text-[10px] text-[var(--color-faint)]">{t('salah.loading')}</span>
   }
   if (!times || !next || minsToNext == null) return null
   return (
-    <div className="text-right shrink-0">
-      <div className="text-[10px] text-[var(--color-faint)] uppercase tracking-wide">next</div>
-      <div className="text-xs font-medium capitalize">{next}</div>
-      <div className="text-[10px] text-[var(--color-muted)] tabular-nums">in {fmtDuration(minsToNext)}</div>
+    <div className="text-end shrink-0">
+      <div className="text-[10px] text-[var(--color-faint)] uppercase tracking-wide">{t('salah.next')}</div>
+      <div className="text-xs font-medium">{t(`salah.${next}`)}</div>
+      <div className="text-[10px] text-[var(--color-muted)] tabular-nums">{t('salah.in', { dur: fmtDuration(minsToNext) })}</div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
-// English — the base string table and source of truth. Every key that the UI
-// uses lives here; other languages overlay on top and fall back to these, so a
-// missing translation shows English, never a raw key.
+// English — the base string table and source of truth. Every key the UI uses
+// lives here; other languages overlay and fall back to these, so a missing
+// translation shows English, never a raw key.
 export default {
   // nav
   'nav.today': 'Today',
@@ -15,6 +15,20 @@ export default {
   'common.back': 'Back',
   'common.gotIt': 'Got it',
   'common.notNow': 'Not now',
+  'common.save': 'Save',
+  'common.add': 'Add',
+  'common.close': 'Close',
+  'common.done': 'Done',
+  'common.cancel': 'Cancel',
+  'common.undo': 'Undo',
+  'common.phase': 'Phase {n}',
+
+  // phase names
+  'phase.1': 'Anchors',
+  'phase.2': 'Mind & Structure',
+  'phase.3': 'Body & Focus',
+  'phase.4': 'Money & Admin',
+  'phase.5': 'Character',
 
   // onboarding
   'ob.brand': 'The Rebuild',
@@ -36,15 +50,111 @@ export default {
   'ob.prayerIntro': 'Set your location and the Salah card shows accurate athan times, cached to work offline. You can change it anytime in Settings.',
   'ob.skipForNow': 'Skip for now',
 
-  // prayer names
+  // today header + score
+  'today.focus': 'This week’s focus',
+  'today.score.complete': 'Day done. Every anchor held.',
+  'today.score.pending': 'reps locked in today',
+  'today.hint1': 'Tap = full rep · Hold = 2-minute rep.',
+  'today.hint2': 'One missed day is fine. Never miss twice.',
+
+  // today banners
+  'today.sunday.title': 'It’s Sunday. Run your weekly review.',
+  'today.sunday.sub': 'Score the week, pick one thing to improve.',
+  'today.atRisk.title': 'Don’t miss twice.',
+  'today.atRisk.sub': 'You slipped yesterday. That’s allowed. One rep today locks it back in.',
+  'today.restart.title': 'Welcome back. Restart protocol.',
+  'today.restart.body': 'No lecture. First day back is 2-minute versions only. Hold any habit to log its min rep. Momentum beats intensity.',
+  'today.roughWin.title': 'Rough day, logged as a win ✓',
+  'today.roughWin.sub': 'Salah + bed + one rep. Your streak survives. That counts.',
+  'today.roughMvd.title': 'Rough day, minimum viable day',
+  'today.roughMvd.sub': 'Salah, make your bed, and one 2-minute rep. Today still counts as a win.',
+  'today.win.label': 'You’ve done hard things',
+  'today.shutdown.done': '☾ Shutdown done. Rest well.',
+  'today.shutdown.start': '☾ Start evening shutdown',
+  'today.rough.on': '✓ Marked as a rough day',
+  'today.rough.off': 'Rough day? → Minimum viable day',
+
+  // habit card
+  'habit.minRep': 'Min rep · {v}',
+  'habit.weekProgress': '{count} of {target} this week',
+  'habit.atRisk': 'Missed yesterday. Lock it in',
+  'habit.hint': 'Tap the ring · hold for 2-min',
+  'habit.optional': 'optional',
+  'habit.log': 'Log {name}',
+  'habit.toastFull': 'full rep',
+  'habit.toastMin': 'min rep',
+  'habit.toastCleared': 'cleared',
+
+  // salah
+  'salah.title': 'Salah on time',
   'salah.fajr': 'Fajr',
   'salah.dhuhr': 'Dhuhr',
   'salah.asr': 'Asr',
   'salah.maghrib': 'Maghrib',
   'salah.isha': 'Isha',
-  'salah.title': 'Salah on time',
+  'salah.allOnTime': 'All five, on time ✓',
+  'salah.prayedLate': 'Prayed all five ({n} late)',
+  'salah.prayedCount': '{n}/5 prayed',
+  'salah.setLocation': 'Set your location to see prayer times. It stays on this device.',
+  'salah.offline': 'offline, using your manual times',
+  'salah.loadingTimes': 'loading prayer times…',
+  'salah.unavailable': 'no prayer times yet. Set a location in Settings',
+  'salah.next': 'next',
+  'salah.in': 'in {dur}',
+  'salah.loading': 'loading…',
+  'salah.onTime': 'on time',
+  'salah.late': 'late',
+  'salah.cleared': 'cleared',
+  'salah.notPrayed': 'not prayed',
+  'salah.now': 'now',
 
-  // settings section labels
+  // prayer location picker
+  'loc.useMyLocation': '📍 Use my location',
+  'loc.locating': 'Locating…',
+  'loc.orSearch': 'or search a city',
+  'loc.cityPlaceholder': 'City, Country',
+  'loc.set': 'Set',
+
+  // daily anchor
+  'anchor.own': 'Your own evidence',
+
+  // tasks
+  'tasks.title': 'Tasks',
+  'tasks.toDo': '{n} to do',
+  'tasks.allClear': 'all clear',
+  'tasks.addPlaceholder': 'Add a task…',
+  'tasks.today': 'Today',
+  'tasks.tomorrow': 'Tomorrow',
+  'tasks.pick': 'Pick',
+  'tasks.upcoming': '{n} upcoming',
+  'tasks.moveToday': '→ Today',
+  'tasks.movedToast': 'Moved to today · {text}',
+  'tasks.deletedToast': 'Deleted · {text}',
+  'tasks.doneToast': 'Done · {text}',
+  'tasks.reopenedToast': 'Reopened · {text}',
+  'tasks.editAria': 'Edit task',
+  'tasks.complete': 'Complete',
+  'tasks.reopen': 'Reopen',
+
+  // food
+  'food.title': 'Food',
+  'food.logged': '{n} logged',
+  'food.nothing': 'Nothing logged.',
+  'food.addPlaceholder': 'What did you eat?',
+  'food.addYesterdayPlaceholder': 'What did you eat yesterday?',
+  'food.toggleYesterday': '+ add to yesterday',
+  'food.loggingYesterday': 'logging to yesterday',
+  'food.backToToday': 'back to today',
+  'food.yesterday': 'Yesterday',
+  'food.addedYesterdayToast': 'Added to yesterday · {text}',
+  'food.deletedToast': 'Deleted · {text}',
+  'food.morning': 'Morning',
+  'food.midday': 'Midday',
+  'food.evening': 'Evening',
+  'food.night': 'Night',
+  'food.editAria': 'Edit entry',
+
+  // settings sections
   'settings.title': 'Settings',
   'settings.appearance': 'Appearance',
   'settings.language': 'Language',
@@ -57,4 +167,10 @@ export default {
   'settings.dayRollover': 'Day rollover',
   'settings.backup': 'Backup & data',
   'settings.langNote': 'More of the app is being translated. Spotted something awkward? Tell Tawfiq.',
+
+  // tour
+  'tour.1': 'Tap a habit’s ring to log it.',
+  'tour.2': 'Rough day? Hold the ring for the 2-minute version. It still counts.',
+  'tour.3': 'Your score is today’s reps. Miss a day, that’s fine. Just don’t miss twice.',
+  'tour.4': 'Stats and Wind down are in the bar at the bottom.',
 }

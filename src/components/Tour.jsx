@@ -1,20 +1,15 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
 import { Button } from './ui.jsx'
+import { useT } from '../i18n.jsx'
 
-// Four one-sentence steps, in the app's voice. Shown once, on the real Today
-// screen, right after onboarding. Skippable at any point.
-const STEPS = [
-  'Tap a habit’s ring to log it.',
-  'Rough day? Hold the ring for the 2-minute version. It still counts.',
-  'Your score is today’s reps. Miss a day, that’s fine. Just don’t miss twice.',
-  'Stats and Wind down are in the bar at the bottom.',
-]
+const STEP_KEYS = ['tour.1', 'tour.2', 'tour.3', 'tour.4']
 
 export default function Tour() {
   const { setTourSeen } = useStore()
+  const { t } = useT()
   const [step, setStep] = useState(0)
-  const last = step === STEPS.length - 1
+  const last = step === STEP_KEYS.length - 1
   const done = () => setTourSeen(true)
 
   return (
@@ -25,15 +20,15 @@ export default function Tour() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex gap-1.5 mb-3">
-          {STEPS.map((_, i) => (
+          {STEP_KEYS.map((_, i) => (
             <div key={i} className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-line)]'}`} />
           ))}
         </div>
-        <p className="text-[15.5px] leading-relaxed text-[var(--color-fg)]">{STEPS[step]}</p>
+        <p className="text-[15.5px] leading-relaxed text-[var(--color-fg)]">{t(STEP_KEYS[step])}</p>
         <div className="flex items-center justify-between mt-4">
-          <button onClick={done} className="text-[13px] text-[var(--color-faint)]">Skip</button>
+          <button onClick={done} className="text-[13px] text-[var(--color-faint)]">{t('common.skip')}</button>
           <Button variant="primary" onClick={() => (last ? done() : setStep(step + 1))}>
-            {last ? 'Got it' : 'Next'}
+            {last ? t('common.gotIt') : t('common.next')}
           </Button>
         </div>
       </div>

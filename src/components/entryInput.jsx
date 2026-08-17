@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useT } from '../i18n.jsx'
 
 // ---------------------------------------------------------------------------
 // entryInput.jsx — the quick-add and inline-edit primitives shared by the
@@ -28,6 +29,7 @@ const FRAME =
  * below the field only while composing.
  */
 export function QuickAddInput({ value, onChange, onSubmit, placeholder, ariaLabel, children }) {
+  const { t } = useT()
   const has = value.trim().length > 0
   return (
     <div>
@@ -43,7 +45,7 @@ export function QuickAddInput({ value, onChange, onSubmit, placeholder, ariaLabe
         />
         {has && (
           <button onClick={onSubmit} aria-label={ariaLabel}
-            className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">Add</button>
+            className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">{t('common.add')}</button>
         )}
       </div>
       {has && children && <div className="mt-2 animate-fade">{children}</div>}
@@ -58,6 +60,7 @@ export function QuickAddInput({ value, onChange, onSubmit, placeholder, ariaLabe
  * a dumb controlled input.
  */
 export function InlineEditText({ value, onChange, onCommit, onCancel, ariaLabel = 'Edit' }) {
+  const { t } = useT()
   return (
     <div className="flex items-center gap-2">
       <input
@@ -72,8 +75,8 @@ export function InlineEditText({ value, onChange, onCommit, onCancel, ariaLabel 
         className="flex-1 min-w-0 rounded-lg border border-[var(--color-line)] bg-[var(--color-ink-2)] px-3 py-2 text-[15px]
           text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]/60 transition"
       />
-      <button onClick={onCommit} aria-label="Save"
-        className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">Save</button>
+      <button onClick={onCommit} aria-label={t('common.save')}
+        className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-1.5">{t('common.save')}</button>
     </div>
   )
 }
