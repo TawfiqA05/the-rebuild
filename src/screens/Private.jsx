@@ -50,7 +50,7 @@ function CreatePin({ onCreated }) {
         <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2.5">
           <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
             <b className="text-[var(--color-fg)]">This is the one and only PIN.</b> It’s stored as a
-            salted hash on this device — never in plain text, never in the cloud. There is no
+            salted hash on this device. Never in plain text, never in the cloud. There is no
             change or reset: the only way to clear it is <b>Settings → Reset everything</b>, which
             wipes all app data. So pick something you won’t forget.
           </p>
@@ -229,7 +229,7 @@ function UrgeTimer() {
       <div className="space-y-4">
         <Card className="px-4 py-8 text-center">
           <p className="text-sm text-[var(--color-muted)] mb-5 leading-relaxed">
-            Urges peak and pass — usually within 20 minutes. Start the timer and let it crest.
+            Urges peak and pass, usually within 20 minutes. Start the timer and let it crest.
           </p>
           <button onClick={start}
             className="mx-auto w-40 h-40 rounded-full border-2 border-[var(--color-accent)] text-[var(--color-accent-ink)]
@@ -239,7 +239,7 @@ function UrgeTimer() {
           <p className="text-xs text-[var(--color-faint)] mt-5">20 minutes. One at a time.</p>
         </Card>
         {outcome === 'slipped' && (
-          <p className="text-center text-xs text-[var(--color-muted)]">Logged. No shame — noticing is data. Come back anytime.</p>
+          <p className="text-center text-xs text-[var(--color-muted)]">Logged. No shame. Noticing is data. Come back anytime.</p>
         )}
       </div>
     )
@@ -309,13 +309,13 @@ function LogMoment() {
             className={`rounded-xl border py-2.5 text-sm transition ${
               rodeOut ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 text-[var(--color-accent-ink)]'
                       : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-            Yes — rode the wave
+            Yes, rode the wave
           </button>
           <button onClick={() => setRodeOut(false)}
             className={`rounded-xl border py-2.5 text-sm transition ${
               !rodeOut ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/30 text-[var(--color-min)]'
                        : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-            No — slipped
+            No, slipped
           </button>
         </div>
       </Labeled>
@@ -340,7 +340,7 @@ function Patterns({ entries, waves }) {
       <Card className="px-4 py-4">
         <SectionLabel>Trigger patterns</SectionLabel>
         {stats.total === 0 ? (
-          <p className="text-sm text-[var(--color-muted)]">Nothing logged yet. Insights show up as you record moments — no judgment, just data.</p>
+          <p className="text-sm text-[var(--color-muted)]">Nothing logged yet. Insights show up as you record moments. No judgment, just data.</p>
         ) : (
           <div className="space-y-2 text-sm">
             {stats.peakWindow && (
@@ -364,7 +364,7 @@ function Patterns({ entries, waves }) {
                   {e.rodeOut ? '🌊' : '•'}
                 </span>
                 <span className="text-[var(--color-muted)] w-28 shrink-0">{fmtWhen(e.at)}</span>
-                <span className="capitalize flex-1 min-w-0 break-words">{e.trigger}{e.note ? ` — ${e.note}` : ''}</span>
+                <span className="capitalize flex-1 min-w-0 break-words">{e.trigger}{e.note ? ` · ${e.note}` : ''}</span>
               </div>
             ))}
           </div>

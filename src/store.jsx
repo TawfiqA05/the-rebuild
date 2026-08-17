@@ -347,12 +347,16 @@ function makeActions(setState, stateRef) {
       if (!entry) return
       setState((prev) => ({ ...prev, food: insertFood(prev.food, entry) }))
     },
-    /** Remember the Food card's collapsed state, scoped to `dayKey`. */
-    setFoodCollapsed(collapsed, dayKey) {
-      setState((prev) => ({
-        ...prev,
-        settings: { ...prev.settings, foodCollapsed: collapsed, foodCollapsedDay: dayKey },
-      }))
+    /** Remember whether the Today Tasks / Food sections are collapsed (per device). */
+    setTasksCollapsed(collapsed) {
+      setState((prev) => ({ ...prev, settings: { ...prev.settings, tasksCollapsed: collapsed } }))
+    },
+    setFoodCollapsed(collapsed) {
+      setState((prev) => ({ ...prev, settings: { ...prev.settings, foodCollapsed: collapsed } }))
+    },
+    /** Mark the first-run tour as seen (or reset it to replay). */
+    setTourSeen(seen) {
+      setState((prev) => ({ ...prev, settings: { ...prev.settings, tourSeen: seen } }))
     },
 
     // -- my quotes (added to the Daily anchor's curated pool) --

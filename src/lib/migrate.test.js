@@ -55,6 +55,31 @@ describe('existing users migrate without loss', () => {
   })
 })
 
+describe('first-run tour shows once', () => {
+  it('a fresh install has not seen the tour; existing devices have', () => {
+    expect(freshState().settings.tourSeen).toBe(false)
+    // legacy state (no tourSeen key) → treated as already seen, so it never pops
+    // up on someone who has been using the app.
+    const legacy = { version: 1, settings: { onboarded: true }, habits: [], logs: {}, days: {} }
+    expect(migrate(legacy).settings.tourSeen).toBe(true)
+  })
+  it('respects an explicit tourSeen (e.g. a replay that reset it to false)', () => {
+    const s = { version: 2, settings: { onboarded: true, tourSeen: false }, habits: [], logs: {}, days: {} }
+    expect(migrate(s).settings.tourSeen).toBe(false)
+  })
+})
+
+describe('collapsed sections persist per device', () => {
+  it('default the Today sections closed, and keep a saved choice', () => {
+    expect(freshState().settings.tasksCollapsed).toBe(true)
+    expect(freshState().settings.foodCollapsed).toBe(true)
+    const opened = { version: 2, settings: { tasksCollapsed: false, foodCollapsed: false }, habits: [], logs: {}, days: {} }
+    const m = migrate(opened)
+    expect(m.settings.tasksCollapsed).toBe(false)
+    expect(m.settings.foodCollapsed).toBe(false)
+  })
+})
+
 describe('backup roundtrip preserves food', () => {
   it('food entries survive an export → import cycle', () => {
     const state = {

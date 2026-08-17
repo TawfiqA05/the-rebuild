@@ -52,7 +52,7 @@ export default function SalahCard({ dayKey }) {
       {!location ? (
         <div className="mt-1 pl-1">
           <div className="text-[12px] text-[var(--color-muted)] mb-2">
-            Set your location to see prayer times — it stays on this device.
+            Set your location to see prayer times. It stays on this device.
           </div>
           <PrayerLocationPicker compact />
         </div>
@@ -61,9 +61,9 @@ export default function SalahCard({ dayKey }) {
           {/* source hint, only when it's worth saying */}
           {(source === 'manual' || source === 'none' || status === 'error') && (
             <div className="text-[10px] text-[var(--color-faint)] mb-2 pl-11">
-              {source === 'manual' ? 'offline — using your manual times'
+              {source === 'manual' ? 'offline, using your manual times'
                 : status === 'loading' ? 'loading prayer times…'
-                : 'prayer times unavailable — set a location in Settings'}
+                : 'no prayer times yet. Set a location in Settings'}
             </div>
           )}
 

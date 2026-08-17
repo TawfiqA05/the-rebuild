@@ -66,7 +66,7 @@ export default function Shutdown({ navigate }) {
             <TextArea value={journal.well} onChange={(v) => setJournal('well', v)} placeholder="A win, however small…" />
           </Labeled>
           <Labeled label="What didn’t">
-            <TextArea value={journal.didnt} onChange={(v) => setJournal('didnt', v)} placeholder="No shame — just noticing…" />
+            <TextArea value={journal.didnt} onChange={(v) => setJournal('didnt', v)} placeholder="No shame, just noticing…" />
           </Labeled>
           <Labeled label="One fix for tomorrow">
             <TextArea value={journal.fix} onChange={(v) => setJournal('fix', v)} placeholder="The single lever…" />
@@ -117,7 +117,7 @@ export default function Shutdown({ navigate }) {
         <div className="flex-1" />
         {!last
           ? <Button variant="primary" onClick={() => setStep((s) => s + 1)}>Next</Button>
-          : <Button variant="primary" onClick={finish}>Done — lights out</Button>}
+          : <Button variant="primary" onClick={finish}>Done, lights out</Button>}
       </div>
     </Screen>
   )

@@ -33,7 +33,7 @@ export const SEED_HABITS = [
   // ---- Phase 1 · Anchors -------------------------------------------------
   {
     id: 'salah', name: 'Salah on time', emoji: '🕌', phase: 1, type: 'salah',
-    frequency: daily, minVersion: 'Pray it — even late still counts as prayed',
+    frequency: daily, minVersion: 'Pray it, even late still counts as prayed',
     isAnchor: true, anchorKey: 'salah',
   },
   {
@@ -164,7 +164,7 @@ export const URGE_PROMPTS = [
   'You are not the urge. You are the one watching it.',
   'Drink a full glass of water. Slowly.',
   'Step outside. Even for 60 seconds.',
-  'The wave is cresting. Ride it — don’t fight it.',
+  'The wave is cresting. Ride it, don’t fight it.',
   'Every minute you wait, it gets weaker.',
 ]
 
@@ -186,8 +186,11 @@ export function freshState() {
       // Per-device prayer location. null on a fresh install → onboarding asks,
       // and the Salah card prompts until it's set.
       prayerLocation: null,
-      foodCollapsed: false,      // Food card collapsed? remembered per-day…
-      foodCollapsedDay: null,    // …but only for this day; a new day reopens it
+      // Today's secondary sections start tucked away so a new screen stays calm.
+      // The toggles are remembered per device.
+      tasksCollapsed: true,
+      foodCollapsed: true,
+      tourSeen: false,           // first-run coach tour; existing devices skip it
       // Single-owner private-log PIN. Salt is random per-device (never in code);
       // there's no reset except wiping all data. Fails/lock enforce a 1-hour
       // lockout after 5 wrong attempts, persisted so a reload can't bypass it.

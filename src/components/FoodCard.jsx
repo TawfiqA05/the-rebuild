@@ -17,7 +17,7 @@ export default function FoodCard({ dayKey }) {
   const { state, addFood, deleteFood, setFoodCollapsed } = useStore()
   const toast = useToast()
 
-  const collapsed = state.settings.foodCollapsedDay === dayKey && state.settings.foodCollapsed
+  const collapsed = state.settings.foodCollapsed
   const entries = useMemo(() => foodForDay(state.food, dayKey), [state.food, dayKey])
   const chips = useMemo(() => frequentFoods(state.food, dayKey), [state.food, dayKey])
 
@@ -27,7 +27,7 @@ export default function FoodCard({ dayKey }) {
   return (
     <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5" style={{ boxShadow: 'var(--shadow-card)' }}>
       <button
-        onClick={() => setFoodCollapsed(!collapsed, dayKey)}
+        onClick={() => setFoodCollapsed(!collapsed)}
         aria-expanded={!collapsed}
         className="w-full flex items-center justify-between"
       >

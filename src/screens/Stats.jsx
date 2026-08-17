@@ -70,18 +70,18 @@ export default function Stats({ navigate }) {
         <ProgressBar pct={pp.pct} threshold={80} />
         <div className="flex justify-between text-[11px] text-[var(--color-faint)] mt-1.5">
           <span>automaticity</span>
-          <span>80% = ready to unlock</span>
+          <span>80% = ready for the next phase</span>
         </div>
 
         {suggest ? (
           <div className="mt-4 rounded-xl border border-[var(--color-accent)]/40 bg-[var(--color-accent-soft)]/30 px-3 py-3">
             <div className="text-sm font-medium">Phase {phase.n} feels automatic.</div>
             <div className="text-xs text-[var(--color-muted)] mt-0.5 mb-3">
-              You’re past 80% for three weeks. Unlock the next phase when you’re ready — no rush.
+              You’re past 80% for three weeks. Start the next phase when you’re ready. No rush.
             </div>
             <div className="flex gap-2">
               <Button variant="primary" onClick={unlockNextPhase} className="flex-1">
-                Unlock Phase {phase.n + 1}
+                Start Phase {phase.n + 1}
               </Button>
               <Button variant="ghost" onClick={() => dismissUnlock(phase.n)}>Not yet</Button>
             </div>
@@ -89,7 +89,7 @@ export default function Stats({ navigate }) {
         ) : (
           state.settings.currentPhase < 5 && (
             <div className="text-xs text-[var(--color-faint)] mt-3">
-              Keep the current phase above 80% for 21 days and the next one unlocks.
+              Keep the current phase above 80% for 21 days and the next one opens up.
             </div>
           )
         )}

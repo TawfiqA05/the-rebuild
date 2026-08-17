@@ -10,12 +10,13 @@ import { THEMES } from '../lib/themes.js'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-export default function Settings({ onRevealPrivate }) {
+export default function Settings({ navigate, onRevealPrivate }) {
   const {
     state, updateSettings, unlockNextPhase, setPhase,
-    exportJSON, importJSON, resetAll,
+    exportJSON, importJSON, resetAll, setTourSeen,
   } = useStore()
   const s = state.settings
+  const replayTour = () => { setTourSeen(false); navigate('today') }
 
   return (
     <Screen title="Settings" subtitle="Tune the system to fit your life.">
@@ -41,17 +42,18 @@ export default function Settings({ onRevealPrivate }) {
         </div>
         {s.currentPhase < 5 && (
           <Button variant="primary" className="w-full mt-3" onClick={unlockNextPhase}>
-            Unlock Phase {s.currentPhase + 1}: {phaseMeta(s.currentPhase + 1).name}
+            Start Phase {s.currentPhase + 1}: {phaseMeta(s.currentPhase + 1).name}
           </Button>
         )}
         <p className="text-[11px] text-[var(--color-faint)] mt-2">
-          Unlock in order, when the current phase feels automatic. You can move back down too.
+          Move up in order, when the current phase feels automatic. You can move back down too.
         </p>
       </Card>
 
       {/* Appearance -------------------------------------------------------- */}
       <SectionLabel>Appearance</SectionLabel>
       <Appearance />
+      <button onClick={replayTour} className="text-[12px] text-[var(--color-accent-ink)] mt-2">Replay the quick tour</button>
 
       {/* Day rollover ------------------------------------------------------ */}
       <SectionLabel>Day rollover</SectionLabel>

@@ -63,7 +63,7 @@ export default function HabitCard({ habit, dayKey }) {
             : isWeekly
               ? `${wp.count} of ${wp.target} this week`
               : risk.atRisk
-                ? 'Missed yesterday — lock it in'
+                ? 'Missed yesterday. Lock it in'
                 : 'Tap the ring · hold for 2-min'}
         </span>
       </span>

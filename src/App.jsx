@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { StoreProvider, useStore, storageAvailable } from './store.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { applyTheme } from './lib/themes.js'
+import Tour from './components/Tour.jsx'
 import Welcome from './screens/Welcome.jsx'
 import Today from './screens/Today.jsx'
 import Stats from './screens/Stats.jsx'
@@ -76,6 +77,7 @@ function AppShell() {
         {activeScreen === 'settings' && <Settings navigate={navigate} onRevealPrivate={revealPrivate} />}
       </main>
       <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
+      {!state.settings.tourSeen && activeScreen === 'today' && <Tour />}
     </div>
   )
 }

@@ -29,8 +29,8 @@ export default function WinsCard() {
 
       {wins.length === 0 ? (
         <p className="text-[12.5px] text-[var(--color-muted)] mt-3 leading-relaxed">
-          Nothing here yet. Add the small stuff — a hard workout you didn't skip, a
-          call you were dreading. On a rough day one of these shows up on your Today screen.
+          Nothing here yet. Add the small stuff. A hard workout you didn't skip, a
+          call you were dreading. On a rough day, one of these shows up on your Today screen.
         </p>
       ) : (
         <div className="mt-3 space-y-2">

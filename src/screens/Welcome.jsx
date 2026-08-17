@@ -38,8 +38,8 @@ export default function Welcome() {
             bad day you shrink it instead of skipping it.
           </p>
           <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">
-            Add one-off tasks alongside your habits, and jot down what you eat — both sit off to the
-            side and never affect your streaks.
+            Add one-off tasks alongside your habits, and jot down what you eat. Both sit off to the
+            side and never touch your streaks.
           </p>
           <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">
             Everything stays on your device. No account, nothing to sign up for.
@@ -55,7 +55,7 @@ export default function Welcome() {
         <div className="flex-1 flex flex-col">
           <h1 className="font-display text-[2rem] leading-tight">Pick your anchors</h1>
           <p className="text-[14px] text-[var(--color-muted)] mt-2 leading-relaxed">
-            These are the Phase 1 defaults. Keep them, or switch off what doesn’t fit — you
+            These are the Phase 1 defaults. Keep them, or switch off what doesn’t fit. You
             can add your own later in Settings.
           </p>
 

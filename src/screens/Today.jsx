@@ -30,13 +30,18 @@ export default function Today({ navigate }) {
   )
   const { done, total } = dayScore(state, today)
 
+  // A brand-new device has no history, so "missed yesterday" and "restart
+  // protocol" shouldn't fire on day one — days before you installed aren't
+  // misses. Only surface those once there's something logged.
+  const hasHistory = Object.keys(state.logs).length > 0
+
   // At-risk: any active habit missed yesterday and still pending today.
   const atRisk = useMemo(
-    () => activeHabits(state).some((h) => riskSignals(state, h, today).atRisk),
-    [state, today],
+    () => hasHistory && activeHabits(state).some((h) => riskSignals(state, h, today).atRisk),
+    [state, today, hasHistory],
   )
 
-  const gap = useMemo(() => missGapBeforeToday(state, today), [state, today])
+  const gap = useMemo(() => (hasHistory ? missGapBeforeToday(state, today) : 0), [state, today, hasHistory])
   const roughDay = state.days[today]?.roughDay
   const mvdWin = isMVDWin(state, today)
 
@@ -71,10 +76,6 @@ export default function Today({ navigate }) {
       {/* Score card -------------------------------------------------------- */}
       <ScoreCard state={state} today={today} done={done} total={total} />
 
-      {/* Daily anchor — one quiet line, fixed for the day. On hard days it
-          leans on my own wins and journal instead of strangers' quotes. */}
-      <AnchorCard biasOwn={roughDay || gap >= 2} />
-
       {/* This week's focus (from the weekly review) ------------------------ */}
       {focus && (
         <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
@@ -89,7 +90,7 @@ export default function Today({ navigate }) {
           className="mt-3 w-full rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-left active:scale-[0.99] transition">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium">It’s Sunday — run your weekly review</div>
+              <div className="text-sm font-medium">It’s Sunday. Run your weekly review.</div>
               <div className="text-xs text-[var(--color-muted)] mt-0.5">Score the week, pick one thing to improve.</div>
             </div>
             <span className="text-[var(--color-accent-ink)]">→</span>
@@ -102,7 +103,7 @@ export default function Today({ navigate }) {
         <div className="mt-3 rounded-2xl border border-[var(--color-risk)]/50 bg-[var(--color-risk-soft)]/40 px-4 py-3 animate-fade">
           <div className="text-sm font-medium text-[var(--color-fg)]">Don’t miss twice.</div>
           <div className="text-xs text-[var(--color-muted)] mt-0.5">
-            You slipped yesterday — that’s allowed. One rep today locks it back in.
+            You slipped yesterday. That’s allowed. One rep today locks it back in.
           </div>
         </div>
       )}
@@ -124,12 +125,12 @@ export default function Today({ navigate }) {
           mvdWin ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)]/30'
                  : 'border-[var(--color-min)]/50 bg-[var(--color-min-soft)]/30'}`}>
           <div className="text-sm font-medium">
-            {mvdWin ? 'Rough day — logged as a WIN ✓' : 'Rough day — minimum viable day'}
+            {mvdWin ? 'Rough day, logged as a win ✓' : 'Rough day, minimum viable day'}
           </div>
           <div className="text-xs text-[var(--color-muted)] mt-0.5">
             {mvdWin
               ? 'Salah + bed + one rep. Your streak survives. That counts.'
-              : 'Salah, make your bed, and one 2-minute rep — and today still counts as a win.'}
+              : 'Salah, make your bed, and one 2-minute rep. Today still counts as a win.'}
           </div>
         </div>
       )}
@@ -151,8 +152,14 @@ export default function Today({ navigate }) {
         )}
       </div>
 
-      {/* Tasks — one-off to-dos, alongside the routines but off the scoreboard */}
+      {/* Daily anchor — one quiet line, fixed for the day. Sits below the hero
+          (score + salah + habits) so it stays a small grace note, not a banner. */}
       <div className="mt-4">
+        <AnchorCard biasOwn={roughDay || gap >= 2} />
+      </div>
+
+      {/* Tasks — one-off to-dos, alongside the routines but off the scoreboard */}
+      <div className="mt-3">
         <TasksCard dayKey={today} />
       </div>
 
@@ -167,7 +174,7 @@ export default function Today({ navigate }) {
           isEvening && !shutdownDone
             ? 'border-[var(--color-risk)]/50 bg-[var(--color-risk-soft)]/40 text-[var(--color-fg)]'
             : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-        {shutdownDone ? '☾ Shutdown complete — rest well' : '☾ Start evening shutdown'}
+        {shutdownDone ? '☾ Shutdown done. Rest well.' : '☾ Start evening shutdown'}
       </button>
 
       {/* Rough-day toggle -------------------------------------------------- */}
@@ -195,7 +202,7 @@ function ScoreCard({ state, today, done, total }) {
             {done}<span className="text-[var(--color-faint)] text-[2.25rem]">/{total}</span>
           </div>
           <div className={`text-[12.5px] mt-1.5 transition-colors ${complete ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-muted)]'}`}>
-            {complete ? 'Day complete — every anchor held.' : 'reps locked in today'}
+            {complete ? 'Day done. Every anchor held.' : 'reps locked in today'}
           </div>
         </div>
 

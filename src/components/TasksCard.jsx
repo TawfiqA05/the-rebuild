@@ -15,8 +15,9 @@ import { addDaysKey, prettyDate } from '../lib/time.js'
  * "Upcoming" list. No badges, no red, no guilt copy.
  */
 export default function TasksCard({ dayKey }) {
-  const { state, addTask, toggleTask, deleteTask, restoreTask, updateTask } = useStore()
+  const { state, addTask, toggleTask, deleteTask, restoreTask, updateTask, setTasksCollapsed } = useStore()
   const toast = useToast()
+  const collapsed = state.settings.tasksCollapsed
   const { open, done } = useMemo(() => visibleTasks(state.tasks, dayKey), [state.tasks, dayKey])
   const upcoming = useMemo(() => upcomingTasks(state.tasks, dayKey), [state.tasks, dayKey])
 
@@ -57,12 +58,22 @@ export default function TasksCard({ dayKey }) {
 
   return (
     <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5" style={{ boxShadow: 'var(--shadow-card)' }}>
-      <div className="flex items-baseline justify-between mb-2.5">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">Tasks</div>
-        <div className="text-[11px] text-[var(--color-faint)]">{open.length ? `${open.length} to do` : 'all clear'}</div>
-      </div>
+      <button
+        onClick={() => setTasksCollapsed(!collapsed)}
+        aria-expanded={!collapsed}
+        className="w-full flex items-center justify-between"
+      >
+        <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">Tasks</span>
+        <span className="flex items-center gap-2 text-[11px] text-[var(--color-faint)]">
+          <span>{open.length ? `${open.length} to do` : 'all clear'}</span>
+          <span className="text-[13px] leading-none">{collapsed ? '›' : '⌄'}</span>
+        </span>
+      </button>
 
+      {!collapsed && (<>
+      <div className="mt-2.5">
       <QuickAdd dayKey={dayKey} onAdd={addTask} />
+      </div>
 
       {(open.length > 0 || done.length > 0) && (
         <div className="mt-3 space-y-1">
@@ -99,6 +110,7 @@ export default function TasksCard({ dayKey }) {
           )}
         </div>
       )}
+      </>)}
     </div>
   )
 }
