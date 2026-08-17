@@ -31,10 +31,10 @@ export default function Stats({ navigate }) {
     <Screen
       title={t('stats.title')}
       subtitle={t('stats.subtitle')}
-      right={<Button variant="ghost" onClick={() => navigate('weekly')}>{t('stats.weeklyReview')}</Button>}
+      right={<Button variant="ghost" data-testid="weekly-review-link" onClick={() => navigate('weekly')}>{t('stats.weeklyReview')}</Button>}
     >
       {/* Share progress ---------------------------------------------------- */}
-      <Button variant="primary" className="w-full mb-4" onClick={() => setSharing(true)}>
+      <Button variant="primary" data-testid="open-share" className="w-full mb-4" onClick={() => setSharing(true)}>
         {t('stats.shareWeek')}
       </Button>
       {/* Votes — the number that only goes up ------------------------------ */}

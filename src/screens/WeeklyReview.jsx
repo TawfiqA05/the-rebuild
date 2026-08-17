@@ -144,7 +144,7 @@ export default function WeeklyReview({ navigate }) {
         {saved ? t('weekly.saved') : t('weekly.saveSet')}
       </Button>
 
-      <Button className="w-full mt-2" onClick={() => setSharing(true)}>
+      <Button className="w-full mt-2" data-testid="open-share" onClick={() => setSharing(true)}>
         {t('stats.shareWeek')}
       </Button>
 

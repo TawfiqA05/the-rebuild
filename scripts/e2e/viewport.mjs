@@ -1,0 +1,182 @@
+// ---------------------------------------------------------------------------
+// viewport.mjs — the E2E pass: prove the accountability share view fits the
+// screen on a small phone, with nothing hidden below the fold.
+//
+// A real headless Chromium loads the built app at 390px (iPhone 12/13/14
+// width), seeds a fully-onboarded state, opens the share sheet from both the
+// Stats button and the Sunday weekly-review path, then measures the real
+// layout. We assert:
+//   - the sheet opens scrolled to the top (its top edge isn't above the screen)
+//   - the whole sheet fits inside the viewport (bottom edge on-screen)
+//   - the preview card is fully visible (scaled down to fit, never clipped)
+//   - Share / Copy / Save are all on-screen — reachable without scrolling
+//   - nothing inside the sheet actually needs scrolling to reach them
+//
+// It runs across a couple of themes, a long typed-in line, and Arabic/RTL,
+// where the card mirrors — the fit has to hold in both directions.
+//
+// Run with:  npm run e2e   (builds, then drives this)
+// ---------------------------------------------------------------------------
+
+import { preview } from 'vite'
+import { chromium, devices } from 'playwright'
+import { fileURLToPath } from 'node:url'
+import { mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const artifacts = resolve(root, 'e2e-artifacts')
+mkdirSync(artifacts, { recursive: true })
+
+// iPhone 12/13/14 logical width. The home-bar inset is what the safe-area
+// padding has to clear, so we emulate a device that reports one.
+const VIEWPORT = { width: 390, height: 844 }
+
+// A fully-onboarded save. migrate() backfills every other field and (because a
+// save exists) marks the device onboarded, so no Welcome flow is in the way.
+// Phase 5 unlocks every habit, so the card fills to its 9-row cap — the tallest
+// it ever gets, the worst case for fitting on screen.
+function seed({ language, theme }) {
+  return JSON.stringify({
+    settings: { language, theme, currentPhase: 5, onboarded: true, tourSeen: true },
+    votes: 1284,
+  })
+}
+
+const LONG_NOTE = {
+  en: 'Seven clean days in a row this week and honestly it is the first time in months — hold me to it next week too, all of you.',
+  ar: 'سبعة أيام متتالية نظيفة هذا الأسبوع، وهي أول مرة منذ شهور. أمسكوني على وعدي الأسبوع القادم، جميعكم.',
+}
+
+// Measure the real layout of the open sheet, in the page. Selected by stable
+// data-testids so it reads identically in English and Arabic.
+function measureSheet() {
+  const eps = 1 // sub-pixel rounding slack
+  const vh = window.innerHeight
+  const panel = document.querySelector('[data-testid="share-sheet"]')
+  if (!panel) return { ok: false, failures: ['no sheet panel found'] }
+  const canvas = panel.querySelector('canvas')
+  if (!canvas) return { ok: false, failures: ['no preview canvas found'] }
+
+  const rect = (el) => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top, bottom: r.bottom, height: r.height, width: r.width }
+  }
+  const panelR = rect(panel)
+  const canvasR = rect(canvas)
+  const actions = [...panel.querySelectorAll('[data-testid="share-action"]')].map((b) => ({
+    name: (b.textContent || '').trim(), ...rect(b),
+  }))
+
+  // Any scroll region inside the sheet that actually overflows means the user
+  // would have to scroll to reach what's below it — exactly the reported bug.
+  const overflowing = [...panel.querySelectorAll('*')]
+    .filter((el) => {
+      const oy = getComputedStyle(el).overflowY
+      return (oy === 'auto' || oy === 'scroll') && el.scrollHeight - el.clientHeight > eps
+    })
+    .map((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }))
+
+  const failures = []
+  if (panelR.top < -eps) failures.push(`sheet is scrolled above the top (top=${panelR.top.toFixed(1)})`)
+  if (panelR.bottom > vh + eps) failures.push(`sheet bottom is off-screen (bottom=${panelR.bottom.toFixed(1)} > ${vh})`)
+  if (canvasR.bottom > vh + eps) failures.push(`preview card is clipped (bottom=${canvasR.bottom.toFixed(1)} > ${vh})`)
+  if (canvasR.height < 40) failures.push(`preview card collapsed (height=${canvasR.height.toFixed(1)})`)
+  if (actions.length !== 3) failures.push(`expected 3 action buttons, found ${actions.length}`)
+  for (const a of actions) {
+    if (a.bottom > vh + eps) failures.push(`"${a.name}" is below the fold (bottom=${a.bottom.toFixed(1)} > ${vh})`)
+    if (a.top < -eps) failures.push(`"${a.name}" is above the top (top=${a.top.toFixed(1)})`)
+  }
+  if (overflowing.length) failures.push(`sheet needs scrolling: ${JSON.stringify(overflowing)}`)
+
+  return { ok: failures.length === 0, failures, vh, panel: panelR, canvas: canvasR, actions }
+}
+
+const SCENARIOS = [
+  { name: 'stats · ivory · en',          lang: 'en', theme: 'ivory',    path: 'stats',  note: '' },
+  { name: 'stats · charcoal · long note',lang: 'en', theme: 'charcoal', path: 'stats',  note: LONG_NOTE.en },
+  { name: 'weekly · sand · en',          lang: 'en', theme: 'sand',     path: 'weekly', note: '' },
+  { name: 'stats · midnight · ar/rtl',   lang: 'ar', theme: 'midnight', path: 'stats',  note: LONG_NOTE.ar },
+  { name: 'weekly · ivory · ar/rtl',     lang: 'ar', theme: 'ivory',    path: 'weekly', note: '' },
+]
+
+async function openSheet(page, scenario) {
+  // Stats lives one tap away on the bottom nav; the weekly review is one more
+  // tap from Stats. Both screens carry the same share button. Selected by
+  // data-testid so navigation is identical in English and Arabic.
+  // Bottom-nav order is today, stats, shutdown, settings — Stats is index 1.
+  await page.locator('nav button').first().waitFor()
+  await page.locator('nav button').nth(1).click()
+  if (scenario.path === 'weekly') {
+    await page.locator('[data-testid="weekly-review-link"]').click()
+  }
+  await page.locator('[data-testid="open-share"]').click()
+  await page.locator('[data-testid="share-sheet"] canvas').waitFor({ state: 'visible' })
+  // Fonts settle the card size; give the redraw a beat.
+  await page.waitForTimeout(250)
+}
+
+async function run() {
+  const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
+  const url = server.resolvedUrls.local[0]
+  const browser = await chromium.launch()
+  let failed = 0
+
+  for (const s of SCENARIOS) {
+    const context = await browser.newContext({
+      ...devices['iPhone 13'],
+      viewport: VIEWPORT,
+      locale: s.lang === 'ar' ? 'ar' : 'en-US',
+    })
+    // Seed the save before any app code runs.
+    await context.addInitScript(
+      ([key, value]) => window.localStorage.setItem(key, value),
+      ['the-rebuild:v1', seed({ language: s.lang, theme: s.theme })],
+    )
+    const page = await context.newPage()
+    try {
+      await page.goto(url, { waitUntil: 'networkidle' })
+      await openSheet(page, s)
+
+      if (s.note) {
+        await page.locator('[data-testid="share-sheet"] input').first().fill(s.note)
+        await page.waitForTimeout(200)
+      }
+
+      const dir = await page.evaluate(() => document.documentElement.dir || 'ltr')
+      if (s.lang === 'ar' && dir !== 'rtl') {
+        console.log(`✗ ${s.name}: expected RTL, got dir=${dir}`)
+        failed++
+      }
+
+      const res = await page.evaluate(measureSheet)
+      const shot = resolve(artifacts, `share-${s.name.replace(/[^a-z0-9]+/gi, '-')}.png`)
+      await page.screenshot({ path: shot })
+
+      if (res.ok) {
+        console.log(`✓ ${s.name} (${dir}) — fits: sheet ${res.panel.bottom.toFixed(0)}/${res.vh}px, card ${res.canvas.height.toFixed(0)}px`)
+      } else {
+        failed++
+        console.log(`✗ ${s.name} (${dir}) — ${res.failures.length} problem(s):`)
+        for (const f of res.failures) console.log(`    · ${f}`)
+        console.log(`    screenshot: ${shot}`)
+      }
+    } catch (err) {
+      failed++
+      console.log(`✗ ${s.name} — threw: ${err.message}`)
+    } finally {
+      await context.close()
+    }
+  }
+
+  await browser.close()
+  await server.close()
+
+  if (failed) {
+    console.log(`\nviewport-fit E2E: ${failed} scenario(s) failed.`)
+    process.exit(1)
+  }
+  console.log(`\nviewport-fit E2E: all ${SCENARIOS.length} scenarios fit the viewport.`)
+}
+
+run().catch((err) => { console.error(err); process.exit(1) })
