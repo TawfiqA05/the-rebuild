@@ -79,6 +79,13 @@ export default function Today({ navigate }) {
       {/* Score card -------------------------------------------------------- */}
       <ScoreCard state={state} today={today} done={done} total={total} />
 
+      {/* Daily anchor — one quiet line, fixed for the day. Sits directly under
+          the score card, above the habits, so it stays a small grace note. On
+          hard days it leans on your own wins/journal instead of a quote. */}
+      <div className="mt-3">
+        <AnchorCard biasOwn={roughDay || gap >= 2} />
+      </div>
+
       {/* This week's focus (from the weekly review) ------------------------ */}
       {focus && (
         <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
@@ -142,18 +149,12 @@ export default function Today({ navigate }) {
       )}
 
       {/* Habits ------------------------------------------------------------ */}
-      <div className="mt-4 space-y-2.5">
+      <div data-testid="habit-list" className="mt-4 space-y-2.5">
         {habits.map((h) =>
           h.type === 'salah'
             ? <SalahCard key={h.id} dayKey={today} />
             : <HabitCard key={h.id} habit={h} dayKey={today} />,
         )}
-      </div>
-
-      {/* Daily anchor — one quiet line, fixed for the day. Sits below the hero
-          (score + salah + habits) so it stays a small grace note, not a banner. */}
-      <div className="mt-4">
-        <AnchorCard biasOwn={roughDay || gap >= 2} />
       </div>
 
       {/* Tasks — one-off to-dos, alongside the routines but off the scoreboard */}
@@ -194,7 +195,7 @@ function ScoreCard({ state, today, done, total }) {
   const complete = total > 0 && done === total
 
   return (
-    <div className={`card px-5 py-5 ${complete ? 'day-complete' : ''}`}>
+    <div data-testid="score-card" className={`card px-5 py-5 ${complete ? 'day-complete' : ''}`}>
       <div className="flex items-end justify-between">
         <div>
           <div className="font-display text-[3.25rem] leading-[0.9] tnum">

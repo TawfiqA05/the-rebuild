@@ -26,7 +26,7 @@ export default function AnchorCard({ biasOwn = false }) {
   const cite = useAr ? anchor.arAuthor : anchor.author
 
   return (
-    <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5">
+    <div data-testid="daily-anchor" className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5">
       {own ? (
         <>
           <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-accent-ink)]/80">{t('anchor.own')}</div>

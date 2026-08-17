@@ -178,6 +178,42 @@ async function checkDayEditor(browser, url) {
   }
 }
 
+// The Daily anchor must sit directly under the score card and above the habits
+// (Salah is the first habit) — a small grace note, not buried below the list.
+async function checkAnchorPosition(browser, url) {
+  const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT })
+  await context.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key, value),
+    ['the-rebuild:v1', seed({ language: 'en', theme: 'ivory' })],
+  )
+  const page = await context.newPage()
+  try {
+    await page.goto(url, { waitUntil: 'networkidle' }) // Today is the default screen
+    await page.locator('[data-testid="daily-anchor"]').waitFor({ state: 'visible' })
+    const res = await page.evaluate(() => {
+      const top = (sel) => { const el = document.querySelector(sel); return el ? el.getBoundingClientRect() : null }
+      const score = top('[data-testid="score-card"]')
+      const anchor = top('[data-testid="daily-anchor"]')
+      const habits = top('[data-testid="habit-list"]')
+      if (!score || !anchor || !habits) return { ok: false, failures: ['missing score/anchor/habit-list'] }
+      const failures = []
+      if (anchor.top < score.bottom - 1) failures.push(`anchor is not below the score card (anchor.top=${anchor.top.toFixed(0)} < score.bottom=${score.bottom.toFixed(0)})`)
+      if (anchor.bottom > habits.top + 1) failures.push(`anchor is not above the habits/Salah (anchor.bottom=${anchor.bottom.toFixed(0)} > habits.top=${habits.top.toFixed(0)})`)
+      return { ok: failures.length === 0, failures }
+    })
+    await page.screenshot({ path: resolve(artifacts, 'anchor-position.png') })
+    if (res.ok) { console.log('✓ daily anchor · en — sits under the score card, above the habits'); return 0 }
+    console.log('✗ daily anchor · en — misplaced:')
+    for (const f of res.failures) console.log(`    · ${f}`)
+    return 1
+  } catch (err) {
+    console.log(`✗ daily anchor · en — threw: ${err.message}`)
+    return 1
+  } finally {
+    await context.close()
+  }
+}
+
 async function run() {
   const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
   const url = server.resolvedUrls.local[0]
@@ -234,11 +270,13 @@ async function run() {
 
   // Other fixed overlays must clear the same containing-block trap.
   failed += await checkDayEditor(browser, url)
+  // And the Daily anchor must stay pinned under the score card.
+  failed += await checkAnchorPosition(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 1
+  const total = SCENARIOS.length + 2
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)
