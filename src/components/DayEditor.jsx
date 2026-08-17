@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useStore } from '../store.jsx'
 import { fmtFullDate } from '../lib/time.js'
 import { activeHabits, appearsOnDay, dayScore, isFaithHabit } from '../lib/logic.js'
@@ -28,11 +29,17 @@ export default function DayEditor({ dayKey, onClose }) {
   const { done, total } = dayScore(state, dayKey)
   const hasFood = foodForDay(state.food, dayKey).length > 0
 
-  return (
+  // Portal to <body>: the screens keep a lingering `animate-rise` transform,
+  // which would otherwise make this `fixed` sheet anchor to the (tall) page
+  // instead of the viewport and slide below the fold. Same fix as ShareSheet.
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/25" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-[var(--color-ink)] rounded-t-3xl border-t border-[var(--color-line)] max-h-[85dvh] flex flex-col animate-rise"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div
+        data-testid="day-editor"
+        className="relative w-full max-w-md bg-[var(--color-ink)] rounded-t-3xl border-t border-[var(--color-line)] max-h-[85dvh] flex flex-col animate-rise"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-[var(--color-line)]">
           <div>
             <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">{t('day.fixTitle')}</div>
@@ -60,6 +67,7 @@ export default function DayEditor({ dayKey, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

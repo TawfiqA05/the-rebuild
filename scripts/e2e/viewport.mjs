@@ -116,6 +116,68 @@ async function openSheet(page, scenario) {
   await page.waitForTimeout(250)
 }
 
+// The sheets slide in with `animate-rise` (a translateY that ends at 0). Wait
+// for that transform to settle before measuring, or a mid-flight frame reads a
+// few pixels off. Falls back to a fixed wait if the transform never resolves.
+async function settleRise(page, testid) {
+  await page.waitForFunction((id) => {
+    const el = document.querySelector(`[data-testid="${id}"]`)
+    if (!el) return false
+    const tr = getComputedStyle(el).transform
+    return tr === 'none' || tr === 'matrix(1, 0, 0, 1, 0, 0)'
+  }, testid, { timeout: 2000 }).catch(() => {})
+}
+
+// Does an overlay panel sit fully inside the viewport? This is the guarantee the
+// portal-to-body fix restores: a `fixed` sheet must anchor to the screen, not to
+// a transformed ancestor that pushes it below the fold.
+function panelFits(testid) {
+  const eps = 1
+  const vh = window.innerHeight
+  const panel = document.querySelector(`[data-testid="${testid}"]`)
+  if (!panel) return { ok: false, failures: [`panel [${testid}] not found`] }
+  const r = panel.getBoundingClientRect()
+  const failures = []
+  if (r.top < -eps) failures.push(`panel scrolled above the top (top=${r.top.toFixed(1)})`)
+  if (r.bottom > vh + eps) failures.push(`panel bottom off-screen (bottom=${r.bottom.toFixed(1)} > ${vh})`)
+  return { ok: failures.length === 0, failures, vh, top: r.top, bottom: r.bottom }
+}
+
+// The past-day fix sheet (DayEditor) is opened from a Stats heatmap cell. It's a
+// `fixed` overlay rendered from inside a screen, so it shares the containing-block
+// trap — this pins that it stays on-screen.
+async function checkDayEditor(browser, url) {
+  const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT })
+  await context.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key, value),
+    ['the-rebuild:v1', seed({ language: 'en', theme: 'ivory' })],
+  )
+  const page = await context.newPage()
+  try {
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.locator('nav button').first().waitFor()
+    await page.locator('nav button').nth(1).click() // Stats
+    // The "Fix a past day" row opens the day editor on a recent day.
+    await page.locator('[data-testid="fix-day"]').first().click()
+    await page.locator('[data-testid="day-editor"]').waitFor({ state: 'visible' })
+    await settleRise(page, 'day-editor')
+    const res = await page.evaluate(panelFits, 'day-editor')
+    await page.screenshot({ path: resolve(artifacts, 'day-editor.png') })
+    if (res.ok) {
+      console.log(`✓ day editor · en — fits: panel ${res.top.toFixed(0)}–${res.bottom.toFixed(0)} within ${res.vh}px`)
+      return 0
+    }
+    console.log(`✗ day editor · en — ${res.failures.length} problem(s):`)
+    for (const f of res.failures) console.log(`    · ${f}`)
+    return 1
+  } catch (err) {
+    console.log(`✗ day editor · en — threw: ${err.message}`)
+    return 1
+  } finally {
+    await context.close()
+  }
+}
+
 async function run() {
   const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
   const url = server.resolvedUrls.local[0]
@@ -149,6 +211,7 @@ async function run() {
         failed++
       }
 
+      await settleRise(page, 'share-sheet')
       const res = await page.evaluate(measureSheet)
       const shot = resolve(artifacts, `share-${s.name.replace(/[^a-z0-9]+/gi, '-')}.png`)
       await page.screenshot({ path: shot })
@@ -169,14 +232,18 @@ async function run() {
     }
   }
 
+  // Other fixed overlays must clear the same containing-block trap.
+  failed += await checkDayEditor(browser, url)
+
   await browser.close()
   await server.close()
 
+  const total = SCENARIOS.length + 1
   if (failed) {
-    console.log(`\nviewport-fit E2E: ${failed} scenario(s) failed.`)
+    console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)
   }
-  console.log(`\nviewport-fit E2E: all ${SCENARIOS.length} scenarios fit the viewport.`)
+  console.log(`\nviewport-fit E2E: all ${total} checks fit the viewport.`)
 }
 
 run().catch((err) => { console.error(err); process.exit(1) })

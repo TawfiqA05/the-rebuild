@@ -131,7 +131,7 @@ export default function Stats({ navigate }) {
       <SectionLabel>{t('stats.fixPastDay')}</SectionLabel>
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
         {recentDays.map((k) => (
-          <button key={k} onClick={() => setEditDay(k)}
+          <button key={k} data-testid="fix-day" onClick={() => setEditDay(k)}
             className="shrink-0 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-center active:scale-95 transition">
             <div className="text-[10px] uppercase tracking-wide text-[var(--color-faint)]">{t(`weekdayShort.${dow(k)}`)}</div>
             <div className="text-sm font-medium tabular-nums">{k.slice(-2)}</div>
