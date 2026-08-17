@@ -14,6 +14,8 @@
 //   { kind: 'weekdays', days: [0..6] }   -> 0 = Sunday … 6 = Saturday
 // ---------------------------------------------------------------------------
 
+import { detectLanguage } from './i18n/index.js'
+
 export const PHASES = [
   { n: 1, name: 'Anchors', blurb: 'The load-bearing walls. Nail these before anything else.' },
   { n: 2, name: 'Mind & Structure', blurb: 'Give your days a shape and your mind a plan.' },
@@ -183,6 +185,7 @@ export function freshState() {
       dayRolloverHour: 3,        // day rolls over at 3am
       currentPhase: 1,           // highest unlocked phase
       theme: 'system',           // 'system' | theme id (see lib/themes.js)
+      language: detectLanguage(), // UI language, seeded from the browser
       // Per-device prayer location. null on a fresh install → onboarding asks,
       // and the Salah card prompts until it's set.
       prayerLocation: null,

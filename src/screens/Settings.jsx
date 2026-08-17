@@ -7,6 +7,8 @@ import { downloadBackup } from '../lib/backup.js'
 import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
 import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
 import { THEMES } from '../lib/themes.js'
+import { LANGUAGES } from '../lib/i18n/index.js'
+import { useT } from '../i18n.jsx'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
@@ -16,6 +18,7 @@ export default function Settings({ navigate, onRevealPrivate }) {
     exportJSON, importJSON, resetAll, setTourSeen,
   } = useStore()
   const s = state.settings
+  const { t: T } = useT()
   const replayTour = () => { setTourSeen(false); navigate('today') }
 
   return (
@@ -50,10 +53,14 @@ export default function Settings({ navigate, onRevealPrivate }) {
         </p>
       </Card>
 
+      {/* Language ---------------------------------------------------------- */}
+      <SectionLabel>{T('settings.language')}</SectionLabel>
+      <Language />
+
       {/* Appearance -------------------------------------------------------- */}
-      <SectionLabel>Appearance</SectionLabel>
+      <SectionLabel>{T('settings.appearance')}</SectionLabel>
       <Appearance />
-      <button onClick={replayTour} className="text-[12px] text-[var(--color-accent-ink)] mt-2">Replay the quick tour</button>
+      <button onClick={replayTour} className="text-[12px] text-[var(--color-accent-ink)] mt-2">{T('settings.replayTour')}</button>
 
       {/* Day rollover ------------------------------------------------------ */}
       <SectionLabel>Day rollover</SectionLabel>
@@ -325,6 +332,35 @@ function HabitEditor({ habit, onClose }) {
         )}
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
       </div>
+    </Card>
+  )
+}
+
+// --- Language ----------------------------------------------------------------
+
+function Language() {
+  const { state, setLanguage } = useStore()
+  const { t: T } = useT()
+  const current = state.settings.language || 'en'
+  return (
+    <Card className="px-4 py-4">
+      <div className="grid grid-cols-2 gap-2">
+        {LANGUAGES.map((l) => {
+          const on = current === l.id
+          return (
+            <button key={l.id} onClick={() => setLanguage(l.id)}
+              dir={l.dir}
+              className={`rounded-xl border px-3 py-2.5 text-start transition ${
+                on ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/40' : 'border-[var(--color-line)]'}`}>
+              <span className="text-sm">{l.name}</span>
+              {on && <span className="text-[var(--color-accent-ink)] text-xs ms-2">✓</span>}
+            </button>
+          )
+        })}
+      </div>
+      {current !== 'en' && (
+        <p className="text-[11px] text-[var(--color-faint)] mt-2">{T('settings.langNote')}</p>
+      )}
     </Card>
   )
 }

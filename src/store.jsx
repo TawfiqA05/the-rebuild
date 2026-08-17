@@ -216,6 +216,10 @@ function makeActions(setState, stateRef) {
     setTheme(theme) {
       setState((prev) => ({ ...prev, settings: { ...prev.settings, theme } }))
     },
+    /** Set the UI language ('en' | 'ar' | …). */
+    setLanguage(language) {
+      setState((prev) => ({ ...prev, settings: { ...prev.settings, language } }))
+    },
 
     // -- habit CRUD --
     upsertHabit(habit) {

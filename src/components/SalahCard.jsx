@@ -2,10 +2,11 @@ import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
 import { nextSalah } from '../lib/gesture.js'
-import { SALAH_PRAYERS, SALAH_LABELS, salahSummary } from '../lib/logic.js'
+import { SALAH_PRAYERS, salahSummary } from '../lib/logic.js'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { fmtDuration } from '../lib/prayerTimes.js'
 import PrayerLocationPicker from './PrayerLocationPicker.jsx'
+import { useT } from '../i18n.jsx'
 
 /**
  * Salah is special: five sub-checkboxes, each cycling
@@ -18,6 +19,7 @@ import PrayerLocationPicker from './PrayerLocationPicker.jsx'
  */
 export default function SalahCard({ dayKey }) {
   const { state } = useStore()
+  const { t } = useT()
   const log = state.logs[dayKey]?.['salah'] || {}
   const sum = salahSummary(log)
   const location = state.settings.prayerLocation
@@ -33,7 +35,7 @@ export default function SalahCard({ dayKey }) {
       <div className="flex items-center gap-3 mb-1">
         <span className="text-2xl w-8 text-center">🕌</span>
         <div className="flex-1 min-w-0">
-          <div className="font-medium">Salah on time</div>
+          <div className="font-medium">{t('salah.title')}</div>
           <div className="text-xs text-[var(--color-muted)]">
             {sum.done
               ? sum.rep === 'full' ? 'All five, on time ✓' : `Prayed all five (${5 - sum.onTime} late)`
@@ -83,14 +85,16 @@ export default function SalahCard({ dayKey }) {
 // an Undo toast.
 function PrayerCell({ dayKey, p, value, isNow, time }) {
   const { setSalah } = useStore()
+  const { t } = useT()
   const toast = useToast()
+  const name = t(`salah.${p}`)
 
   const onTap = () => {
     const next = nextSalah(value)
     if (navigator.vibrate) navigator.vibrate(6)
     setSalah(dayKey, p, next)
     const label = next === 'ontime' ? 'on time' : next === 'late' ? 'late' : 'cleared'
-    toast(`${SALAH_LABELS[p]} · ${label}`, () => setSalah(dayKey, p, value ?? null))
+    toast(`${name} · ${label}`, () => setSalah(dayKey, p, value ?? null))
   }
   const press = useLongPress(onTap)
 
@@ -103,7 +107,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
   return (
     <button
       {...press}
-      aria-label={`${SALAH_LABELS[p]}: ${value === 'ontime' ? 'on time' : value === 'late' ? 'late' : 'not prayed'}`}
+      aria-label={`${name}: ${value === 'ontime' ? 'on time' : value === 'late' ? 'late' : 'not prayed'}`}
       className={`press no-callout relative rounded-xl border py-2.5 flex flex-col items-center gap-0.5 ${cls}`}
       style={{ touchAction: 'pan-y' }}
     >
@@ -111,7 +115,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
         <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wide
           bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-full px-1.5 py-px leading-none">now</span>
       )}
-      <span className="text-[11px] font-medium">{SALAH_LABELS[p]}</span>
+      <span className="text-[11px] font-medium">{name}</span>
       <span className="text-[10px] tabular-nums">{time ? compact(time) : '—'}</span>
       <span className="text-[9px] opacity-80">
         {value === 'ontime' ? 'on time' : value === 'late' ? 'late' : '·'}

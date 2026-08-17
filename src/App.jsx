@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { StoreProvider, useStore, storageAvailable } from './store.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { applyTheme } from './lib/themes.js'
+import { I18nProvider, useT } from './i18n.jsx'
 import Tour from './components/Tour.jsx'
 import Welcome from './screens/Welcome.jsx'
 import Today from './screens/Today.jsx'
@@ -15,21 +16,29 @@ import Settings from './screens/Settings.jsx'
 // of its own. "private" is hidden by default — it only appears after the owner
 // reveals it (tap the version number in Settings 5×), and re-hides on reload.
 const TABS = [
-  { id: 'today', label: 'Today', icon: '◎' },
-  { id: 'stats', label: 'Stats', icon: '▤' },
-  { id: 'shutdown', label: 'Wind down', icon: '☾' },
-  { id: 'private', label: 'Private', icon: '🔒', hidden: true },
-  { id: 'settings', label: 'Settings', icon: '⚙' },
+  { id: 'today', tkey: 'nav.today', icon: '◎' },
+  { id: 'stats', tkey: 'nav.stats', icon: '▤' },
+  { id: 'shutdown', tkey: 'nav.windDown', icon: '☾' },
+  { id: 'private', tkey: 'nav.private', icon: '🔒', hidden: true },
+  { id: 'settings', tkey: 'nav.settings', icon: '⚙' },
 ]
 
 export default function App() {
   return (
     <StoreProvider>
-      <ToastProvider>
-        <AppShell />
-      </ToastProvider>
+      <I18nBridge>
+        <ToastProvider>
+          <AppShell />
+        </ToastProvider>
+      </I18nBridge>
     </StoreProvider>
   )
+}
+
+// Reads the chosen language from the store and feeds the i18n provider.
+function I18nBridge({ children }) {
+  const { state } = useStore()
+  return <I18nProvider language={state.settings.language || 'en'}>{children}</I18nProvider>
 }
 
 function AppShell() {
@@ -83,6 +92,7 @@ function AppShell() {
 }
 
 function BottomNav({ screen, setScreen, privateRevealed }) {
+  const { t: T } = useT()
   // "weekly" highlights the Stats tab since that's where it's launched from.
   const active = screen === 'weekly' ? 'stats' : screen
   const tabs = TABS.filter((t) => !t.hidden || (t.id === 'private' && privateRevealed))
@@ -104,7 +114,7 @@ function BottomNav({ screen, setScreen, privateRevealed }) {
             }`}
           >
             <span className="text-lg leading-none">{t.icon}</span>
-            {t.label}
+            {T(t.tkey)}
           </button>
         ))}
       </div>

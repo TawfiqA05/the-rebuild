@@ -37,6 +37,8 @@ export function migrate(state) {
     : FISHERS_LOCATION
   // Theme choice is per-device and rides along in the backup. Default to System.
   merged.settings.theme = state.settings?.theme || 'system'
+  // Language rides in the backup too. Existing devices keep English unless set.
+  merged.settings.language = state.settings?.language || 'en'
   // Tasks/Food collapse is remembered per device. New installs (freshState)
   // start collapsed for a calm screen. But anyone with a saved state is an
   // existing daily user, so the first time we see them we open both sections —

@@ -54,6 +54,14 @@
 
 html { color-scheme: light; }
 
+/* Arabic (and other RTL/Naskh scripts) render with a clean Naskh face that sits
+   well next to the Latin type. Fraunces has no Arabic, so titles fall back to
+   Naskh too. */
+:root[lang='ar'] {
+  --font-body: 'Noto Naskh Arabic', 'Inter', system-ui, sans-serif;
+  --font-display: 'Noto Naskh Arabic', 'Fraunces', Georgia, serif;
+}
+
 body {
   margin: 0;
   background: var(--color-ink);
