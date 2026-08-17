@@ -10,9 +10,12 @@ PWA.
 
 ## Screenshots
 
-First-run setup, the Today screen, and Stats with the wins list and streak heatmaps.
+The Today screen in the Ivory (light) theme, the same in Arabic with full RTL
+layout, and the Stats screen with streak heatmaps and phase progress.
 
-<img src="screenshots/onboarding.png" width="250" alt="First-run setup"> <img src="screenshots/today.png" width="250" alt="Today screen"> <img src="screenshots/stats.png" width="250" alt="Stats screen">
+<img src="screenshots/today-ivory.png" width="250" alt="Today screen, Ivory light theme"> <img src="screenshots/today-arabic.png" width="250" alt="Today screen in Arabic, RTL"> <img src="screenshots/stats-ivory.png" width="250" alt="Stats screen">
+
+<sub>Also shipped in Charcoal and four more palettes — see `screenshots/today-charcoal.png`.</sub>
 
 ## The system it enforces
 
@@ -73,16 +76,23 @@ Two things round out the day without touching the discipline machinery:
   test). The completion glow and heatmap tint to each theme's accent.
 - **Language.** English and Arabic, with real RTL layout and an Arabic Naskh
   face. Seeded from your device language, changeable in onboarding and Settings,
-  and carried in the backup. Built on a lazy-loaded string table so more
-  languages are data, not code (more coverage and languages are landing
-  incrementally).
+  and carried in the backup. Built-in habit names are stored as keys, so they
+  switch language live; habits you type yourself stay exactly as written. Built
+  on a lazy-loaded string table so more languages are data, not code.
+- **Include Islamic practices? (Yes / No).** Asked once, early in onboarding, and
+  changeable anytime in Settings. On is the full experience — the Salah card,
+  Mon/Thu fasting, scripture in the Daily anchor, prayer-time setup. Off is a
+  clean, universal app with all of that hidden. It's visibility-only: nothing is
+  deleted, so flipping it back on restores everything with history intact. A
+  central registry (`src/lib/faith.js`) is the single source of what's Islamic,
+  and a CI test renders every screen in No mode and fails if any of it leaks.
 - **First-run tour + calm start.** A four-step coach tour runs once after
   onboarding. New devices open to a calm screen (Tasks and Food tucked into
   one-line sections), and per-device settings remember how you like it.
 
 ## Run it
 
-Node 18+ is required.
+Node 20 is required (pinned in `.nvmrc`; CI uses 20).
 
 ```bash
 npm install
@@ -94,14 +104,33 @@ npm run preview  # serve the production build locally
 Open the printed URL on your phone (same Wi-Fi) and "Add to Home Screen" to use
 it as an installable app.
 
-## What's built so far
+## What's built
 
-This was built iteratively. **Done:** the data model + rules engine, and the
-**Today** screen (tap targets, Salah 5-prayer card, weekly-frequency progress,
-daily score with anchor emojis, at-risk banner, restart protocol, rough-day /
-minimum-viable-day). The other tabs (Stats, Evening shutdown, Weekly review,
-Private log + urge timer, Settings, reminders) are scaffolded placeholders,
-built out in following passes.
+All the core screens are built and shipping:
+
+- **Today** — daily score with anchor emojis, the Salah 5-prayer card, habit
+  cards (tap = full rep, hold = 2-minute rep), the Daily anchor, Tasks and Food
+  cards, at-risk banner, restart protocol, and rough-day / minimum-viable-day.
+- **Stats** — streak heatmaps, per-habit lifetime/30-day/best, phase progress,
+  the wins list, weekday insights, and a "fix a past day" editor.
+- **Wind down** — the evening shutdown wizard (reflect, plan tomorrow's top
+  tasks).
+- **Weekly review** — score last week, pick one thing to improve, plan the week.
+- **Private log** — single-owner, PIN-gated (salted SHA-256, per-device), with a
+  20-minute urge timer and trigger-pattern stats.
+- **Settings** — full habit editor, phase control, themes, language, the Islamic
+  practices toggle, prayer location + times, day-rollover hour, and backup.
+- **Accountability share** — plain-text + a canvas image card, from Stats or the
+  weekly review.
+
+Still not built: web-notification reminders (morning / 10:30pm / shutdown /
+Sunday) — the service worker has the upgrade path stubbed for it.
+
+Quality gates: `npm test` runs the unit suite (Vitest, 215 tests over the rules
+engine, migrations, i18n, backup, and the faith registry). `npm run e2e` is a
+headless-Chromium pass that pins the real layout — the share sheet and day
+editor fit a 390px viewport, the Daily anchor stays put, and no Islamic term
+leaks in No mode — and it runs in CI as a deploy gate.
 
 ## How it's organized
 
@@ -111,13 +140,39 @@ src/
     time.js     # logical-day math — day rolls over at 3am (configurable)
     seed.js     # the system as data: all phases, habits, 2-min versions
     logic.js    # pure rules engine: streaks, never-miss-twice, phase %, MVD
+    faith.js    # registry of every Islamic surface; the toggle reads only this
+    migrate.js  # forward-migrate any saved state into the current shape
+    backup.js   # versioned JSON export/import envelope
+    anchor.js, quotes.js, share.js, prayerTimes.js, tasks.js, food.js, …
+  i18n/         # en/ar string tables + stock-habit name resolver
   store.jsx     # single localStorage-backed state + intent-named actions
-  components/   # HabitCard, SalahCard, useLongPress
-  screens/      # Today (more to come)
+  components/   # HabitCard, SalahCard, ShareSheet, DayEditor, AnchorCard, …
+  screens/      # Today, Stats, Shutdown, WeeklyReview, Private, Settings, Welcome
   App.jsx       # shell + bottom nav
+scripts/e2e/    # viewport.mjs — the headless layout / no-leak pass
 public/
   manifest.webmanifest, sw.js, icons   # PWA
 ```
+
+## Known limitations
+
+Honest list, for future-me:
+
+- **Reminders aren't built.** No morning / evening / Sunday notifications yet.
+  The service worker has `push` / `notificationclick` stubs noted but unwired.
+- **Two languages.** English and Arabic only. The engine is data-driven, but
+  every other language is still untranslated (falls back to English).
+- **Prayer times need a network fetch once.** They come from the AlAdhan API and
+  are cached to localStorage for offline use; the very first load per location
+  needs a connection (a manual fallback exists in Settings).
+- **The E2E is layout/leak-focused, not a full functional suite.** It guards
+  viewport fit, anchor position, and the faith no-leak rule; it doesn't yet
+  assert every interaction.
+- **Cache bloat over time.** The service worker keeps old fingerprinted assets in
+  its runtime cache across many deploys (correctness is fine — HTML is
+  network-first — but Cache Storage grows slowly).
+- **Dependencies are a major version behind** (React 18, Vite 6) by choice; no
+  known vulnerabilities (`npm audit` is clean).
 
 ### Key model decisions
 
@@ -133,8 +188,9 @@ public/
 
 - **Add or edit a habit's data:** edit `SEED_HABITS` in `src/lib/seed.js`
   (id, emoji, phase, `frequency`, `minVersion`). New entries auto-merge into
-  existing saved state via `migrate()`. (A full in-app habit editor lives in
-  the upcoming Settings screen.)
+  existing saved state via `migrate()`. There's also a full in-app habit editor
+  in Settings for custom habits. If a new seed habit is an Islamic practice,
+  register it in `src/lib/faith.js` or the no-leak CI test will fail.
 - **Change a rule:** the rules are pure functions in `src/lib/logic.js`
   (e.g. `isMVDWin`, `riskSignals`, `phaseProgress`). Change them there and the
   whole UI follows.
@@ -145,8 +201,12 @@ public/
 
 ## Backup
 
-Settings → Export downloads a JSON snapshot of everything. Import restores it on
-any device. That's your whole backup story — no cloud required.
+Settings → Export downloads a JSON snapshot of everything, wrapped in a small
+versioned envelope (`schemaVersion` + `exportedAt` + the state). Import unwraps
+any envelope — or a legacy bare-state export — and runs it through `migrate()`,
+so a backup taken today still restores cleanly after future format or data-model
+changes. Restores on any device. That's your whole backup story — no cloud
+required.
 
 ## Deploying (Cloudflare Pages, from a private repo)
 
