@@ -16,8 +16,10 @@ green. Hashes are the deployed commits.
 | 6 | `252572f` | **Central faith-content registry** (`src/lib/faith.js`) — closes the whole toggle-leak class (adhkar and Quran were still showing in No mode). The toggle reads only the registry; also gated the "make wudu" urge prompt and the Settings habit manager. Definitive E2E: renders every screen in No mode on fresh + legacy profiles and fails if any Islamic term leaks. |
 | 7 | `9fc06b0` | **Accessibility pass.** Habit rings announce state + `aria-pressed`; decorative anchor row hidden from readers; share/day-fix sheets are proper dialogs (role, aria-modal, focus-on-open, Escape); labelled the prayer-nudge buttons; reduced-motion now clamps transitions + tap-scale. PWA nits: re-enabled pinch-zoom, added manifest `id`/`lang`/`dir`. |
 | 8 | `7ee2150` | **Versioned backup envelope** (`schemaVersion` + `exportedAt` + state); import unwraps any envelope or a legacy bare-state export, then migrates. Tested with a synthetic old-format file. Plus coverage-gap tests (migrate PIN-clear branch, 3am rollover during an open session, faith-toggle edge). |
+| 9 | `ce0404e` | **Removed the BigDataCloud reverse-geocode** (audit follow-up). "Use my location" now stores raw coords and queries AlAdhan by lat/long directly; the label is a local "Current location" with an optional user-typed city. The only outbound request carrying location is now the prayer-times call itself. E2E grants a mock geolocation and fails if any reverse geocoder is contacted. AUDIT.md §E updated. |
+| 10 | `408e202` | **Interactive learn-by-doing tutorial** (replaces the slideshow tour). A throwaway "practice" habit card teaches the real gestures — tap → full, hold → 2-minute ◐, tap → undo — advancing only when each gesture happens, then points at the score / never-miss-twice / nav. A portal-to-body spotlight dims the rest with a cutout. The practice state is entirely local, so it leaves no votes/logs/streaks/backup trace. EN + AR (RTL verified), every theme, reduced-motion respected; legacy devices never see it; "Replay tutorial" in Settings. E2E covers the flow, no-trace, portal/fit, RTL, reduced-motion, and legacy-skip. |
 
-Test suite: **215 unit tests** + **8 E2E checks**, all green.
+Test suite: **215 unit tests** + **10 E2E checks**, all green.
 
 ## QA sweep (item 5) — result: clean
 
