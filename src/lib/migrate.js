@@ -39,6 +39,11 @@ export function migrate(state) {
   merged.settings.theme = state.settings?.theme || 'system'
   // Language rides in the backup too. Existing devices keep English unless set.
   merged.settings.language = state.settings?.language || 'en'
+  // The Islamic-practices layer rides in the backup as well. Anyone with a saved
+  // state is an existing user who's been on the full experience, so default them
+  // to Yes — they never see the new onboarding question and nothing regresses. A
+  // saved choice (including an explicit false) is respected as-is.
+  merged.settings.includeIslamic = state.settings?.includeIslamic ?? true
   // Tasks/Food collapse is remembered per device. New installs (freshState)
   // start collapsed for a calm screen. But anyone with a saved state is an
   // existing daily user, so the first time we see them we open both sections —

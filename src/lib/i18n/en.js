@@ -49,6 +49,11 @@ export default {
   'ob.prayerTitle': 'Prayer times',
   'ob.prayerIntro': 'Set your location and the Salah card shows accurate athan times, cached to work offline. You can change it anytime in Settings.',
   'ob.skipForNow': 'Skip for now',
+  // Islamic-practices question (asked once, early; changeable in Settings)
+  'ob.faithTitle': 'Include Islamic practices?',
+  'ob.faithIntro': 'Turn this on for Salah times, Monday and Thursday fasting, and lines from the Qur’an and Sunnah. Leave it off for a clean, universal setup. The habit tracking works the same either way, and you can switch anytime in Settings.',
+  'ob.faithYes': 'Yes, include them',
+  'ob.faithNo': 'Not for me',
 
   // today header + score
   'today.focus': 'This week’s focus',
@@ -66,8 +71,10 @@ export default {
   'today.restart.body': 'No lecture. First day back is 2-minute versions only. Hold any habit to log its min rep. Momentum beats intensity.',
   'today.roughWin.title': 'Rough day, logged as a win ✓',
   'today.roughWin.sub': 'Salah + bed + one rep. Your streak survives. That counts.',
+  'today.roughWin.subSecular': 'Bed made and one rep in. Your streak survives. That counts.',
   'today.roughMvd.title': 'Rough day, minimum viable day',
   'today.roughMvd.sub': 'Salah, make your bed, and one 2-minute rep. Today still counts as a win.',
+  'today.roughMvd.subSecular': 'Make your bed and do one 2-minute rep. Today still counts as a win.',
   'today.win.label': 'You’ve done hard things',
   'today.shutdown.done': '☾ Shutdown done. Rest well.',
   'today.shutdown.start': '☾ Start evening shutdown',
@@ -167,6 +174,12 @@ export default {
   'settings.dayRollover': 'Day rollover',
   'settings.backup': 'Backup & data',
   'settings.langNote': 'More of the app is being translated. Spotted something awkward? Tell Tawfiq.',
+  // Islamic practices toggle
+  'settings.islamic': 'Islamic practices',
+  'settings.islamicLabel': 'Include Islamic practices',
+  'settings.islamicNote': 'Salah card, Monday and Thursday fasting, and lines from the Qur’an and Sunnah. Turning it off keeps all your data.',
+  'settings.on': 'On',
+  'settings.off': 'Off',
 
   // tour
   'tour.1': 'Tap a habit’s ring to log it.',

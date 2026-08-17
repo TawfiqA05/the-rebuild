@@ -36,7 +36,7 @@ export const SEED_HABITS = [
   {
     id: 'salah', name: 'Salah on time', emoji: '🕌', phase: 1, type: 'salah',
     frequency: daily, minVersion: 'Pray it, even late still counts as prayed',
-    isAnchor: true, anchorKey: 'salah',
+    isAnchor: true, anchorKey: 'salah', faith: 'islam',
   },
   {
     id: 'sleep', name: 'Consistent sleep / wake', emoji: '😴', phase: 1, type: 'standard',
@@ -152,7 +152,7 @@ export const SEED_HABITS = [
   {
     id: 'fasting', name: 'Mon/Thu fasting', emoji: '🌙', phase: 5, type: 'standard',
     frequency: { kind: 'weekdays', days: [1, 4] }, minVersion: 'Intend it, skip one snack',
-    optional: true,
+    optional: true, faith: 'islam',
   },
 ]
 
@@ -186,6 +186,11 @@ export function freshState() {
       currentPhase: 1,           // highest unlocked phase
       theme: 'system',           // 'system' | theme id (see lib/themes.js)
       language: detectLanguage(), // UI language, seeded from the browser
+      // Whether the Islamic-practices layer is on: the Salah card, the Mon/Thu
+      // fasting habit, scripture in the Daily anchor, and the Islam-assuming
+      // copy. Onboarding asks once; it's changeable anytime in Settings. Existing
+      // devices default to Yes (see migrate.js) so nothing regresses for them.
+      includeIslamic: true,
       // Per-device prayer location. null on a fresh install → onboarding asks,
       // and the Salah card prompts until it's set.
       prayerLocation: null,

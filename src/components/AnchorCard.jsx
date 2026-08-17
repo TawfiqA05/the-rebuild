@@ -12,9 +12,10 @@ import { useT } from '../i18n.jsx'
 export default function AnchorCard({ biasOwn = false }) {
   const { state, today } = useStore()
   const { t, language } = useT()
+  const includeIslamic = state.settings.includeIslamic !== false
   const anchor = useMemo(
-    () => dailyAnchor(state, today, { biasOwn, lang: language }),
-    [state, today, biasOwn, language],
+    () => dailyAnchor(state, today, { biasOwn, lang: language, includeIslamic }),
+    [state, today, biasOwn, language, includeIslamic],
   )
   if (!anchor) return null
 

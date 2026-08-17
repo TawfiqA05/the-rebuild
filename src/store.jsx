@@ -14,7 +14,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { freshState } from './lib/seed.js'
 import { migrate } from './lib/migrate.js'
 import { todayKey } from './lib/time.js'
-import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
+import { habitStatusOn, isDone, salahSummary, isFaithHabit } from './lib/logic.js'
 import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
 import { SEED_HABIT_L10N } from './lib/i18n/seedHabits.js'
@@ -245,15 +245,21 @@ function makeActions(setState, stateRef) {
     // user picked a non-English language, name the seed habits in that language
     // now (a new Arabic user shouldn't get English habit names). Existing devices
     // never run this, so their names are untouched.
-    finishOnboarding(activeIds) {
+    finishOnboarding(activeIds, opts = {}) {
       setState((prev) => {
         const l10n = SEED_HABIT_L10N[prev.settings.language]
         const habits = prev.habits.map((h) => {
           const loc = l10n?.[h.id]
           const named = loc ? { ...h, name: loc.name, minVersion: loc.minVersion } : h
-          return h.phase === 1 ? { ...named, archived: !activeIds.includes(h.id) } : named
+          // Faith habits (Salah, the fast) are governed by the includeIslamic
+          // setting, never archived here, so the choice stays reversible. Other
+          // Phase 1 habits archive based on what the user kept in the picker.
+          return (h.phase === 1 && !isFaithHabit(h))
+            ? { ...named, archived: !activeIds.includes(h.id) }
+            : named
         })
-        return { ...prev, habits, settings: { ...prev.settings, onboarded: true } }
+        const includeIslamic = opts.includeIslamic ?? prev.settings.includeIslamic ?? true
+        return { ...prev, habits, settings: { ...prev.settings, onboarded: true, includeIslamic } }
       })
     },
 

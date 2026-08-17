@@ -1,6 +1,6 @@
 import { useStore } from '../store.jsx'
 import { fmtFullDate } from '../lib/time.js'
-import { activeHabits, appearsOnDay, dayScore } from '../lib/logic.js'
+import { activeHabits, appearsOnDay, dayScore, isFaithHabit } from '../lib/logic.js'
 import { foodForDay } from '../lib/food.js'
 import HabitCard from './HabitCard.jsx'
 import SalahCard from './SalahCard.jsx'
@@ -20,8 +20,9 @@ export default function DayEditor({ dayKey, onClose }) {
   // completion can always be toggled back off, not just added.
   const scheduled = activeHabits(state).filter((h) => appearsOnDay(h, dayKey))
   const shownIds = new Set(scheduled.map((h) => h.id))
+  const hideFaith = state.settings.includeIslamic === false
   const loggedExtra = state.habits.filter(
-    (h) => h.type !== 'salah' && !shownIds.has(h.id) && state.logs[dayKey]?.[h.id],
+    (h) => h.type !== 'salah' && !(hideFaith && isFaithHabit(h)) && !shownIds.has(h.id) && state.logs[dayKey]?.[h.id],
   )
   const habits = [...scheduled, ...loggedExtra]
   const { done, total } = dayScore(state, dayKey)

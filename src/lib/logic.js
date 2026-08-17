@@ -104,10 +104,12 @@ export function dayScore(state, dayKey) {
   // Only phases you've unlocked count toward the score. A Phase 1 user shouldn't
   // see "3 / 18" because habits from Phase 5 are sitting locked in the denominator.
   const activePhase = state.settings.currentPhase ?? 5
+  const hideFaith = !islamicOn(state)
   let done = 0
   let total = 0
   for (const h of state.habits) {
     if ((h.phase ?? 1) > activePhase) continue
+    if (hideFaith && isFaithHabit(h)) continue
     if (!isRequiredOnDay(h, dayKey)) continue
     total++
     if (isDone(habitStatusOn(state, h, dayKey))) done++
@@ -124,18 +126,22 @@ export function isFullWin(state, dayKey) {
 // --- Minimum Viable Day (the "Rough day" safety net) ------------------------
 
 /**
- * The rough-day rule: if Salah (all 5) + make-the-bed + at least one other
- * 2-minute rep are done, the day counts as a WIN and streaks survive.
+ * The rough-day rule: make-the-bed + at least one other 2-minute rep counts the
+ * day as a WIN so streaks survive. With the Islamic layer on, praying all five
+ * is also part of the bar; with it off, the bar is just bed + one rep.
  */
 export function isMVDWin(state, dayKey) {
-  const salah = salahSummary(state.logs[dayKey]?.['salah'])
   const bedDone = isDone(habitStatusOn(state, { id: 'bed', type: 'standard' }, dayKey))
   let otherReps = 0
   for (const h of state.habits) {
     if (h.id === 'salah' || h.id === 'bed') continue
     if (isDone(habitStatusOn(state, h, dayKey))) otherReps++
   }
-  return salah.done && bedDone && otherReps >= 1
+  if (islamicOn(state)) {
+    const salah = salahSummary(state.logs[dayKey]?.['salah'])
+    return salah.done && bedDone && otherReps >= 1
+  }
+  return bedDone && otherReps >= 1
 }
 
 /** Did this day "survive" for streak purposes? Full win OR a rough-day MVD win. */
@@ -316,8 +322,26 @@ export function missGapBeforeToday(state, todayK) {
 
 // --- Phases -----------------------------------------------------------------
 
+/**
+ * Is this an Islamic-practice habit (the Salah card, the Mon/Thu fast)? Matched
+ * by type/id rather than a stored flag, so it holds for older saves whose habit
+ * records predate the flag. When `includeIslamic` is off these are hidden
+ * everywhere — never archived — so flipping the setting back on restores them
+ * with all their history intact.
+ */
+export function isFaithHabit(habit) {
+  return habit.type === 'salah' || habit.id === 'fasting'
+}
+
+/** Is the Islamic-practices layer switched on? Defaults to on for older saves. */
+export function islamicOn(state) {
+  return state.settings?.includeIslamic !== false
+}
+
 export function activeHabits(state) {
-  return state.habits.filter((h) => !h.archived && h.phase <= state.settings.currentPhase)
+  const hideFaith = !islamicOn(state)
+  return state.habits.filter((h) =>
+    !h.archived && h.phase <= state.settings.currentPhase && !(hideFaith && isFaithHabit(h)))
 }
 
 export function phaseHabits(state, phase) {

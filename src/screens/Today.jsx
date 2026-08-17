@@ -25,6 +25,7 @@ export default function Today({ navigate }) {
   const { state, today, setRoughDay } = useStore()
   const { t, language } = useT()
   const phase = phaseMeta(state.settings.currentPhase)
+  const includeIslamic = state.settings.includeIslamic !== false
 
   const habits = useMemo(
     () => activeHabits(state).filter((h) => appearsOnDay(h, today)),
@@ -125,7 +126,9 @@ export default function Today({ navigate }) {
             {mvdWin ? t('today.roughWin.title') : t('today.roughMvd.title')}
           </div>
           <div className="text-xs text-[var(--color-muted)] mt-0.5">
-            {mvdWin ? t('today.roughWin.sub') : t('today.roughMvd.sub')}
+            {mvdWin
+              ? t(includeIslamic ? 'today.roughWin.sub' : 'today.roughWin.subSecular')
+              : t(includeIslamic ? 'today.roughMvd.sub' : 'today.roughMvd.subSecular')}
           </div>
         </div>
       )}
@@ -202,9 +205,10 @@ function ScoreCard({ state, today, done, total }) {
           </div>
         </div>
 
-        {/* Four anchors — the load-bearing walls, lit as they're completed. */}
+        {/* Four anchors — the load-bearing walls, lit as they're completed.
+            Salah drops out when the Islamic layer is off. */}
         <div className="flex items-center gap-2">
-          {ANCHORS.map((a) => {
+          {ANCHORS.filter((a) => a.key !== 'salah' || state.settings.includeIslamic !== false).map((a) => {
             const h = state.habits.find((x) => x.id === a.key)
             const status = h?.type === 'salah'
               ? salahSummary(state.logs[today]?.['salah']).rep

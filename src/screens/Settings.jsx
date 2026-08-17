@@ -89,13 +89,20 @@ export default function Settings({ navigate, onRevealPrivate }) {
       <SectionLabel>{T('settings.myQuotes')}</SectionLabel>
       <MyQuotes />
 
-      {/* Prayer location --------------------------------------------------- */}
-      <SectionLabel>{T('settings.prayerLocation')}</SectionLabel>
-      <PrayerLocation />
+      {/* Islamic practices ------------------------------------------------- */}
+      <SectionLabel>{T('settings.islamic')}</SectionLabel>
+      <IslamicToggle />
 
-      {/* Prayer times ------------------------------------------------------ */}
-      <SectionLabel>{T('settings.prayerTimes')}</SectionLabel>
-      <PrayerTimes />
+      {/* Prayer location + times — only when the Islamic layer is on -------- */}
+      {s.includeIslamic !== false && (
+        <>
+          <SectionLabel>{T('settings.prayerLocation')}</SectionLabel>
+          <PrayerLocation />
+
+          <SectionLabel>{T('settings.prayerTimes')}</SectionLabel>
+          <PrayerTimes />
+        </>
+      )}
 
       {/* Backup ------------------------------------------------------------ */}
       <SectionLabel>{T('settings.backup')}</SectionLabel>
@@ -335,6 +342,40 @@ function HabitEditor({ habit, onClose }) {
           </Button>
         )}
         <Button variant="ghost" onClick={onClose}>{T('common.cancel')}</Button>
+      </div>
+    </Card>
+  )
+}
+
+// --- Islamic practices (the whole layer, on/off, reversible) -----------------
+
+/**
+ * Turn the Islamic-practices layer on or off: the Salah card, the Mon/Thu fast,
+ * scripture in the Daily anchor, and the prayer setup below. Off keeps every bit
+ * of logged data — it's just hidden — so flipping it back on restores everything.
+ */
+function IslamicToggle() {
+  const { state, updateSettings } = useStore()
+  const { t: T } = useT()
+  const on = state.settings.includeIslamic !== false
+  return (
+    <Card className="px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-medium">{T('settings.islamicLabel')}</div>
+          <div className="text-xs text-[var(--color-muted)] mt-0.5 leading-relaxed">{T('settings.islamicNote')}</div>
+        </div>
+        <button
+          role="switch"
+          aria-checked={on}
+          aria-label={T('settings.islamicLabel')}
+          onClick={() => updateSettings({ includeIslamic: !on })}
+          className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            on ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/50 text-[var(--color-accent-ink)]'
+               : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}
+        >
+          {on ? T('settings.on') : T('settings.off')}
+        </button>
       </div>
     </Card>
   )
