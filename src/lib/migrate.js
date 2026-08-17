@@ -11,6 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { freshState, SEED_HABITS, FISHERS_LOCATION } from './seed.js'
+import { STOCK_NAME_TO_KEY } from './i18n/seedHabits.js'
 
 /** Merge any newly-shipped seed habits / settings into an older saved state. */
 export function migrate(state) {
@@ -60,13 +61,25 @@ export function migrate(state) {
   // The first-run tour only shows on a truly fresh install — anyone with a saved
   // state has used the app already, so mark them as having seen it.
   merged.settings.tourSeen = state.settings?.tourSeen ?? true
+  // Built-in habits carry a `stock` flag so their names/2-min versions follow
+  // the language switch. Decide it for each existing habit: if its name still
+  // matches a shipped stock name (in any language), it's an untouched built-in →
+  // convert to its key; if not, it's a user customization → leave the literal
+  // name exactly as-is. An already-set flag is respected, so this is idempotent
+  // and never re-stamps a habit the user has since renamed. Ids never change, so
+  // streaks, logs, and stats are untouched.
+  const decideStock = (h) => {
+    if (h.stock === true || h.stock === false) return h
+    const key = STOCK_NAME_TO_KEY.get(h.name)
+    return key ? { ...h, stock: true, stockKey: key } : { ...h, stock: false }
+  }
   // Add habits that exist in seed but not yet in the saved state (new phases,
   // etc.) without clobbering the user's edits to existing ones.
   const existingIds = new Set((state.habits || []).map((h) => h.id))
   const addl = SEED_HABITS
     .filter((h) => !existingIds.has(h.id))
-    .map((h) => ({ ...h, archived: false, createdAt: new Date().toISOString() }))
-  merged.habits = [...(state.habits || []), ...addl]
+    .map((h) => ({ ...h, stock: true, stockKey: h.id, archived: false, createdAt: new Date().toISOString() }))
+  merged.habits = [...(state.habits || []).map(decideStock), ...addl]
   merged.logs = state.logs || {}
   merged.days = state.days || {}
   merged.privateLog = state.privateLog || { entries: [], waves: [] }

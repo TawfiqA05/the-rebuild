@@ -8,6 +8,7 @@ import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
 import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
 import { THEMES } from '../lib/themes.js'
 import { LANGUAGES } from '../lib/i18n/index.js'
+import { habitDisplayName, habitDisplayMin, stockHabitLabel } from '../lib/i18n/seedHabits.js'
 import { useT } from '../i18n.jsx'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -207,7 +208,7 @@ function MyQuotes() {
 
 function HabitManager() {
   const { state } = useStore()
-  const { t: T } = useT()
+  const { t: T, language } = useT()
   const [editing, setEditing] = useState(null) // habit id, or 'new', or null
   const byPhase = PHASES.map((p) => ({
     phase: p,
@@ -226,7 +227,7 @@ function HabitManager() {
                   className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-3 text-start transition ${
                     h.archived ? 'border-[var(--color-line)] opacity-45' : 'border-[var(--color-line)]'}`}>
                   <span className="text-lg w-6 text-center">{h.emoji}</span>
-                  <span className="flex-1 min-w-0 text-sm break-words">{h.name}</span>
+                  <span className="flex-1 min-w-0 text-sm break-words">{habitDisplayName(h, language)}</span>
                   <span className="shrink-0 text-[10px] text-[var(--color-faint)]">{freqLabel(T, h.frequency)}</span>
                   {h.archived && <span className="text-[10px] text-[var(--color-faint)]">{T('hm.archived')}</span>}
                 </button>
@@ -246,12 +247,14 @@ function HabitManager() {
 
 function HabitEditor({ habit, onClose }) {
   const { upsertHabit, archiveHabit } = useStore()
-  const { t: T } = useT()
+  const { t: T, language } = useT()
   const isNew = !habit
-  const [name, setName] = useState(habit?.name || '')
+  // Seed a stock habit's fields with its localized text, so editing in Arabic
+  // shows Arabic (not the stored English source).
+  const [name, setName] = useState(habit ? habitDisplayName(habit, language) : '')
   const [emoji, setEmoji] = useState(habit?.emoji || '✅')
   const [phase, setPhaseN] = useState(habit?.phase || 1)
-  const [minVersion, setMinVersion] = useState(habit?.minVersion || '')
+  const [minVersion, setMinVersion] = useState(habit ? habitDisplayMin(habit, language) : '')
   const [freqKind, setFreqKind] = useState(habit?.frequency?.kind || 'daily')
   const [perWeek, setPerWeek] = useState(habit?.frequency?.count || 3)
   const [weekdays, setWeekdays] = useState(habit?.frequency?.days || [1, 3, 5])
@@ -264,13 +267,27 @@ function HabitEditor({ habit, onClose }) {
   }
 
   const save = () => {
-    if (!name.trim()) return
-    const id = habit?.id || name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '-' + Math.random().toString(36).slice(2, 6)
+    const nm = name.trim()
+    const mv = minVersion.trim()
+    if (!nm) return
+    const id = habit?.id || nm.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '-' + Math.random().toString(36).slice(2, 6)
+    // A stock habit stays stock only if its name and 2-min version are left
+    // exactly as the localized built-in. Change either and it becomes a plain
+    // custom habit that keeps the literal text you typed, in every language.
+    let stock = false
+    let stockKey
+    if (habit?.stock) {
+      const loc = stockHabitLabel(habit.stockKey || habit.id, language)
+      if (loc && nm === loc.name && mv === loc.minVersion) {
+        stock = true
+        stockKey = habit.stockKey || habit.id
+      }
+    }
     upsertHabit({
       ...(habit || { type: 'standard' }),
-      id, name: name.trim(), emoji: emoji.trim() || '✅',
-      phase: Number(phase), minVersion: minVersion.trim(),
-      frequency: buildFreq(), optional,
+      id, name: nm, emoji: emoji.trim() || '✅',
+      phase: Number(phase), minVersion: mv,
+      frequency: buildFreq(), optional, stock, stockKey,
     })
     onClose()
   }

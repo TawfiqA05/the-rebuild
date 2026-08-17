@@ -3,6 +3,7 @@ import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { nextOnTap, nextOnHold } from '../lib/gesture.js'
 import { habitStatusOn, weekProgress, riskSignals } from '../lib/logic.js'
+import { habitDisplayName, habitDisplayMin } from '../lib/i18n/seedHabits.js'
 import { useT } from '../i18n.jsx'
 
 /**
@@ -15,8 +16,9 @@ import { useT } from '../i18n.jsx'
  */
 export default function HabitCard({ habit, dayKey }) {
   const { state, setHabitStatus } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const toast = useToast()
+  const name = habitDisplayName(habit, language)
 
   const status = habitStatusOn(state, habit, dayKey)
   const isWeekly = habit.frequency.kind === 'perWeek'
@@ -31,7 +33,7 @@ export default function HabitCard({ habit, dayKey }) {
     if (navigator.vibrate) navigator.vibrate(6) // a light tick where the browser allows it
     setHabitStatus(dayKey, habit.id, next)
     const label = next === 'full' ? t('habit.toastFull') : next === 'min' ? t('habit.toastMin') : t('habit.toastCleared')
-    toast(`${habit.name} · ${label}`, () => setHabitStatus(dayKey, habit.id, prev))
+    toast(`${name} · ${label}`, () => setHabitStatus(dayKey, habit.id, prev))
   }
   const onTap = () => set(nextOnTap(status))
   const onHold = () => set(nextOnHold(status))
@@ -52,7 +54,7 @@ export default function HabitCard({ habit, dayKey }) {
 
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
-          <span className="font-[500] text-[15.5px] break-words min-w-0">{habit.name}</span>
+          <span className="font-[500] text-[15.5px] break-words min-w-0">{name}</span>
           {habit.optional && (
             <span className="text-[9px] uppercase tracking-wide text-[var(--color-faint)] border border-[var(--color-line-2)] rounded px-1 py-px">
               {t('habit.optional')}
@@ -61,7 +63,7 @@ export default function HabitCard({ habit, dayKey }) {
         </span>
         <span className="block text-[12.5px] text-[var(--color-muted)] break-words mt-0.5">
           {status === 'min'
-            ? t('habit.minRep', { v: habit.minVersion })
+            ? t('habit.minRep', { v: habitDisplayMin(habit, language) })
             : isWeekly
               ? t('habit.weekProgress', { count: wp.count, target: wp.target })
               : risk.atRisk
@@ -73,7 +75,7 @@ export default function HabitCard({ habit, dayKey }) {
       {/* The only tap target — a roomy pressable zone around the marker. */}
       <button
         {...press}
-        aria-label={t('habit.log', { name: habit.name })}
+        aria-label={t('habit.log', { name })}
         className="no-callout shrink-0 min-w-[48px] min-h-[48px] -mr-1.5 grid place-items-center rounded-xl active:scale-90 transition"
         style={{ touchAction: 'pan-y' }}
       >

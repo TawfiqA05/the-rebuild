@@ -17,7 +17,6 @@ import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary, isFaithHabit } from './lib/logic.js'
 import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
-import { SEED_HABIT_L10N } from './lib/i18n/seedHabits.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -247,17 +246,15 @@ function makeActions(setState, stateRef) {
     // never run this, so their names are untouched.
     finishOnboarding(activeIds, opts = {}) {
       setState((prev) => {
-        const l10n = SEED_HABIT_L10N[prev.settings.language]
-        const habits = prev.habits.map((h) => {
-          const loc = l10n?.[h.id]
-          const named = loc ? { ...h, name: loc.name, minVersion: loc.minVersion } : h
-          // Faith habits (Salah, the fast) are governed by the includeIslamic
-          // setting, never archived here, so the choice stays reversible. Other
-          // Phase 1 habits archive based on what the user kept in the picker.
-          return (h.phase === 1 && !isFaithHabit(h))
-            ? { ...named, archived: !activeIds.includes(h.id) }
-            : named
-        })
+        // Seed habits are already `stock: true`, so their names render in the
+        // chosen language (and follow a later switch) — no literal renaming here.
+        // Faith habits (Salah, the fast) are governed by the includeIslamic
+        // setting, never archived, so the choice stays reversible. Other Phase 1
+        // habits archive based on what the user kept in the picker.
+        const habits = prev.habits.map((h) =>
+          (h.phase === 1 && !isFaithHabit(h))
+            ? { ...h, archived: !activeIds.includes(h.id) }
+            : h)
         const includeIslamic = opts.includeIslamic ?? prev.settings.includeIslamic ?? true
         return { ...prev, habits, settings: { ...prev.settings, onboarded: true, includeIslamic } }
       })

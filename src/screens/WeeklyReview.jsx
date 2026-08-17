@@ -4,6 +4,7 @@ import { addDaysKey, weekKeyFor, fmtMonthDay } from '../lib/time.js'
 import { activeHabits, habitStatusOn, isRequiredOnDay, isDone } from '../lib/logic.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { downloadBackup } from '../lib/backup.js'
+import { habitDisplayName } from '../lib/i18n/seedHabits.js'
 import ShareSheet from '../components/ShareSheet.jsx'
 import { useT } from '../i18n.jsx'
 
@@ -113,7 +114,7 @@ export default function WeeklyReview({ navigate }) {
           return (
             <div key={h.id} className="flex items-center gap-3 px-1">
               <span className="w-6 text-center">{h.emoji}</span>
-              <span className="flex-1 min-w-0 text-sm break-words">{h.name}</span>
+              <span className="flex-1 min-w-0 text-sm break-words">{habitDisplayName(h, language)}</span>
               <div className="w-24 h-1.5 rounded-full bg-[var(--color-line)] overflow-hidden">
                 <div className="h-full bg-[var(--color-accent)]" style={{ width: `${s.pct ?? 0}%` }} />
               </div>

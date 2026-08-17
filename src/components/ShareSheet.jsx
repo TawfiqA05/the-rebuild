@@ -21,7 +21,7 @@ export default function ShareSheet({ onClose }) {
   const [note, setNote] = useState('')
   const canvasRef = useRef(null)
 
-  const summary = useMemo(() => buildShareSummary(state, today, { note }), [state, today, note])
+  const summary = useMemo(() => buildShareSummary(state, today, { note, lang: language }), [state, today, note, language])
   const text = useMemo(() => shareSummaryToText(summary), [summary])
 
   // Redraw the card whenever the summary or language changes (and once fonts

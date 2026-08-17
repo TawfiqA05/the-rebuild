@@ -3,6 +3,7 @@ import { useStore } from '../store.jsx'
 import { Button } from '../components/ui.jsx'
 import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
 import { LANGUAGES } from '../lib/i18n/index.js'
+import { habitDisplayName } from '../lib/i18n/seedHabits.js'
 import { isFaithHabit } from '../lib/logic.js'
 import { useT } from '../i18n.jsx'
 
@@ -16,7 +17,7 @@ import { useT } from '../i18n.jsx'
  */
 export default function Welcome() {
   const { state, finishOnboarding, setLanguage } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const [step, setStep] = useState(0)
   const [includeIslamic, setIncludeIslamic] = useState(state.settings.includeIslamic !== false)
 
@@ -110,7 +111,7 @@ export default function Welcome() {
                   }`}
                 >
                   <span className="text-2xl w-8 text-center">{h.emoji}</span>
-                  <span className="flex-1 font-medium text-[15px]">{h.name}</span>
+                  <span className="flex-1 font-medium text-[15px]">{habitDisplayName(h, language)}</span>
                   <span className={`w-6 h-6 rounded-full grid place-items-center border ${
                     on ? 'bg-[var(--color-accent)] border-transparent text-[var(--color-on-accent)]' : 'border-[var(--color-line-2)] text-transparent'
                   }`}>

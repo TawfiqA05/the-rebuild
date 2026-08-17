@@ -11,6 +11,7 @@ import {
   activeHabits, habitStats, phaseProgress, shouldSuggestUnlock,
 } from '../lib/logic.js'
 import { weekdayInsight, overallWeekday } from '../lib/insights.js'
+import { habitDisplayName } from '../lib/i18n/seedHabits.js'
 import { completedTaskCount } from '../lib/tasks.js'
 import { daysLoggedCount } from '../lib/food.js'
 import { useT } from '../i18n.jsx'
@@ -159,7 +160,7 @@ function dow(key) {
 
 function HabitStatRow({ habit, onPick }) {
   const { state, today } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const s = habitStats(state, habit, today)
   const [open, setOpen] = useState(false)
 
@@ -168,7 +169,7 @@ function HabitStatRow({ habit, onPick }) {
       <button className="w-full text-start" onClick={() => setOpen((o) => !o)}>
         <div className="flex items-center gap-3">
           <span className="text-xl w-7 text-center">{habit.emoji}</span>
-          <span className="flex-1 min-w-0 font-medium break-words">{habit.name}</span>
+          <span className="flex-1 min-w-0 font-medium break-words">{habitDisplayName(habit, language)}</span>
           <span className="text-sm tabular-nums">
             <span className="text-[var(--color-accent-ink)]">🔥{s.current}</span>
           </span>

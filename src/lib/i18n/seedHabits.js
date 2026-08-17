@@ -1,7 +1,10 @@
+import { SEED_HABITS } from '../seed.js'
+
 // Localized names + 2-minute versions for the built-in seed habits, keyed by
-// habit id. Applied ONCE at onboarding for the chosen language (see
-// store.finishOnboarding). Existing devices keep whatever names they already
-// have. Only languages present here get localized habits; others stay English.
+// habit id. Stock habits carry `stock: true` and render their name/minVersion
+// through the resolver below, so they follow the language switch live. Custom
+// habits (anything the user typed) have no such flag and stay literal forever.
+// Only languages present here get localized habits; others fall back to English.
 export const SEED_HABIT_L10N = {
   ar: {
     salah: { name: 'الصلاة في وقتها', minVersion: 'صلِّ، حتى المتأخرة تُحتسب' },
@@ -32,4 +35,50 @@ export const SEED_HABIT_L10N = {
     'friend-checkin': { name: 'تفقّد صديق أسبوعيًا', minVersion: 'أرسل رسالة واحدة' },
     fasting: { name: 'صيام الاثنين والخميس', minVersion: 'انوِ الصيام، وتجاوز وجبة خفيفة' },
   },
+}
+
+// English base, derived from the seed definitions so there's one source of truth
+// for the built-in names. `stockKey` on a habit indexes into this by seed id.
+const SEED_EN = Object.fromEntries(SEED_HABITS.map((h) => [h.id, { name: h.name, minVersion: h.minVersion }]))
+
+/** Every shipped language's stock names/min-versions, keyed by seed id. */
+export const SEED_HABIT_NAMES = { en: SEED_EN, ar: SEED_HABIT_L10N.ar }
+
+/** Localized { name, minVersion } for a stock habit key, or null if unknown. */
+export function stockHabitLabel(key, lang = 'en') {
+  return SEED_HABIT_NAMES[lang]?.[key] || SEED_EN[key] || null
+}
+
+/**
+ * Reverse map of every known stock name in ANY shipped language → seed id. Used
+ * by migrate() to decide whether an existing habit is a still-stock built-in
+ * (its name matches a shipped one → convert to a key) or a user customization
+ * (no match → treat as custom, leave the literal name untouched).
+ */
+export const STOCK_NAME_TO_KEY = (() => {
+  const m = new Map()
+  for (const lang of Object.keys(SEED_HABIT_NAMES)) {
+    for (const [key, v] of Object.entries(SEED_HABIT_NAMES[lang])) {
+      if (v?.name) m.set(v.name, key)
+    }
+  }
+  return m
+})()
+
+/** Display name for a habit in `lang`: localized for stock, literal for custom. */
+export function habitDisplayName(habit, lang = 'en') {
+  if (habit?.stock) {
+    const l = stockHabitLabel(habit.stockKey || habit.id, lang)
+    if (l) return l.name
+  }
+  return habit?.name || ''
+}
+
+/** Display 2-minute version for a habit in `lang` (localized for stock). */
+export function habitDisplayMin(habit, lang = 'en') {
+  if (habit?.stock) {
+    const l = stockHabitLabel(habit.stockKey || habit.id, lang)
+    if (l) return l.minVersion
+  }
+  return habit?.minVersion || ''
 }

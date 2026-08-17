@@ -10,6 +10,7 @@
 
 import { addDaysKey, weekKeyFor, keyToDate } from './time.js'
 import { activeHabits, habitStatusOn, isRequiredOnDay, isDone, currentStreak } from './logic.js'
+import { habitDisplayName } from './i18n/seedHabits.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -46,14 +47,14 @@ function weekLabel(weekStart) {
  * Build the shareable summary. Pure and side-effect free. `note` is the single
  * optional line the user types; it's trimmed and length-capped.
  */
-export function buildShareSummary(state, todayKey, { note = '' } = {}) {
+export function buildShareSummary(state, todayKey, { note = '', lang = 'en' } = {}) {
   const weekStart = weekKeyFor(todayKey)
   const habits = activeHabits(state).filter((h) => !h.optional)
 
   const rows = habits.map((h) => {
     const s = weekScore(state, h, weekStart, todayKey)
     return {
-      name: h.name,
+      name: habitDisplayName(h, lang),
       emoji: h.emoji || '•',
       kind: s.kind,
       done: s.done,

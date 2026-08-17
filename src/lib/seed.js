@@ -214,7 +214,9 @@ export function freshState() {
       lastExportAt: null,        // timestamp of the last JSON backup
       onboarded: false,          // fresh installs see the welcome flow; existing data never does
     },
-    habits: SEED_HABITS.map((h) => ({ ...h, archived: false, createdAt: now })),
+    // `stock: true` + `stockKey` mark these as built-ins, so their names and
+    // 2-minute versions render in the active language and follow a live switch.
+    habits: SEED_HABITS.map((h) => ({ ...h, stock: true, stockKey: h.id, archived: false, createdAt: now })),
     // logs[dayKey][habitId] = { status: 'full'|'min', at } | salah shape
     logs: {},
     // days[dayKey] = { roughDay, gratitude:[], journal:{}, tomorrow:[], shutdownAt }
