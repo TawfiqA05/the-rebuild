@@ -4,6 +4,7 @@ import { useToast } from './Toast.jsx'
 import { Button, TextInput } from './ui.jsx'
 import { buildShareSummary, shareSummaryToText } from '../lib/share.js'
 import { drawShareCard, themeColors } from '../lib/shareCard.js'
+import { useT } from '../i18n.jsx'
 
 /**
  * A bottom sheet that turns the week into something you can send a friend:
@@ -13,6 +14,7 @@ import { drawShareCard, themeColors } from '../lib/shareCard.js'
  */
 export default function ShareSheet({ onClose }) {
   const { state, today } = useStore()
+  const { t } = useT()
   const toast = useToast()
   const [note, setNote] = useState('')
   const canvasRef = useRef(null)
@@ -49,9 +51,9 @@ export default function ShareSheet({ onClose }) {
   const copyText = async () => {
     try {
       await navigator.clipboard.writeText(text)
-      toast('Copied. Paste it wherever.')
+      toast(t('share.copied'))
     } catch {
-      toast('Could not copy. Select the text and copy it.')
+      toast(t('share.copyFail'))
     }
   }
 
@@ -72,16 +74,16 @@ export default function ShareSheet({ onClose }) {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-[var(--color-line)]">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">Share your week</div>
-            <div className="font-display text-2xl leading-tight">Send it to someone</div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">{t('share.eyebrow')}</div>
+            <div className="font-display text-2xl leading-tight">{t('share.title')}</div>
           </div>
-          <button onClick={onClose} className="text-[13px] text-[var(--color-accent-ink)]">Close</button>
+          <button onClick={onClose} className="text-[13px] text-[var(--color-accent-ink)]">{t('common.close')}</button>
         </div>
 
         <div className="px-5 py-4 overflow-y-auto space-y-4">
           <div>
-            <div className="text-xs text-[var(--color-muted)] mb-1.5">Add a line (optional)</div>
-            <TextInput value={note} onChange={setNote} placeholder="Say something in your own words" maxLength={140} />
+            <div className="text-xs text-[var(--color-muted)] mb-1.5">{t('share.addLine')}</div>
+            <TextInput value={note} onChange={setNote} placeholder={t('share.linePh')} maxLength={140} />
           </div>
 
           {/* Live preview — this same canvas is what gets shared/saved. */}
@@ -90,12 +92,12 @@ export default function ShareSheet({ onClose }) {
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <Button variant="primary" onClick={shareIt}>Share</Button>
-            <Button onClick={copyText}>Copy text</Button>
-            <Button onClick={saveImage}>Save image</Button>
+            <Button variant="primary" onClick={shareIt}>{t('share.share')}</Button>
+            <Button onClick={copyText}>{t('share.copy')}</Button>
+            <Button onClick={saveImage}>{t('share.saveImage')}</Button>
           </div>
           <p className="text-[11px] text-[var(--color-faint)] text-center">
-            Only your habits and streaks. Nothing from the private log or food.
+            {t('share.note')}
           </p>
         </div>
       </div>
