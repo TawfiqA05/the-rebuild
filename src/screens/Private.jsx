@@ -3,6 +3,7 @@ import { useStore } from '../store.jsx'
 import { generateSalt, hashPin, verifyPin } from '../lib/crypto.js'
 import { URGE_PROMPTS } from '../lib/seed.js'
 import { Screen, Card, SectionLabel, Button, TextInput, TextArea } from '../components/ui.jsx'
+import { useT } from '../i18n.jsx'
 
 const MAX_PIN_FAILS = 5
 
@@ -28,31 +29,29 @@ export default function Private() {
 
 function CreatePin({ onCreated }) {
   const { setOwnerPin } = useStore()
+  const { t } = useT()
   const [a, setA] = useState('')
   const [b, setB] = useState('')
   const [err, setErr] = useState('')
 
   const submit = async () => {
-    if (a.length < 4) return setErr('Use at least 4 digits.')
-    if (a !== b) return setErr('The two entries don’t match.')
+    if (a.length < 4) return setErr(t('priv.min4'))
+    if (a !== b) return setErr(t('priv.noMatch'))
     const salt = generateSalt()
     setOwnerPin(await hashPin(a, salt), salt)
     onCreated()
   }
 
   return (
-    <Screen title="Set your PIN" subtitle="This device is now the owner. Choose one PIN.">
+    <Screen title={t('priv.setPin')} subtitle={t('priv.setPinSub')}>
       <Card className="px-4 py-4 space-y-3">
-        <PinField label="Choose a PIN" value={a} onChange={setA} autoFocus />
-        <PinField label="Confirm PIN" value={b} onChange={setB} />
+        <PinField label={t('priv.choosePin')} value={a} onChange={setA} autoFocus />
+        <PinField label={t('priv.confirmPin')} value={b} onChange={setB} />
         {err && <div className="text-xs text-[var(--color-min)]">{err}</div>}
-        <Button variant="primary" className="w-full" onClick={submit}>Set PIN & open</Button>
+        <Button variant="primary" className="w-full" onClick={submit}>{t('priv.setOpen')}</Button>
         <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2.5">
           <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
-            <b className="text-[var(--color-fg)]">This is the one and only PIN.</b> It’s stored as a
-            salted hash on this device. Never in plain text, never in the cloud. There is no
-            change or reset: the only way to clear it is <b>Settings → Reset everything</b>, which
-            wipes all app data. So pick something you won’t forget.
+            {t('priv.pinExplain')}
           </p>
         </div>
       </Card>
@@ -62,6 +61,7 @@ function CreatePin({ onCreated }) {
 
 function UnlockPin({ onUnlock }) {
   const { state, registerPinFailure, clearPinFailures } = useStore()
+  const { t } = useT()
   const { pinHash, pinSalt, pinFails = 0, pinLockUntil = 0 } = state.settings
   const [pin, setPin] = useState('')
   const [err, setErr] = useState('')
@@ -85,24 +85,22 @@ function UnlockPin({ onUnlock }) {
       registerPinFailure()
       setPin('')
       const left = MAX_PIN_FAILS - (pinFails + 1)
-      setErr(left > 0
-        ? `Incorrect. ${left} attempt${left === 1 ? '' : 's'} left.`
-        : 'Too many attempts. Locked for 1 hour.')
+      setErr(left > 0 ? t('priv.incorrect', { n: left }) : t('priv.tooMany'))
     }
   }
 
   if (locked) {
     const mins = Math.ceil((pinLockUntil - now) / 60000)
     return (
-      <Screen title="Private log" subtitle="Temporarily locked.">
+      <Screen title={t('priv.title')} subtitle={t('priv.lockedSub')}>
         <Card className="px-4 py-8 text-center">
           <div className="text-4xl mb-3">⏳</div>
-          <div className="font-medium">Too many attempts</div>
+          <div className="font-medium">{t('priv.tooManyTitle')}</div>
           <div className="text-sm text-[var(--color-muted)] mt-1">
-            Locked for another <b className="text-[var(--color-fg)]">{mins} minute{mins === 1 ? '' : 's'}</b>.
+            {t('priv.lockedFor', { n: mins })}
           </div>
           <div className="text-[11px] text-[var(--color-faint)] mt-3">
-            The only reset is wiping all app data in Settings.
+            {t('priv.onlyReset')}
           </div>
         </Card>
       </Screen>
@@ -110,14 +108,14 @@ function UnlockPin({ onUnlock }) {
   }
 
   return (
-    <Screen title="Private log" subtitle="Enter your PIN.">
+    <Screen title={t('priv.title')} subtitle={t('priv.enterPin')}>
       <Card className="px-4 py-4 space-y-3">
-        <PinField label="PIN" value={pin} onChange={setPin} autoFocus onEnter={submit} />
+        <PinField label={t('priv.pin')} value={pin} onChange={setPin} autoFocus onEnter={submit} />
         {err && <div className="text-xs text-[var(--color-min)]">{err}</div>}
-        <Button variant="primary" className="w-full" onClick={submit}>Unlock</Button>
+        <Button variant="primary" className="w-full" onClick={submit}>{t('priv.unlock')}</Button>
         {pinFails > 0 && (
           <p className="text-[11px] text-[var(--color-faint)] text-center">
-            {MAX_PIN_FAILS - pinFails} attempt{MAX_PIN_FAILS - pinFails === 1 ? '' : 's'} left before a 1-hour lock.
+            {t('priv.attemptsLeft', { n: MAX_PIN_FAILS - pinFails })}
           </p>
         )}
       </Card>
@@ -148,16 +146,17 @@ function PinField({ label, value, onChange, autoFocus, onEnter }) {
 
 function PrivateDashboard({ onLock }) {
   const { state } = useStore()
+  const { t } = useT()
   const [view, setView] = useState('timer') // 'timer' | 'log' | 'stats'
 
   return (
     <Screen
-      title="Private log"
-      subtitle="Neutral ground. Log it, ride it out, move on."
-      right={<Button variant="ghost" onClick={onLock}>Lock 🔒</Button>}
+      title={t('priv.title')}
+      subtitle={t('priv.dashSub')}
+      right={<Button variant="ghost" onClick={onLock}>{t('priv.lock')}</Button>}
     >
       <div className="flex gap-1.5 mb-4">
-        {[['timer', 'Ride the wave'], ['log', 'Log a moment'], ['stats', 'Patterns']].map(([id, label]) => (
+        {[['timer', t('priv.tabTimer')], ['log', t('priv.tabLog')], ['stats', t('priv.tabStats')]].map(([id, label]) => (
           <button key={id} onClick={() => setView(id)}
             className={`flex-1 rounded-xl border py-2 text-xs transition ${
               view === id ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
@@ -180,6 +179,7 @@ const URGE_SECONDS = 20 * 60
 
 function UrgeTimer() {
   const { addWaveSurvived, addPrivateEntry } = useStore()
+  const { t } = useT()
   const [running, setRunning] = useState(false)
   const [left, setLeft] = useState(URGE_SECONDS)
   const [outcome, setOutcome] = useState(null) // 'survived' | 'slipped'
@@ -198,7 +198,7 @@ function UrgeTimer() {
   }, [running])
 
   const elapsed = URGE_SECONDS - left
-  const prompt = URGE_PROMPTS[Math.floor(elapsed / 20) % URGE_PROMPTS.length]
+  const prompt = t(`priv.urge.${Math.floor(elapsed / 20) % URGE_PROMPTS.length}`)
   const mm = String(Math.floor(left / 60)).padStart(2, '0')
   const ss = String(left % 60).padStart(2, '0')
   const pct = Math.round((elapsed / URGE_SECONDS) * 100)
@@ -215,11 +215,11 @@ function UrgeTimer() {
     return (
       <Card className="px-4 py-8 text-center">
         <div className="text-5xl mb-2">🌊</div>
-        <div className="text-lg font-semibold text-[var(--color-accent-ink)]">Wave survived.</div>
+        <div className="text-lg font-semibold text-[var(--color-accent-ink)]">{t('priv.waveSurvived')}</div>
         <div className="text-sm text-[var(--color-muted)] mt-1">
-          You outlasted it. That’s a rep for the person you’re becoming.
+          {t('priv.waveSurvivedSub')}
         </div>
-        <Button variant="primary" className="mt-5" onClick={() => setOutcome(null)}>Done</Button>
+        <Button variant="primary" className="mt-5" onClick={() => setOutcome(null)}>{t('priv.done')}</Button>
       </Card>
     )
   }
@@ -229,17 +229,17 @@ function UrgeTimer() {
       <div className="space-y-4">
         <Card className="px-4 py-8 text-center">
           <p className="text-sm text-[var(--color-muted)] mb-5 leading-relaxed">
-            Urges peak and pass, usually within 20 minutes. Start the timer and let it crest.
+            {t('priv.urgesPass')}
           </p>
           <button onClick={start}
             className="mx-auto w-40 h-40 rounded-full border-2 border-[var(--color-accent)] text-[var(--color-accent-ink)]
-              grid place-items-center active:scale-95 transition">
-            <span className="text-lg font-semibold leading-tight">🌊<br />Ride the<br />wave</span>
+              grid place-items-center active:scale-95 transition px-3">
+            <span className="text-lg font-semibold leading-tight">🌊<br />{t('priv.rideWave')}</span>
           </button>
-          <p className="text-xs text-[var(--color-faint)] mt-5">20 minutes. One at a time.</p>
+          <p className="text-xs text-[var(--color-faint)] mt-5">{t('priv.twentyMin')}</p>
         </Card>
         {outcome === 'slipped' && (
-          <p className="text-center text-xs text-[var(--color-muted)]">Logged. No shame. Noticing is data. Come back anytime.</p>
+          <p className="text-center text-xs text-[var(--color-muted)]">{t('priv.loggedNoShame')}</p>
         )}
       </div>
     )
@@ -255,8 +255,8 @@ function UrgeTimer() {
         {prompt}
       </div>
       <div className="flex gap-2 mt-4">
-        <Button variant="primary" className="flex-1" onClick={() => complete('survived')}>The urge passed</Button>
-        <Button variant="ghost" onClick={() => complete('slipped')}>I slipped</Button>
+        <Button variant="primary" className="flex-1" onClick={() => complete('survived')}>{t('priv.urgePassed')}</Button>
+        <Button variant="ghost" onClick={() => complete('slipped')}>{t('priv.slipped')}</Button>
       </div>
     </Card>
   )
@@ -265,9 +265,12 @@ function UrgeTimer() {
 // --- Log a moment -----------------------------------------------------------
 
 const TRIGGERS = ['app', 'boredom', 'late night', 'mood', 'other']
+const TRIG_KEY = { app: 'app', boredom: 'boredom', 'late night': 'lateNight', mood: 'mood', other: 'other' }
+const trigLabel = (t, id) => t(`priv.trig.${TRIG_KEY[id] || id}`)
 
 function LogMoment() {
   const { addPrivateEntry } = useStore()
+  const { t } = useT()
   const [when, setWhen] = useState(() => toLocalInput(new Date()))
   const [trigger, setTrigger] = useState('boredom')
   const [note, setNote] = useState('')
@@ -282,45 +285,45 @@ function LogMoment() {
 
   return (
     <Card className="px-4 py-4 space-y-4">
-      <Labeled label="When">
+      <Labeled label={t('priv.when')}>
         <TextInput type="datetime-local" value={when} onChange={setWhen} />
       </Labeled>
 
-      <Labeled label="Trigger">
+      <Labeled label={t('priv.trigger')}>
         <div className="flex flex-wrap gap-1.5">
-          {TRIGGERS.map((t) => (
-            <button key={t} onClick={() => setTrigger(t)}
-              className={`rounded-lg border px-3 py-1.5 text-xs capitalize transition ${
-                trigger === t ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
+          {TRIGGERS.map((id) => (
+            <button key={id} onClick={() => setTrigger(id)}
+              className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                trigger === id ? 'border-[var(--color-accent)] text-[var(--color-accent-ink)]'
                               : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-              {t}
+              {trigLabel(t, id)}
             </button>
           ))}
         </div>
       </Labeled>
 
-      <Labeled label="Notes (optional)">
-        <TextArea value={note} onChange={setNote} placeholder="What was going on? Just the facts." />
+      <Labeled label={t('priv.notesOpt')}>
+        <TextArea value={note} onChange={setNote} placeholder={t('priv.notesPh')} />
       </Labeled>
 
-      <Labeled label="Did you ride it out?">
+      <Labeled label={t('priv.rodeOutQ')}>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => setRodeOut(true)}
             className={`rounded-xl border py-2.5 text-sm transition ${
               rodeOut ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 text-[var(--color-accent-ink)]'
                       : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-            Yes, rode the wave
+            {t('priv.yesRode')}
           </button>
           <button onClick={() => setRodeOut(false)}
             className={`rounded-xl border py-2.5 text-sm transition ${
               !rodeOut ? 'border-[var(--color-min)] bg-[var(--color-min-soft)]/30 text-[var(--color-min)]'
                        : 'border-[var(--color-line)] text-[var(--color-muted)]'}`}>
-            No, slipped
+            {t('priv.noSlipped')}
           </button>
         </div>
       </Labeled>
 
-      <Button variant="primary" className="w-full" onClick={save}>{saved ? 'Logged ✓' : 'Log it'}</Button>
+      <Button variant="primary" className="w-full" onClick={save}>{saved ? t('priv.logged') : t('priv.logIt')}</Button>
     </Card>
   )
 }
@@ -328,35 +331,36 @@ function LogMoment() {
 // --- Patterns / stats -------------------------------------------------------
 
 function Patterns({ entries, waves }) {
+  const { t } = useT()
   const stats = useMemo(() => computePatterns(entries), [entries])
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <Stat big={waves.length} label="waves survived 🌊" accent />
-        <Stat big={stats.cleanDays == null ? '—' : stats.cleanDays} label="days since last slip" />
+        <Stat big={waves.length} label={t('priv.wavesSurvived')} accent />
+        <Stat big={stats.cleanDays == null ? '—' : stats.cleanDays} label={t('priv.daysSinceSlip')} />
       </div>
 
       <Card className="px-4 py-4">
-        <SectionLabel>Trigger patterns</SectionLabel>
+        <SectionLabel>{t('priv.triggerPatterns')}</SectionLabel>
         {stats.total === 0 ? (
-          <p className="text-sm text-[var(--color-muted)]">Nothing logged yet. Insights show up as you record moments. No judgment, just data.</p>
+          <p className="text-sm text-[var(--color-muted)]">{t('priv.nothingLogged')}</p>
         ) : (
           <div className="space-y-2 text-sm">
             {stats.peakWindow && (
-              <Insight label="Most slips happen" value={stats.peakWindow} />
+              <Insight label={t('priv.mostSlips')} value={stats.peakWindow} />
             )}
             {stats.topTrigger && (
-              <Insight label="Most common trigger" value={stats.topTrigger} />
+              <Insight label={t('priv.commonTrigger')} value={trigLabel(t, stats.topTrigger)} />
             )}
-            <Insight label="Rode it out" value={`${stats.rodeOutPct}% of the time`} />
+            <Insight label={t('priv.rodeItOut')} value={t('priv.pctTime', { n: stats.rodeOutPct })} />
           </div>
         )}
       </Card>
 
       {entries.length > 0 && (
         <Card className="px-4 py-3">
-          <SectionLabel>Recent</SectionLabel>
+          <SectionLabel>{t('priv.recent')}</SectionLabel>
           <div className="space-y-2">
             {entries.slice(0, 8).map((e) => (
               <div key={e.id} className="flex items-center gap-2 text-xs">
@@ -364,7 +368,7 @@ function Patterns({ entries, waves }) {
                   {e.rodeOut ? '🌊' : '•'}
                 </span>
                 <span className="text-[var(--color-muted)] w-28 shrink-0">{fmtWhen(e.at)}</span>
-                <span className="capitalize flex-1 min-w-0 break-words">{e.trigger}{e.note ? ` · ${e.note}` : ''}</span>
+                <span className="flex-1 min-w-0 break-words">{trigLabel(t, e.trigger)}{e.note ? ` · ${e.note}` : ''}</span>
               </div>
             ))}
           </div>
