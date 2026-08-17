@@ -166,7 +166,7 @@ export default {
   'settings.appearance': 'Appearance',
   'settings.language': 'Language',
   'settings.system': 'System',
-  'settings.replayTour': 'Replay the quick tour',
+  'settings.replayTour': 'Replay tutorial',
   'settings.prayerLocation': 'Prayer location',
   'settings.prayerTimes': 'Prayer times',
   'settings.habits': 'Habits',
@@ -181,11 +181,20 @@ export default {
   'settings.on': 'On',
   'settings.off': 'Off',
 
-  // tour
-  'tour.1': 'Tap a habit’s ring to log it.',
-  'tour.2': 'Rough day? Hold the ring for the 2-minute version. It still counts.',
-  'tour.3': 'Your score is today’s reps. Miss a day, that’s fine. Just don’t miss twice.',
-  'tour.4': 'Stats and Wind down are in the bar at the bottom.',
+  // interactive tutorial
+  'tut.practiceName': 'Practice habit',
+  'tut.badge': 'Practice',
+  'tut.practiceHint': 'Try it. This one’s just for practice.',
+  'tut.practiceRing': 'Practice habit ring',
+  'tut.tap.instr': 'Tap the ring to log a full rep.',
+  'tut.tap.done': 'That’s a full rep. Nice.',
+  'tut.hold.instr': 'Now press and hold it. That’s the 2-minute version.',
+  'tut.hold.done': 'That’s a min rep. On a hard day, shrink it, don’t skip it.',
+  'tut.undo.instr': 'Changed your mind? Tap once more to undo.',
+  'tut.undo.done': 'Cleared. Nothing’s ever locked in.',
+  'tut.score.instr': 'This is your day’s score. Miss a day? Fine. Just never miss twice.',
+  'tut.nav.instr': 'Stats keeps your streaks; Wind down closes out the day. You’re set.',
+  'tut.finish': 'Start',
 
   // weekday names (0 = Sunday … 6 = Saturday)
   'weekday.0': 'Sunday', 'weekday.1': 'Monday', 'weekday.2': 'Tuesday', 'weekday.3': 'Wednesday',

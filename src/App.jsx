@@ -3,7 +3,7 @@ import { StoreProvider, useStore, storageAvailable } from './store.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { applyTheme } from './lib/themes.js'
 import { I18nProvider, useT } from './i18n.jsx'
-import Tour from './components/Tour.jsx'
+import { TutorialProvider } from './components/Tutorial.jsx'
 import Welcome from './screens/Welcome.jsx'
 import Today from './screens/Today.jsx'
 import Stats from './screens/Stats.jsx'
@@ -70,24 +70,30 @@ function AppShell() {
   // Guard: if the tab isn't revealed, never render the Private screen.
   const activeScreen = screen === 'private' && !privateRevealed ? 'today' : screen
 
+  // The learn-by-doing tutorial runs on first launch (existing devices are marked
+  // tourSeen by migrate, so they never see it), and only on the Today screen
+  // where the practice card and score live.
+  const tutorialActive = activeScreen === 'today' && !state.settings.tourSeen
+
   return (
-    <div className="min-h-[100dvh] bg-[var(--color-ink)]">
-      {!storageAvailable && (
-        <div className="bg-[var(--color-min-soft)] text-[var(--color-min)] text-[12.5px] text-center px-4 py-2 leading-snug">
-          Storage is blocked in this browser, so nothing you log will be saved. Try leaving private mode.
-        </div>
-      )}
-      <main>
-        {activeScreen === 'today' && <Today navigate={navigate} />}
-        {activeScreen === 'stats' && <Stats navigate={navigate} />}
-        {activeScreen === 'shutdown' && <Shutdown navigate={navigate} />}
-        {activeScreen === 'weekly' && <WeeklyReview navigate={navigate} />}
-        {activeScreen === 'private' && <Private navigate={navigate} />}
-        {activeScreen === 'settings' && <Settings navigate={navigate} onRevealPrivate={revealPrivate} />}
-      </main>
-      <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
-      {!state.settings.tourSeen && activeScreen === 'today' && <Tour />}
-    </div>
+    <TutorialProvider active={tutorialActive}>
+      <div className="min-h-[100dvh] bg-[var(--color-ink)]">
+        {!storageAvailable && (
+          <div className="bg-[var(--color-min-soft)] text-[var(--color-min)] text-[12.5px] text-center px-4 py-2 leading-snug">
+            Storage is blocked in this browser, so nothing you log will be saved. Try leaving private mode.
+          </div>
+        )}
+        <main>
+          {activeScreen === 'today' && <Today navigate={navigate} />}
+          {activeScreen === 'stats' && <Stats navigate={navigate} />}
+          {activeScreen === 'shutdown' && <Shutdown navigate={navigate} />}
+          {activeScreen === 'weekly' && <WeeklyReview navigate={navigate} />}
+          {activeScreen === 'private' && <Private navigate={navigate} />}
+          {activeScreen === 'settings' && <Settings navigate={navigate} onRevealPrivate={revealPrivate} />}
+        </main>
+        <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
+      </div>
+    </TutorialProvider>
   )
 }
 

@@ -357,6 +357,100 @@ async function checkNoReverseGeocode(browser, url) {
   }
 }
 
+// The interactive tutorial: the spotlight overlay must portal to <body> and fit
+// the viewport (LTR + RTL), driving it by real gestures must advance and finish,
+// it must leave NO trace in storage, and a legacy device must never see it.
+async function checkTutorial(browser, url) {
+  const tap = async (page, sel) => {
+    const b = await page.locator(sel).boundingBox()
+    await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2)
+  }
+  const hold = async (page, sel) => {
+    const b = await page.locator(sel).boundingBox()
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
+    await page.mouse.down(); await page.waitForTimeout(560); await page.mouse.up()
+  }
+  const seed = (lang, legacy) => legacy
+    ? JSON.stringify({ version: 1, settings: { onboarded: true, language: lang }, habits: [{ id: 'bed', name: 'Make the bed', phase: 1, frequency: { kind: 'daily' } }], logs: { '2026-08-16': { bed: { status: 'full' } } }, days: {}, votes: 5 })
+    : JSON.stringify({ settings: { onboarded: true, tourSeen: false, language: lang, currentPhase: 1, includeIslamic: true }, votes: 0 })
+
+  const open = async (lang, legacy) => {
+    const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT, locale: lang === 'ar' ? 'ar' : 'en-US' })
+    await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', seed(lang, legacy)])
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(400)
+    return { context, page }
+  }
+
+  const failures = []
+  // 1) Legacy device: never sees it.
+  {
+    const { context, page } = await open('en', true)
+    if (await page.locator('[data-testid="tutorial-overlay"]').count()) failures.push('legacy device saw the tutorial')
+    await context.close()
+  }
+  // 2) RTL: overlay renders and the instruction fits the viewport.
+  {
+    const { context, page } = await open('ar', false)
+    const dir = await page.evaluate(() => document.documentElement.dir)
+    const overlay = page.locator('[data-testid="tutorial-overlay"]')
+    if (!(await overlay.isVisible())) failures.push('RTL: overlay not shown')
+    if (dir !== 'rtl') failures.push(`RTL: expected dir=rtl, got ${dir}`)
+    const fits = await page.evaluate(() => {
+      const r = document.querySelector('[data-testid="tutorial-instruction"]')?.getBoundingClientRect()
+      return r && r.top >= -1 && r.bottom <= innerHeight + 1 && r.left >= -1 && r.right <= innerWidth + 1
+    })
+    if (!fits) failures.push('RTL: instruction card does not fit the viewport')
+    await page.screenshot({ path: resolve(artifacts, 'tutorial-rtl.png') })
+    await context.close()
+  }
+  // 3) Fresh EN: portal to body, drive every gesture, finish, and leave no trace.
+  {
+    const { context, page } = await open('en', false)
+    const portaled = await page.evaluate(() => document.querySelector('[data-testid="tutorial-overlay"]')?.parentElement === document.body)
+    if (!portaled) failures.push('overlay is not portaled to <body>')
+    const ring = '[data-testid="practice-card"] button'
+    await tap(page, ring); await page.waitForTimeout(1100)   // step 0 → 1
+    await hold(page, ring); await page.waitForTimeout(1100)  // step 1 → 2
+    await tap(page, ring); await page.waitForTimeout(1100)   // step 2 → 3
+    await page.locator('[data-testid="tutorial-next"]').click(); await page.waitForTimeout(300) // 3 → 4
+    await page.locator('[data-testid="tutorial-next"]').click(); await page.waitForTimeout(300) // finish
+
+    if (await page.locator('[data-testid="tutorial-overlay"]').count()) failures.push('overlay did not close after finishing')
+    if (await page.locator('[data-testid="practice-card"]').count()) failures.push('practice card did not vanish')
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('the-rebuild:v1')))
+    if (s.settings.tourSeen !== true) failures.push('tourSeen not set after finishing')
+    if (s.votes !== 0) failures.push(`practice left votes: ${s.votes}`)
+    if (Object.keys(s.logs || {}).length !== 0) failures.push('practice left a log entry')
+    if ((s.habits || []).some((h) => /practice/i.test(h.id) || /practice/i.test(h.name || ''))) failures.push('a practice habit was persisted')
+    await context.close()
+  }
+  // 4) Reduced motion: the overlay still renders, with no rise animation.
+  {
+    const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT, reducedMotion: 'reduce' })
+    await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', seed('en', false)])
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(300)
+    const anim = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="tutorial-instruction"]')
+      return el ? getComputedStyle(el).animationName : null
+    })
+    if (anim === null) failures.push('reduced-motion: overlay not shown')
+    else if (anim !== 'none') failures.push(`reduced-motion: instruction still animates (${anim})`)
+    await context.close()
+  }
+
+  if (failures.length === 0) {
+    console.log('✓ tutorial · en+ar — spotlight portals + fits, gestures advance, finishes with no trace, legacy skips')
+    return 0
+  }
+  console.log(`✗ tutorial — ${failures.length} problem(s):`)
+  for (const f of failures) console.log(`    · ${f}`)
+  return 1
+}
+
 async function run() {
   const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
   const url = server.resolvedUrls.local[0]
@@ -419,11 +513,13 @@ async function run() {
   failed += await checkNoFaithLeak(browser, url)
   // And using my location must not touch a reverse geocoder.
   failed += await checkNoReverseGeocode(browser, url)
+  // And the interactive tutorial: portal, fit, gesture flow, no trace, legacy skip.
+  failed += await checkTutorial(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 4
+  const total = SCENARIOS.length + 5
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)

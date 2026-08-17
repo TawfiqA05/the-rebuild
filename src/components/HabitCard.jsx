@@ -90,7 +90,7 @@ export default function HabitCard({ habit, dayKey }) {
 }
 
 /** Circular completion marker with a calm draw-in animation. */
-function Marker({ status }) {
+export function Marker({ status }) {
   const base = 'w-8 h-8 rounded-full grid place-items-center border transition-colors duration-300'
   if (status === 'full') {
     return (

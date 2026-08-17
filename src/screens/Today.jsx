@@ -7,6 +7,8 @@ import {
   riskSignals, missGapBeforeToday, isMVDWin, salahSummary,
 } from '../lib/logic.js'
 import HabitCard from '../components/HabitCard.jsx'
+import PracticeCard from '../components/PracticeCard.jsx'
+import { useTutorial } from '../components/Tutorial.jsx'
 import SalahCard from '../components/SalahCard.jsx'
 import TasksCard from '../components/TasksCard.jsx'
 import FoodCard from '../components/FoodCard.jsx'
@@ -24,6 +26,7 @@ const ANCHORS = [
 export default function Today({ navigate }) {
   const { state, today, setRoughDay } = useStore()
   const { t, language } = useT()
+  const { active: tutorialActive } = useTutorial()
   const phase = phaseMeta(state.settings.currentPhase)
   const includeIslamic = state.settings.includeIslamic !== false
 
@@ -150,6 +153,7 @@ export default function Today({ navigate }) {
 
       {/* Habits ------------------------------------------------------------ */}
       <div data-testid="habit-list" className="mt-4 space-y-2.5">
+        {tutorialActive && <PracticeCard />}
         {habits.map((h) =>
           h.type === 'salah'
             ? <SalahCard key={h.id} dayKey={today} />
