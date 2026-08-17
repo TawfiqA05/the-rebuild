@@ -17,6 +17,7 @@ import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary, isFaithHabit } from './lib/logic.js'
 import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
+import { serializeBackup, parseBackup } from './lib/backup.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -457,12 +458,14 @@ function makeActions(setState, stateRef) {
     },
 
     // -- backup --
+    // Export wraps the state in a versioned envelope; import unwraps any
+    // envelope (or a legacy bare-state export) and then runs the data-model
+    // migration, so old backups keep restoring cleanly.
     exportJSON() {
-      return JSON.stringify(stateRef.current, null, 2)
+      return serializeBackup(stateRef.current)
     },
     importJSON(json) {
-      const parsed = typeof json === 'string' ? JSON.parse(json) : json
-      setState(() => migrate(parsed))
+      setState(() => migrate(parseBackup(json)))
     },
     resetAll() {
       setState(() => freshState())
