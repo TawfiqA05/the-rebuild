@@ -16,16 +16,23 @@
 // ---------------------------------------------------------------------------
 
 export const CURATED = [
-  // --- Qur'an (Sahih International) ----------------------------------------
-  { text: 'Indeed, with hardship [will be] ease.', author: 'Qur’an 94:6' },
-  { text: 'Indeed, Allah is with the patient.', author: 'Qur’an 2:153' },
-  { text: 'Allah does not charge a soul except [with that within] its capacity.', author: 'Qur’an 2:286' },
-  { text: 'So be patient. Indeed, the promise of Allah is truth.', author: 'Qur’an 30:60' },
-  { text: 'And whoever fears Allah — He will make for him a way out.', author: 'Qur’an 65:2' },
+  // --- Qur'an (English: Sahih International; Arabic: the exact ayah) -------
+  { text: 'Indeed, with hardship [will be] ease.', author: 'Qur’an 94:6',
+    ar: 'إِنَّ مَعَ الْعُسْرِ يُسْرًا', arAuthor: 'القرآن ٩٤:٦' },
+  { text: 'Indeed, Allah is with the patient.', author: 'Qur’an 2:153',
+    ar: 'إِنَّ اللَّهَ مَعَ الصَّابِرِينَ', arAuthor: 'القرآن ٢:١٥٣' },
+  { text: 'Allah does not charge a soul except [with that within] its capacity.', author: 'Qur’an 2:286',
+    ar: 'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا', arAuthor: 'القرآن ٢:٢٨٦' },
+  { text: 'So be patient. Indeed, the promise of Allah is truth.', author: 'Qur’an 30:60',
+    ar: 'فَاصْبِرْ إِنَّ وَعْدَ اللَّهِ حَقٌّ', arAuthor: 'القرآن ٣٠:٦٠' },
+  { text: 'And whoever fears Allah — He will make for him a way out.', author: 'Qur’an 65:2',
+    ar: 'وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا', arAuthor: 'القرآن ٦٥:٢' },
 
-  // --- Hadith (well-established, with collection) --------------------------
-  { text: 'The most beloved of deeds to Allah are those done regularly, even if they are few.', author: 'Prophet Muhammad ﷺ · Bukhari & Muslim' },
-  { text: 'The strong man is not the one who overcomes others by his strength, but the one who controls himself when angry.', author: 'Prophet Muhammad ﷺ · Bukhari & Muslim' },
+  // --- Hadith (well-established; Arabic is the original wording) -----------
+  { text: 'The most beloved of deeds to Allah are those done regularly, even if they are few.', author: 'Prophet Muhammad ﷺ · Bukhari & Muslim',
+    ar: 'أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ', arAuthor: 'النبي ﷺ · البخاري ومسلم' },
+  { text: 'The strong man is not the one who overcomes others by his strength, but the one who controls himself when angry.', author: 'Prophet Muhammad ﷺ · Bukhari & Muslim',
+    ar: 'لَيْسَ الشَّدِيدُ بِالصُّرَعَةِ، إِنَّمَا الشَّدِيدُ الَّذِي يَمْلِكُ نَفْسَهُ عِنْدَ الْغَضَبِ', arAuthor: 'النبي ﷺ · البخاري ومسلم' },
 
   // --- Stoics --------------------------------------------------------------
   { text: 'We suffer more often in imagination than in reality.', author: 'Seneca' },

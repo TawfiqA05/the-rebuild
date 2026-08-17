@@ -11,7 +11,7 @@ import { useT } from '../i18n.jsx'
  */
 export default function AnchorCard({ biasOwn = false }) {
   const { state, today } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const anchor = useMemo(
     () => dailyAnchor(state, today, { biasOwn }),
     [state, today, biasOwn],
@@ -19,6 +19,10 @@ export default function AnchorCard({ biasOwn = false }) {
   if (!anchor) return null
 
   const own = anchor.pool === 'wins' || anchor.pool === 'journal'
+  // In Arabic, scripture shows the original Arabic ayah/hadith + its citation.
+  const useAr = language === 'ar' && anchor.ar
+  const quote = useAr ? anchor.ar : anchor.text
+  const cite = useAr ? anchor.arAuthor : anchor.author
 
   return (
     <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5">
@@ -29,11 +33,11 @@ export default function AnchorCard({ biasOwn = false }) {
         </>
       ) : (
         <>
-          <p className="text-[14.5px] leading-snug text-[var(--color-fg)]">
-            <span className="text-[var(--color-accent-ink)]/60">“</span>{anchor.text}<span className="text-[var(--color-accent-ink)]/60">”</span>
+          <p className={`leading-snug text-[var(--color-fg)] ${useAr ? 'text-[17px]' : 'text-[14.5px]'}`}>
+            <span className="text-[var(--color-accent-ink)]/60">“</span>{quote}<span className="text-[var(--color-accent-ink)]/60">”</span>
           </p>
-          {anchor.author && (
-            <div className="text-[11px] text-[var(--color-faint)] mt-1.5">— {anchor.author}</div>
+          {cite && (
+            <div className="text-[11px] text-[var(--color-faint)] mt-1.5">— {cite}</div>
           )}
         </>
       )}

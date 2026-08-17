@@ -63,7 +63,7 @@ export function ownPools(state) {
  */
 export function dailyAnchor(state, dayKey, { biasOwn = false } = {}) {
   const curated = [
-    ...CURATED.map((q) => ({ text: q.text, author: q.author, pool: 'curated' })),
+    ...CURATED.map((q) => ({ text: q.text, author: q.author, ar: q.ar, arAuthor: q.arAuthor, pool: 'curated' })),
     ...(state.myQuotes || []).map((q) => ({ text: q.text, author: 'You', pool: 'mine' })),
   ]
   const { winPool, journalPool } = ownPools(state)

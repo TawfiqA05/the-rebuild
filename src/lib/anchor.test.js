@@ -1,6 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { dailyAnchor } from './anchor.js'
 import { addDaysKey } from './time.js'
+import { CURATED } from './quotes.js'
+
+describe('scripture carries its exact Arabic + citation', () => {
+  // Every Qur'an/hadith entry must ship the original Arabic and an Arabic
+  // citation, so Arabic readers never see a translation where scripture belongs.
+  const scripture = CURATED.filter((q) => /Qur’an|Muhammad/.test(q.author))
+  it('has at least the seven known scripture lines', () => {
+    expect(scripture.length).toBeGreaterThanOrEqual(7)
+  })
+  for (const q of scripture) {
+    it(`${q.author} has Arabic text + citation`, () => {
+      expect(q.ar, 'ar text').toBeTruthy()
+      expect(q.arAuthor, 'ar citation').toBeTruthy()
+      // Arabic text should actually contain Arabic-script characters.
+      expect(/[؀-ۿ]/.test(q.ar)).toBe(true)
+    })
+  }
+})
 
 // The two properties that make this "an anchor, not a feed": it is stable across
 // a day (deterministic by date) and it rotates through the pools rather than
