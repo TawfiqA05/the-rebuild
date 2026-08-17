@@ -69,13 +69,23 @@ describe('first-run tour shows once', () => {
   })
 })
 
-describe('collapsed sections persist per device', () => {
-  it('default the Today sections closed, and keep a saved choice', () => {
+describe('collapsed sections: calm default for new, open once for existing', () => {
+  it('a fresh install starts collapsed', () => {
     expect(freshState().settings.tasksCollapsed).toBe(true)
     expect(freshState().settings.foodCollapsed).toBe(true)
-    const opened = { version: 2, settings: { tasksCollapsed: false, foodCollapsed: false }, habits: [], logs: {}, days: {} }
-    const m = migrate(opened)
+    expect(freshState().settings.collapseDefaultsApplied).toBe(true)
+  })
+  it('an existing device (no flag) gets both sections opened once', () => {
+    const existing = { version: 2, settings: { onboarded: true }, habits: [], logs: {}, days: {} }
+    const m = migrate(existing)
     expect(m.settings.tasksCollapsed).toBe(false)
+    expect(m.settings.foodCollapsed).toBe(false)
+    expect(m.settings.collapseDefaultsApplied).toBe(true)
+  })
+  it('once applied, a later manual toggle is respected (not re-opened)', () => {
+    const chose = { version: 2, settings: { collapseDefaultsApplied: true, tasksCollapsed: true, foodCollapsed: false }, habits: [], logs: {}, days: {} }
+    const m = migrate(chose)
+    expect(m.settings.tasksCollapsed).toBe(true)
     expect(m.settings.foodCollapsed).toBe(false)
   })
 })

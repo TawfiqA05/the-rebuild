@@ -186,10 +186,13 @@ export function freshState() {
       // Per-device prayer location. null on a fresh install → onboarding asks,
       // and the Salah card prompts until it's set.
       prayerLocation: null,
-      // Today's secondary sections start tucked away so a new screen stays calm.
-      // The toggles are remembered per device.
+      // Today's secondary sections start tucked away so a NEW screen stays calm.
+      // The toggles are remembered per device. `collapseDefaultsApplied` marks
+      // that the one-time "open these for existing daily users" migration has run
+      // (see migrate.js); fresh installs set it so they keep the calm default.
       tasksCollapsed: true,
       foodCollapsed: true,
+      collapseDefaultsApplied: true,
       tourSeen: false,           // first-run coach tour; existing devices skip it
       // Single-owner private-log PIN. Salt is random per-device (never in code);
       // there's no reset except wiping all data. Fails/lock enforce a 1-hour

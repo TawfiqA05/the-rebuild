@@ -37,9 +37,19 @@ export function migrate(state) {
     : FISHERS_LOCATION
   // Theme choice is per-device and rides along in the backup. Default to System.
   merged.settings.theme = state.settings?.theme || 'system'
-  // Collapsed state is remembered per device; default the sections closed.
-  merged.settings.tasksCollapsed = state.settings?.tasksCollapsed ?? true
-  merged.settings.foodCollapsed = state.settings?.foodCollapsed ?? true
+  // Tasks/Food collapse is remembered per device. New installs (freshState)
+  // start collapsed for a calm screen. But anyone with a saved state is an
+  // existing daily user, so the first time we see them we open both sections —
+  // once — then respect whatever they toggle afterwards.
+  if (state.settings?.collapseDefaultsApplied) {
+    merged.settings.tasksCollapsed = state.settings.tasksCollapsed ?? true
+    merged.settings.foodCollapsed = state.settings.foodCollapsed ?? true
+    merged.settings.collapseDefaultsApplied = true
+  } else {
+    merged.settings.tasksCollapsed = false
+    merged.settings.foodCollapsed = false
+    merged.settings.collapseDefaultsApplied = true
+  }
   // The first-run tour only shows on a truly fresh install — anyone with a saved
   // state has used the app already, so mark them as having seen it.
   merged.settings.tourSeen = state.settings?.tourSeen ?? true
