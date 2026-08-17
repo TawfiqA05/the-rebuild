@@ -162,6 +162,25 @@ describe('add to yesterday', () => {
     expect(daysLoggedCount(list)).toBe(1)
   })
 
+  it('an entry added to yesterday can be deleted (and undo restores it)', () => {
+    // add to yesterday, exactly as the store does
+    const { at } = resolveEntryTime(yesterday, { today })
+    const entry = makeFoodEntry({ text: 'late night snack', at, rolloverHour: 3, id: 'y1' })
+    let food = [entry]
+    expect(foodForDay(food, yesterday).map((e) => e.id)).toEqual(['y1'])
+
+    // delete it from the (past) day
+    food = deleteFoodById(food, 'y1')
+    expect(foodForDay(food, yesterday)).toEqual([])
+
+    // undo puts it back exactly, still on yesterday
+    food = insertFood(food, entry)
+    const back = foodForDay(food, yesterday)
+    expect(back).toHaveLength(1)
+    expect(back[0]).toEqual(entry)
+    expect(back[0].day).toBe(yesterday)
+  })
+
   it('has zero effect on score or streaks, exactly like a today entry', () => {
     const habit = { id: 'read', type: 'standard', phase: 1, frequency: { kind: 'daily' } }
     const base = {

@@ -1,74 +1,28 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
-import { useLongPress } from './useLongPress.js'
-import { QuickAddInput, InlineEditText, useCommitOnOutside } from './entryInput.jsx'
-import { foodForDay, groupFoodByBand, frequentFoods, quickAddResetTarget } from '../lib/food.js'
+import { QuickAddInput } from './entryInput.jsx'
+import FoodEntryList from './FoodEntryList.jsx'
+import { foodForDay, frequentFoods, quickAddResetTarget } from '../lib/food.js'
 import { addDaysKey } from '../lib/time.js'
 
 /**
  * The Food card on Today: a plain, awareness-only food log. Type + Enter to log
- * what you ate with an automatic timestamp; entries are listed chronologically
- * under quiet time-of-day headers you never pick yourself. Tap text to edit,
- * tap a time to backdate within the day, × to delete (with undo). No numbers,
- * no goals, no streaks — logging food never touches the score. Collapsible, and
- * it reopens itself each new day.
+ * what you ate with an automatic timestamp, listed chronologically under quiet
+ * time-of-day headers. Tap text to edit, tap a time to backdate, × to delete
+ * (with undo) — the same controls apply to today's list AND the "Yesterday"
+ * section. No numbers, no goals, no streaks. Collapsible, reopens each new day.
  */
 export default function FoodCard({ dayKey }) {
-  const { state, addFood, updateFood, setFoodTime, deleteFood, restoreFood, setFoodCollapsed } = useStore()
+  const { state, addFood, deleteFood, setFoodCollapsed } = useStore()
   const toast = useToast()
 
-  // Collapsed state is remembered only for the current day; a new day reopens.
   const collapsed = state.settings.foodCollapsedDay === dayKey && state.settings.foodCollapsed
-
   const entries = useMemo(() => foodForDay(state.food, dayKey), [state.food, dayKey])
-  const groups = useMemo(() => groupFoodByBand(entries), [entries])
   const chips = useMemo(() => frequentFoods(state.food, dayKey), [state.food, dayKey])
 
-  // Yesterday entries (added via "add to yesterday") show read-only here, but
-  // their time stays tappable so a forgotten meal can be placed within the day.
   const yesterday = addDaysKey(dayKey, -1)
   const yesterdayEntries = useMemo(() => foodForDay(state.food, yesterday), [state.food, yesterday])
-
-  const [editing, setEditing] = useState(null) // { id, mode: 'text' | 'time' }
-
-  const renderEntry = (entry) =>
-    editing?.id === entry.id && editing.mode === 'text' ? (
-      <FoodTextEditor
-        key={entry.id}
-        entry={entry}
-        onSave={(text) => { updateFood(entry.id, text); setEditing(null) }}
-        onCancel={() => setEditing(null)}
-      />
-    ) : (
-      <FoodRow
-        key={entry.id}
-        entry={entry}
-        timeEditing={editing?.id === entry.id && editing.mode === 'time'}
-        onEditText={(id) => setEditing({ id, mode: 'text' })}
-        onEditTime={(id) => setEditing({ id, mode: 'time' })}
-        onSetTime={(id, hhmm) => setFoodTime(id, hhmm)}
-        onCloseTime={() => setEditing(null)}
-        onDelete={deleteFood}
-        onRestore={restoreFood}
-        toast={toast}
-      />
-    )
-
-  // Yesterday rows are read-only text (no edit, no delete) — only the time is
-  // tappable, and only within yesterday.
-  const renderYesterday = (entry) => (
-    <FoodRow
-      key={entry.id}
-      entry={entry}
-      timeEditing={editing?.id === entry.id && editing.mode === 'time'}
-      onEditTime={(id) => setEditing({ id, mode: 'time' })}
-      onSetTime={(id, hhmm) => setFoodTime(id, hhmm)}
-      onCloseTime={() => setEditing(null)}
-      canEditText={false}
-      canDelete={false}
-    />
-  )
 
   return (
     <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5" style={{ boxShadow: 'var(--shadow-card)' }}>
@@ -107,24 +61,15 @@ export default function FoodCard({ dayKey }) {
             </div>
           )}
 
-          {entries.length === 0 ? (
-            <div className="text-[12.5px] text-[var(--color-faint)] mt-3">Nothing logged.</div>
-          ) : (
-            <div className="mt-3 space-y-3">
-              {groups.map((g) => (
-                <div key={g.band + g.entries[0].id}>
-                  <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1">{g.label}</div>
-                  <div className="space-y-0.5">{g.entries.map(renderEntry)}</div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="mt-3">
+            <FoodEntryList dayKey={dayKey} emptyText="Nothing logged." />
+          </div>
 
-          {/* Yesterday — anything logged back a day, read-only but time-tappable. */}
+          {/* Yesterday — anything logged back a day, with the same edit/delete. */}
           {yesterdayEntries.length > 0 && (
             <div className="mt-4 pt-3 border-t border-[var(--color-line)]">
               <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1.5">Yesterday</div>
-              <div className="space-y-0.5">{yesterdayEntries.map(renderYesterday)}</div>
+              <FoodEntryList dayKey={yesterday} showBandLabels={false} />
             </div>
           )}
         </div>
@@ -169,96 +114,4 @@ function FoodQuickAdd({ dayKey, onAdd, onYesterdayAdded }) {
       </div>
     </div>
   )
-}
-
-function FoodTextEditor({ entry, onSave, onCancel }) {
-  const [text, setText] = useState(entry.text)
-  const ref = useRef(null)
-  const latest = useRef(text)
-  latest.current = text
-  const commit = () => {
-    const t = latest.current.trim()
-    if (!t) return onCancel() // empty cancels, never deletes
-    onSave(t)
-  }
-  useCommitOnOutside(ref, commit)
-  return (
-    <div ref={ref} className="py-1">
-      <InlineEditText value={text} onChange={setText} onCommit={commit} onCancel={onCancel} ariaLabel="Edit entry" />
-    </div>
-  )
-}
-
-function FoodRow({ entry, timeEditing, onEditText, onEditTime, onSetTime, onCloseTime, onDelete, onRestore, toast, canEditText = true, canDelete = true }) {
-  const remove = () => {
-    if (navigator.vibrate) navigator.vibrate(15)
-    onDelete(entry.id)
-    toast(`Deleted · ${entry.text}`, () => onRestore(entry))
-  }
-  // On the text body: tap edits, long-press deletes — same as tasks. `no-callout`
-  // keeps the iOS selection magnifier from eating the long-press. When read-only
-  // (yesterday rows) neither handler is armed, so the text is inert.
-  const body = useLongPress(
-    canEditText ? () => onEditText(entry.id) : undefined,
-    canDelete ? remove : undefined,
-  )
-
-  return (
-    // items-start keeps the time on the first line and the × pinned to the top
-    // of a wrapped, multi-line entry.
-    <div className="no-callout flex items-start gap-3 py-1.5">
-      {timeEditing ? (
-        <input
-          type="time"
-          autoFocus
-          value={toHHMM(entry.at)}
-          onChange={(e) => e.target.value && onSetTime(entry.id, e.target.value)}
-          onBlur={onCloseTime}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') onCloseTime() }}
-          aria-label={`Adjust time for ${entry.text}`}
-          className="shrink-0 rounded-md border border-[var(--color-line)] bg-[var(--color-ink-2)] px-1.5 py-1 text-[12px] tabular-nums text-[var(--color-fg)] outline-none focus:border-[var(--color-accent)]/60"
-        />
-      ) : (
-        <button
-          onClick={() => onEditTime(entry.id)}
-          aria-label={`Adjust time for ${entry.text}`}
-          className="no-callout shrink-0 w-12 pt-0.5 text-left text-[12px] leading-snug tabular-nums text-[var(--color-faint)] hover:text-[var(--color-muted)] transition"
-        >
-          {toClock(entry.at)}
-        </button>
-      )}
-
-      <span
-        {...(canEditText ? body : {})}
-        className="no-callout flex-1 min-w-0"
-        style={canEditText ? { touchAction: 'pan-y' } : undefined}
-      >
-        <span className="block text-[15px] leading-snug break-words text-[var(--color-fg)]">{entry.text}</span>
-      </span>
-
-      {canDelete && (
-        <button
-          onClick={remove}
-          aria-label={`Delete ${entry.text}`}
-          className="no-callout shrink-0 -mr-1 min-w-[36px] min-h-[26px] flex items-start justify-center pt-0.5 rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
-        >
-          ×
-        </button>
-      )}
-    </div>
-  )
-}
-
-// 24h "HH:MM" for the native time input.
-function toHHMM(at) {
-  const d = new Date(at)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-// A quiet 12h clock label like "7:42a" / "1:05p".
-function toClock(at) {
-  const d = new Date(at)
-  const h = d.getHours()
-  const h12 = ((h + 11) % 12) + 1
-  return `${h12}:${String(d.getMinutes()).padStart(2, '0')}${h < 12 ? 'a' : 'p'}`
 }
