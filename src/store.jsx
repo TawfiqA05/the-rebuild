@@ -17,6 +17,7 @@ import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary } from './lib/logic.js'
 import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
+import { SEED_HABIT_L10N } from './lib/i18n/seedHabits.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -240,14 +241,20 @@ function makeActions(setState, stateRef) {
 
     // -- onboarding (first run only) --
     // Keep the Phase 1 habits whose ids are in `activeIds`, archive the rest,
-    // and mark the device onboarded so the welcome flow never shows again.
+    // and mark the device onboarded so the welcome flow never shows again. If the
+    // user picked a non-English language, name the seed habits in that language
+    // now (a new Arabic user shouldn't get English habit names). Existing devices
+    // never run this, so their names are untouched.
     finishOnboarding(activeIds) {
-      setState((prev) => ({
-        ...prev,
-        habits: prev.habits.map((h) =>
-          h.phase === 1 ? { ...h, archived: !activeIds.includes(h.id) } : h),
-        settings: { ...prev.settings, onboarded: true },
-      }))
+      setState((prev) => {
+        const l10n = SEED_HABIT_L10N[prev.settings.language]
+        const habits = prev.habits.map((h) => {
+          const loc = l10n?.[h.id]
+          const named = loc ? { ...h, name: loc.name, minVersion: loc.minVersion } : h
+          return h.phase === 1 ? { ...named, archived: !activeIds.includes(h.id) } : named
+        })
+        return { ...prev, habits, settings: { ...prev.settings, onboarded: true } }
+      })
     },
 
     // -- wins (proud moments, surfaced on rough days) --
