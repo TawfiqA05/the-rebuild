@@ -4,6 +4,7 @@ import { addDaysKey, weekKeyFor, prettyDate } from '../lib/time.js'
 import { activeHabits, habitStatusOn, isRequiredOnDay, isDone } from '../lib/logic.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { downloadBackup } from '../lib/backup.js'
+import ShareSheet from '../components/ShareSheet.jsx'
 
 // Completion for one habit across a specific week → { done, total, pct }.
 function weekHabitScore(state, habit, weekStart) {
@@ -60,6 +61,7 @@ export default function WeeklyReview({ navigate }) {
   const [focus, setFocus] = useState(existing.focus || '')
   const [checklist, setChecklist] = useState(existing.checklist || ['', '', ''])
   const [saved, setSaved] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   const setItem = (i, v) => { const n = [...checklist]; n[i] = v; setChecklist(n) }
 
@@ -139,6 +141,12 @@ export default function WeeklyReview({ navigate }) {
       <Button variant="primary" className="w-full mt-6" onClick={save}>
         {saved ? 'Saved ✓' : 'Save review & set the week'}
       </Button>
+
+      <Button className="w-full mt-2" onClick={() => setSharing(true)}>
+        Share your week
+      </Button>
+
+      {sharing && <ShareSheet onClose={() => setSharing(false)} />}
     </Screen>
   )
 }

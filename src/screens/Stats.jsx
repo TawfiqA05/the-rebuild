@@ -5,6 +5,7 @@ import { Screen, Card, SectionLabel, Button, ProgressBar } from '../components/u
 import Heatmap from '../components/Heatmap.jsx'
 import WinsCard from '../components/WinsCard.jsx'
 import DayEditor from '../components/DayEditor.jsx'
+import ShareSheet from '../components/ShareSheet.jsx'
 import { lastNKeys } from '../lib/time.js'
 import {
   activeHabits, habitStats, phaseProgress, shouldSuggestUnlock,
@@ -20,6 +21,7 @@ export default function Stats({ navigate }) {
   const suggest = shouldSuggestUnlock(state, today)
   const habits = activeHabits(state)
   const [editDay, setEditDay] = useState(null)
+  const [sharing, setSharing] = useState(false)
   const recentDays = lastNKeys(today, 14).reverse() // most recent first
   const overall = overallWeekday(state, today)
 
@@ -29,6 +31,10 @@ export default function Stats({ navigate }) {
       subtitle="Measured in months, not 21-day sprints."
       right={<Button variant="ghost" onClick={() => navigate('weekly')}>Weekly review →</Button>}
     >
+      {/* Share progress ---------------------------------------------------- */}
+      <Button variant="primary" className="w-full mb-4" onClick={() => setSharing(true)}>
+        Share your week
+      </Button>
       {/* Votes — the number that only goes up ------------------------------ */}
       <Card className="px-4 py-7 text-center">
         <div className="font-display text-[3.5rem] leading-none tnum text-[var(--color-accent-ink)]">
@@ -137,6 +143,7 @@ export default function Stats({ navigate }) {
       </div>
 
       {editDay && <DayEditor dayKey={editDay} onClose={() => setEditDay(null)} />}
+      {sharing && <ShareSheet onClose={() => setSharing(false)} />}
     </Screen>
   )
 }
