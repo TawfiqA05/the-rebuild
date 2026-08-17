@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
 import { Card, Button, TextInput } from './ui.jsx'
+import { useT } from '../i18n.jsx'
 
 // A place to jot down proud moments. They get shown back to you on rough days,
 // when it's easy to forget you've done hard things before.
 export default function WinsCard() {
   const { state, addWin, removeWin } = useStore()
+  const { t } = useT()
   const [text, setText] = useState('')
   const wins = state.wins || []
 
@@ -21,16 +23,15 @@ export default function WinsCard() {
         <TextInput
           value={text}
           onChange={setText}
-          placeholder="Something you're proud of…"
+          placeholder={t('wins.placeholder')}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
         />
-        <Button variant="primary" onClick={submit}>Log</Button>
+        <Button variant="primary" onClick={submit}>{t('wins.log')}</Button>
       </div>
 
       {wins.length === 0 ? (
         <p className="text-[12.5px] text-[var(--color-muted)] mt-3 leading-relaxed">
-          Nothing here yet. Add the small stuff. A hard workout you didn't skip, a
-          call you were dreading. On a rough day, one of these shows up on your Today screen.
+          {t('wins.empty')}
         </p>
       ) : (
         <div className="mt-3 space-y-2">

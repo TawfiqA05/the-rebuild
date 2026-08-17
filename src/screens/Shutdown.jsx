@@ -5,6 +5,7 @@ import { appearsOnDay, activeHabits, dayScore } from '../lib/logic.js'
 import { Screen, Card, Button, TextInput, TextArea } from '../components/ui.jsx'
 import HabitCard from '../components/HabitCard.jsx'
 import SalahCard from '../components/SalahCard.jsx'
+import { useT } from '../i18n.jsx'
 
 /**
  * The evening shutdown: a 4-step wind-down meant to take under 3 minutes.
@@ -16,6 +17,7 @@ import SalahCard from '../components/SalahCard.jsx'
  */
 export default function Shutdown({ navigate }) {
   const { state, today, updateDay, syncShutdownTasks } = useStore()
+  const { t } = useT()
   const [step, setStep] = useState(0)
 
   const tomorrow = addDaysKey(today, 1)
@@ -41,47 +43,47 @@ export default function Shutdown({ navigate }) {
 
   const steps = [
     {
-      title: 'Check off today',
-      hint: 'Close the loops. Hold any habit for its 2-minute version.',
+      title: t('wind.step1.title'),
+      hint: t('wind.step1.hint'),
       body: <CheckOffStep dayKey={today} />,
     },
     {
-      title: 'Three gratitudes',
-      hint: 'Small and specific beats grand and vague.',
+      title: t('wind.step2.title'),
+      hint: t('wind.step2.hint'),
       body: (
         <div className="space-y-2.5">
           {[0, 1, 2].map((i) => (
             <TextInput key={i} value={gratitude[i]} onChange={(v) => setGratitude(i, v)}
-              placeholder={`Grateful for… (${i + 1})`} />
+              placeholder={t('wind.gratitude', { n: i + 1 })} />
           ))}
         </div>
       ),
     },
     {
-      title: 'Three-line journal',
-      hint: 'One honest line each. Don’t overthink it.',
+      title: t('wind.step3.title'),
+      hint: t('wind.step3.hint'),
       body: (
         <div className="space-y-3">
-          <Labeled label="What went well">
-            <TextArea value={journal.well} onChange={(v) => setJournal('well', v)} placeholder="A win, however small…" />
+          <Labeled label={t('wind.wentWell')}>
+            <TextArea value={journal.well} onChange={(v) => setJournal('well', v)} placeholder={t('wind.wentWellPh')} />
           </Labeled>
-          <Labeled label="What didn’t">
-            <TextArea value={journal.didnt} onChange={(v) => setJournal('didnt', v)} placeholder="No shame, just noticing…" />
+          <Labeled label={t('wind.didnt')}>
+            <TextArea value={journal.didnt} onChange={(v) => setJournal('didnt', v)} placeholder={t('wind.didntPh')} />
           </Labeled>
-          <Labeled label="One fix for tomorrow">
-            <TextArea value={journal.fix} onChange={(v) => setJournal('fix', v)} placeholder="The single lever…" />
+          <Labeled label={t('wind.fix')}>
+            <TextArea value={journal.fix} onChange={(v) => setJournal('fix', v)} placeholder={t('wind.fixPh')} />
           </Labeled>
         </div>
       ),
     },
     {
-      title: `Plan ${prettyDate(tomorrow).split(',')[0]}`,
-      hint: 'Only three. These become real tasks, waiting on tomorrow’s list.',
+      title: t('wind.step4.title', { day: prettyDate(tomorrow).split(',')[0] }),
+      hint: t('wind.step4.hint'),
       body: (
         <div className="space-y-2.5">
           {[0, 1, 2].map((i) => (
             <TextInput key={i} value={topTasks[i]} onChange={(v) => setTask(i, v)}
-              placeholder={`Top task ${i + 1}`} />
+              placeholder={t('wind.topTask', { n: i + 1 })} />
           ))}
         </div>
       ),
@@ -98,7 +100,7 @@ export default function Shutdown({ navigate }) {
   }
 
   return (
-    <Screen title="Evening shutdown" subtitle="Under three minutes. Then you’re off the clock.">
+    <Screen title={t('wind.title')} subtitle={t('wind.subtitle')}>
       {/* progress dots */}
       <div className="flex gap-1.5 mb-4">
         {steps.map((_, i) => (
@@ -113,11 +115,11 @@ export default function Shutdown({ navigate }) {
       <div className="animate-fade" key={step}>{cur.body}</div>
 
       <div className="flex gap-2 mt-6">
-        {step > 0 && <Button variant="ghost" onClick={() => setStep((s) => s - 1)}>Back</Button>}
+        {step > 0 && <Button variant="ghost" onClick={() => setStep((s) => s - 1)}>{t('common.back')}</Button>}
         <div className="flex-1" />
         {!last
-          ? <Button variant="primary" onClick={() => setStep((s) => s + 1)}>Next</Button>
-          : <Button variant="primary" onClick={finish}>Done, lights out</Button>}
+          ? <Button variant="primary" onClick={() => setStep((s) => s + 1)}>{t('common.next')}</Button>
+          : <Button variant="primary" onClick={finish}>{t('wind.finish')}</Button>}
       </div>
     </Screen>
   )
@@ -125,12 +127,13 @@ export default function Shutdown({ navigate }) {
 
 function CheckOffStep({ dayKey }) {
   const { state } = useStore()
+  const { t } = useT()
   const habits = activeHabits(state).filter((h) => appearsOnDay(h, dayKey))
   const { done, total } = dayScore(state, dayKey)
   return (
     <div>
       <Card className="px-4 py-2.5 mb-3 flex items-center justify-between">
-        <span className="text-sm text-[var(--color-muted)]">Today’s score</span>
+        <span className="text-sm text-[var(--color-muted)]">{t('wind.todayScore')}</span>
         <span className="tabular-nums font-semibold">{done}/{total}</span>
       </Card>
       <div className="space-y-2.5">

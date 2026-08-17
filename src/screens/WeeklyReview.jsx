@@ -5,6 +5,7 @@ import { activeHabits, habitStatusOn, isRequiredOnDay, isDone } from '../lib/log
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { downloadBackup } from '../lib/backup.js'
 import ShareSheet from '../components/ShareSheet.jsx'
+import { useT } from '../i18n.jsx'
 
 // Completion for one habit across a specific week → { done, total, pct }.
 function weekHabitScore(state, habit, weekStart) {
@@ -42,6 +43,7 @@ function weekOverall(state, habits, weekStart) {
 
 export default function WeeklyReview({ navigate }) {
   const { state, today, saveWeeklyReview, exportJSON, markExported } = useStore()
+  const { t } = useT()
   const habits = activeHabits(state)
 
   // Nudge a backup once a week. Show it if it's been more than 6 days, or never.
@@ -73,20 +75,20 @@ export default function WeeklyReview({ navigate }) {
 
   return (
     <Screen
-      title="Weekly review"
-      subtitle={`Reviewing ${prettyDate(lastWeek).split(',')[1]} → planning ${prettyDate(thisWeek).split(',')[1]}`}
-      right={<Button variant="ghost" onClick={() => navigate('today')}>Close</Button>}
+      title={t('weekly.title')}
+      subtitle={t('weekly.subtitle', { last: prettyDate(lastWeek).split(',')[1], this: prettyDate(thisWeek).split(',')[1] })}
+      right={<Button variant="ghost" onClick={() => navigate('today')}>{t('common.close')}</Button>}
     >
       {/* Trend ------------------------------------------------------------- */}
       <Card className="px-4 py-4 flex items-center justify-between">
         <div>
           <div className="text-3xl font-semibold tabular-nums">{lastScore}%</div>
-          <div className="text-xs text-[var(--color-muted)]">last week overall</div>
+          <div className="text-xs text-[var(--color-muted)]">{t('weekly.lastWeek')}</div>
         </div>
         <div className={`text-sm font-medium ${
           trend > 0 ? 'text-[var(--color-accent-ink)]' : trend < 0 ? 'text-[var(--color-min)]' : 'text-[var(--color-muted)]'
         }`}>
-          {trend > 0 ? '▲' : trend < 0 ? '▼' : '—'} {Math.abs(trend)}% <span className="text-[var(--color-faint)]">vs prior</span>
+          {trend > 0 ? '▲' : trend < 0 ? '▼' : '—'} {Math.abs(trend)}% <span className="text-[var(--color-faint)]">{t('weekly.vsPrior')}</span>
         </div>
       </Card>
 
@@ -94,17 +96,17 @@ export default function WeeklyReview({ navigate }) {
       {needsBackup && (
         <div className="mt-3 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3.5 flex items-center gap-3">
           <div className="flex-1">
-            <div className="text-sm font-medium">Back up your data</div>
+            <div className="text-sm font-medium">{t('weekly.backupTitle')}</div>
             <div className="text-xs text-[var(--color-muted)] mt-0.5">
-              {lastExport ? 'It’s been over a week. One tap saves a JSON copy.' : 'Everything lives on this device. Save a copy while you’re here.'}
+              {lastExport ? t('weekly.backupOver') : t('weekly.backupNever')}
             </div>
           </div>
-          <Button variant="primary" onClick={backupNow}>Export</Button>
+          <Button variant="primary" onClick={backupNow}>{t('weekly.export')}</Button>
         </div>
       )}
 
       {/* Per-habit last week ---------------------------------------------- */}
-      <SectionLabel>How last week went</SectionLabel>
+      <SectionLabel>{t('weekly.howItWent')}</SectionLabel>
       <div className="space-y-1.5">
         {habits.map((h) => {
           const s = weekHabitScore(state, h, lastWeek)
@@ -115,7 +117,7 @@ export default function WeeklyReview({ navigate }) {
               <div className="w-24 h-1.5 rounded-full bg-[var(--color-line)] overflow-hidden">
                 <div className="h-full bg-[var(--color-accent)]" style={{ width: `${s.pct ?? 0}%` }} />
               </div>
-              <span className="text-xs tabular-nums text-[var(--color-muted)] w-12 text-right">
+              <span className="text-xs tabular-nums text-[var(--color-muted)] w-12 text-end">
                 {h.frequency.kind === 'perWeek' ? `${s.done}/${s.total}` : `${s.pct ?? 0}%`}
               </span>
             </div>
@@ -124,26 +126,26 @@ export default function WeeklyReview({ navigate }) {
       </div>
 
       {/* One thing to improve --------------------------------------------- */}
-      <SectionLabel>Pick ONE thing to improve</SectionLabel>
-      <TextInput value={focus} onChange={setFocus} placeholder="e.g. Be in bed by 11pm" />
+      <SectionLabel>{t('weekly.pickOne')}</SectionLabel>
+      <TextInput value={focus} onChange={setFocus} placeholder={t('weekly.pickOnePh')} />
       <p className="text-[11px] text-[var(--color-faint)] mt-1.5">
-        Just one. It’ll show on your Today screen all week.
+        {t('weekly.pickOneNote')}
       </p>
 
       {/* Plan the week ----------------------------------------------------- */}
-      <SectionLabel>Plan the week</SectionLabel>
+      <SectionLabel>{t('weekly.plan')}</SectionLabel>
       <div className="space-y-2">
         {checklist.map((c, i) => (
-          <TextInput key={i} value={c} onChange={(v) => setItem(i, v)} placeholder={`This week I will… (${i + 1})`} />
+          <TextInput key={i} value={c} onChange={(v) => setItem(i, v)} placeholder={t('weekly.planPh', { n: i + 1 })} />
         ))}
       </div>
 
       <Button variant="primary" className="w-full mt-6" onClick={save}>
-        {saved ? 'Saved ✓' : 'Save review & set the week'}
+        {saved ? t('weekly.saved') : t('weekly.saveSet')}
       </Button>
 
       <Button className="w-full mt-2" onClick={() => setSharing(true)}>
-        Share your week
+        {t('stats.shareWeek')}
       </Button>
 
       {sharing && <ShareSheet onClose={() => setSharing(false)} />}
