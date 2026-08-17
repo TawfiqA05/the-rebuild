@@ -15,8 +15,8 @@ export function Screen({ title, subtitle, children, right }) {
   )
 }
 
-export function Card({ children, className = '' }) {
-  return <div className={`card ${className}`}>{children}</div>
+export function Card({ children, className = '', ...rest }) {
+  return <div className={`card ${className}`} {...rest}>{children}</div>
 }
 
 export function SectionLabel({ children }) {

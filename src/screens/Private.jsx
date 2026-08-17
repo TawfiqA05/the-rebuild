@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { generateSalt, hashPin, verifyPin } from '../lib/crypto.js'
 import { URGE_PROMPTS } from '../lib/seed.js'
+import { urgePromptIndices } from '../lib/faith.js'
 import { Screen, Card, SectionLabel, Button, TextInput, TextArea } from '../components/ui.jsx'
 import { useT } from '../i18n.jsx'
 
@@ -178,8 +179,10 @@ function PrivateDashboard({ onLock }) {
 const URGE_SECONDS = 20 * 60
 
 function UrgeTimer() {
-  const { addWaveSurvived, addPrivateEntry } = useStore()
+  const { state, addWaveSurvived, addPrivateEntry } = useStore()
   const { t } = useT()
+  // With the Islamic layer off, the faith prompts (e.g. "make wudu") drop out.
+  const promptIdx = urgePromptIndices(URGE_PROMPTS.length, state.settings.includeIslamic !== false)
   const [running, setRunning] = useState(false)
   const [left, setLeft] = useState(URGE_SECONDS)
   const [outcome, setOutcome] = useState(null) // 'survived' | 'slipped'
@@ -198,7 +201,7 @@ function UrgeTimer() {
   }, [running])
 
   const elapsed = URGE_SECONDS - left
-  const prompt = t(`priv.urge.${Math.floor(elapsed / 20) % URGE_PROMPTS.length}`)
+  const prompt = t(`priv.urge.${promptIdx[Math.floor(elapsed / 20) % promptIdx.length]}`)
   const mm = String(Math.floor(left / 60)).padStart(2, '0')
   const ss = String(left % 60).padStart(2, '0')
   const pct = Math.round((elapsed / URGE_SECONDS) * 100)

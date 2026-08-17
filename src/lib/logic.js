@@ -14,6 +14,11 @@
 import {
   addDaysKey, prevDayKey, weekdayOf, weekKeyFor, lastNKeys, rangeKeys,
 } from './time.js'
+import { isFaithHabit } from './faith.js'
+
+// Re-exported so callers can keep importing it from logic. The source of truth
+// for what counts as an Islamic practice is the registry in faith.js.
+export { isFaithHabit }
 
 export const SALAH_PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
 export const SALAH_LABELS = {
@@ -321,17 +326,6 @@ export function missGapBeforeToday(state, todayK) {
 }
 
 // --- Phases -----------------------------------------------------------------
-
-/**
- * Is this an Islamic-practice habit (the Salah card, the Mon/Thu fast)? Matched
- * by type/id rather than a stored flag, so it holds for older saves whose habit
- * records predate the flag. When `includeIslamic` is off these are hidden
- * everywhere — never archived — so flipping the setting back on restores them
- * with all their history intact.
- */
-export function isFaithHabit(habit) {
-  return habit.type === 'salah' || habit.id === 'fasting'
-}
 
 /** Is the Islamic-practices layer switched on? Defaults to on for older saves. */
 export function islamicOn(state) {

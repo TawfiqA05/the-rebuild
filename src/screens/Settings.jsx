@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { PHASES, phaseMeta } from '../lib/seed.js'
+import { isFaithHabit } from '../lib/faith.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { downloadBackup } from '../lib/backup.js'
@@ -210,9 +211,11 @@ function HabitManager() {
   const { state } = useStore()
   const { t: T, language } = useT()
   const [editing, setEditing] = useState(null) // habit id, or 'new', or null
+  // With the Islamic layer off, faith habits are hidden here too (never deleted).
+  const hideFaith = state.settings.includeIslamic === false
   const byPhase = PHASES.map((p) => ({
     phase: p,
-    habits: state.habits.filter((h) => h.phase === p.n),
+    habits: state.habits.filter((h) => h.phase === p.n && !(hideFaith && isFaithHabit(h))),
   }))
 
   return (
@@ -375,8 +378,10 @@ function IslamicToggle() {
   const { state, updateSettings } = useStore()
   const { t: T } = useT()
   const on = state.settings.includeIslamic !== false
+  // data-testid marks this as the control FOR the layer (it must name what it
+  // enables); the no-leak test excludes it and scans everything else.
   return (
-    <Card className="px-4 py-4">
+    <Card className="px-4 py-4" data-testid="islamic-toggle">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-medium">{T('settings.islamicLabel')}</div>

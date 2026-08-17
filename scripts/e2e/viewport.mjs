@@ -214,6 +214,92 @@ async function checkAnchorPosition(browser, url) {
   }
 }
 
+// With "Include Islamic practices?" set to No, not a single Islamic term may
+// appear anywhere in the UI. This walks every screen on a fresh AND a legacy
+// profile and fails if one leaks — so any future Islamic feature that forgets to
+// register itself in faith.js breaks CI instead of shipping a leak.
+const FAITH_TERMS = /\b(salah|adhkar|wudu|dua|fajr|dhuhr|asr|maghrib|isha|qur['’]?an|hadith|sunnah|fasting|fast|ramadan|athan|iqamah|masjid|mosque|prophet|allah|ayah|prayer)\b/i
+
+function noFaithSeed(legacy) {
+  if (legacy) {
+    // Pre-localization device: literal English names incl. Islamic ones + logs,
+    // now viewed with the layer turned off. These must all be hidden.
+    return JSON.stringify({
+      version: 1,
+      settings: { onboarded: true, tourSeen: true, includeIslamic: false, currentPhase: 5, dayRolloverHour: 3 },
+      habits: [
+        { id: 'salah', name: 'Salah on time', emoji: '🕌', phase: 1, type: 'salah', frequency: { kind: 'daily' }, minVersion: 'Pray it' },
+        { id: 'quran', name: 'Quran daily', emoji: '📗', phase: 2, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'One ayah' },
+        { id: 'adhkar', name: 'Adhkar AM/PM', emoji: '📿', phase: 5, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'One line' },
+        { id: 'bed', name: 'Make the bed', emoji: '🛏️', phase: 1, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'Covers straight' },
+      ],
+      logs: { '2026-08-16': { salah: { fajr: 'ontime' }, quran: { status: 'full' }, bed: { status: 'full' } } },
+      days: {}, votes: 9,
+    })
+  }
+  return JSON.stringify({ settings: { onboarded: true, tourSeen: true, includeIslamic: false, currentPhase: 5 }, votes: 40 })
+}
+
+async function checkNoFaithLeak(browser, url) {
+  let failed = 0
+  for (const legacy of [false, true]) {
+    const label = legacy ? 'legacy' : 'fresh'
+    const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT })
+    await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', noFaithSeed(legacy)])
+    const page = await context.newPage()
+    try {
+      await page.goto(url, { waitUntil: 'networkidle' })
+      await page.locator('nav button').first().waitFor()
+      const screens = ['today', 'stats', 'shutdown', 'settings']
+      for (let i = 0; i < screens.length; i++) {
+        await page.locator('nav button').nth(i).click()
+        await page.waitForTimeout(200)
+        await scanForTerms(page, `${label}·${screens[i]}`, () => (failed++))
+      }
+      // Weekly review
+      await page.locator('nav button').nth(1).click()
+      await page.locator('[data-testid="weekly-review-link"]').click().catch(() => {})
+      await page.waitForTimeout(200)
+      await scanForTerms(page, `${label}·weekly`, () => (failed++))
+      // Reveal + open the Private tab (PIN setup screen)
+      await page.locator('nav button').nth(3).click()
+      await page.waitForTimeout(150)
+      const ver = page.getByText(/v0\.1\.0/)
+      for (let i = 0; i < 5; i++) { await ver.click().catch(() => {}); await page.waitForTimeout(50) }
+      await page.waitForTimeout(150)
+      await page.getByText('🔒', { exact: false }).click().catch(() => {})
+      await page.waitForTimeout(200)
+      await scanForTerms(page, `${label}·private`, () => (failed++))
+    } catch (err) {
+      console.log(`✗ no-leak ${label} — threw: ${err.message}`)
+      failed++
+    } finally {
+      await context.close()
+    }
+  }
+  if (!failed) console.log('✓ no faith leak · en — no Islamic term appears in No mode (fresh + legacy)')
+  return failed
+}
+
+async function scanForTerms(page, ctx, onFail) {
+  // Exclude the Islamic-practices toggle itself — it's the control that turns the
+  // layer back on, so it's allowed (and needs) to name what it enables.
+  const text = await page.evaluate(() => {
+    const clone = document.body.cloneNode(true)
+    clone.querySelectorAll('[data-testid="islamic-toggle"]').forEach((el) => el.remove())
+    document.body.appendChild(clone)
+    const t = clone.innerText
+    clone.remove()
+    return t
+  })
+  const m = text.match(FAITH_TERMS)
+  if (m) {
+    const at = text.indexOf(m[0])
+    console.log(`✗ faith leak at ${ctx}: "${m[0]}" — …${text.slice(Math.max(0, at - 25), at + 25).replace(/\n/g, ' ')}…`)
+    onFail()
+  }
+}
+
 async function run() {
   const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
   const url = server.resolvedUrls.local[0]
@@ -272,11 +358,13 @@ async function run() {
   failed += await checkDayEditor(browser, url)
   // And the Daily anchor must stay pinned under the score card.
   failed += await checkAnchorPosition(browser, url)
+  // And no Islamic term may leak when the layer is off.
+  failed += await checkNoFaithLeak(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 2
+  const total = SCENARIOS.length + 3
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)

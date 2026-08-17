@@ -51,11 +51,12 @@ describe('includeIslamic — module gating', () => {
     expect(ids(off)).toEqual(expect.arrayContaining(['bed', 'gym', 'sleep']))
   })
 
-  it('drops Salah from the daily score denominator when off (exactly one daily faith habit)', () => {
+  it('drops the daily faith habits (Salah, Quran, Adhkar) from the score denominator when off', () => {
     const on = onboarded({ includeIslamic: true })
     const off = onboarded({ includeIslamic: false })
-    const day = '2026-01-05'
-    expect(dayScore(on, day).total - dayScore(off, day).total).toBe(1)
+    const day = '2026-01-05' // a Monday-independent day: the Mon/Thu fast isn't required
+    // salah + quran + adhkar are the daily required faith habits; the fast is optional.
+    expect(dayScore(on, day).total - dayScore(off, day).total).toBe(3)
   })
 
   it('rough-day MVD needs only bed + one rep when off, but still needs Salah when on', () => {

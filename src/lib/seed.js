@@ -77,7 +77,7 @@ export const SEED_HABITS = [
   },
   {
     id: 'quran', name: 'Quran daily', emoji: '📗', phase: 2, type: 'standard',
-    frequency: daily, minVersion: 'One ayah',
+    frequency: daily, minVersion: 'One ayah', faith: 'islam',
   },
   {
     id: 'no-snooze', name: 'No snooze', emoji: '⏰', phase: 2, type: 'standard',
@@ -135,7 +135,7 @@ export const SEED_HABITS = [
   // ---- Phase 5 · Character ----------------------------------------------
   {
     id: 'adhkar', name: 'Adhkar AM/PM', emoji: '📿', phase: 5, type: 'standard',
-    frequency: daily, minVersion: 'One line of adhkar',
+    frequency: daily, minVersion: 'One line of adhkar', faith: 'islam',
   },
   {
     id: 'gratitude', name: 'Gratitude ×3', emoji: '🙏', phase: 5, type: 'standard',

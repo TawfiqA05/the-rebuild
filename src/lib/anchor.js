@@ -16,6 +16,7 @@
 
 import { keyToDate } from './time.js'
 import { isFullWin } from './logic.js'
+import { isFaithQuote } from './faith.js'
 import { CURATED } from './quotes.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -67,7 +68,7 @@ export function dailyAnchor(state, dayKey, { biasOwn = false, lang = 'en', inclu
   // carries its exact Arabic). Everything else is dropped rather than shown in
   // English or machine-translated. The user's own lines always qualify. With the
   // Islamic layer off, scripture is dropped too, leaving universal quotes only.
-  const qualifies = (q) => (includeIslamic || q.faith !== 'islam') && (lang === 'en' || !!q.ar)
+  const qualifies = (q) => (includeIslamic || !isFaithQuote(q)) && (lang === 'en' || !!q.ar)
   const curated = [
     ...CURATED.filter(qualifies).map((q) => ({ text: q.text, author: q.author, ar: q.ar, arAuthor: q.arAuthor, pool: 'curated' })),
     ...(state.myQuotes || []).map((q) => ({ text: q.text, author: 'You', pool: 'mine' })),
