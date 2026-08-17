@@ -86,10 +86,35 @@ export function lastNKeys(endKey, n) {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-/** Human label like "Saturday, Aug 15". */
+/** Human label like "Saturday, Aug 15" (English fallback). */
 export function prettyDate(key) {
   const d = keyToDate(key)
   return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`
+}
+
+// --- locale-aware date formatting (via Intl) --------------------------------
+// These follow the active language: Arabic gets Arabic month/weekday names and
+// Arabic-Indic digits. Each falls back to the English helpers if Intl throws.
+
+function intl(key, lang, opts, fallback) {
+  try { return new Intl.DateTimeFormat(lang, opts).format(keyToDate(key)) }
+  catch { return fallback() }
+}
+
+/** Just the weekday, e.g. "Saturday" / "السبت". */
+export function fmtWeekday(key, lang = 'en') {
+  return intl(key, lang, { weekday: 'long' }, () => DAYS[weekdayOf(key)])
+}
+
+/** Month + day, e.g. "Aug 15" / "١٥ أغسطس". */
+export function fmtMonthDay(key, lang = 'en') {
+  return intl(key, lang, { month: 'short', day: 'numeric' },
+    () => `${MONTHS[keyToDate(key).getMonth()]} ${keyToDate(key).getDate()}`)
+}
+
+/** Full date, e.g. "Saturday, Aug 15" / "السبت، ١٥ أغسطس". */
+export function fmtFullDate(key, lang = 'en') {
+  return intl(key, lang, { weekday: 'long', month: 'short', day: 'numeric' }, () => prettyDate(key))
 }
 
 export function isSunday(key) {

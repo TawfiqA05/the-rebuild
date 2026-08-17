@@ -4,7 +4,7 @@ import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
 import { QuickAddInput, InlineEditText, useCommitOnOutside } from './entryInput.jsx'
 import { visibleTasks, carryOverLabel, upcomingTasks, groupByDueDay } from '../lib/tasks.js'
-import { addDaysKey, prettyDate } from '../lib/time.js'
+import { addDaysKey, fmtFullDate } from '../lib/time.js'
 import { useT } from '../i18n.jsx'
 
 /**
@@ -17,7 +17,7 @@ import { useT } from '../i18n.jsx'
  */
 export default function TasksCard({ dayKey }) {
   const { state, addTask, toggleTask, deleteTask, restoreTask, updateTask, setTasksCollapsed } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const toast = useToast()
   const collapsed = state.settings.tasksCollapsed
   const { open, done } = useMemo(() => visibleTasks(state.tasks, dayKey), [state.tasks, dayKey])
@@ -101,7 +101,7 @@ export default function TasksCard({ dayKey }) {
               {groupByDueDay(upcoming).map((g) => (
                 <div key={g.dueDay}>
                   <div className="text-[11px] uppercase tracking-wide text-[var(--color-faint)] mb-1">
-                    {groupLabel(t, g.dueDay, dayKey)}
+                    {groupLabel(t, language, g.dueDay, dayKey)}
                   </div>
                   <div className="space-y-1">
                     {g.tasks.map((t) => renderRow(t, 'upcoming'))}
@@ -117,9 +117,9 @@ export default function TasksCard({ dayKey }) {
   )
 }
 
-function groupLabel(t, dueDay, dayKey) {
+function groupLabel(t, language, dueDay, dayKey) {
   if (dueDay === addDaysKey(dayKey, 1)) return t('tasks.tomorrow')
-  return prettyDate(dueDay)
+  return fmtFullDate(dueDay, language)
 }
 
 function QuickAdd({ dayKey, onAdd }) {

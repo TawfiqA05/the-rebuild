@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { addDaysKey, weekKeyFor, prettyDate } from '../lib/time.js'
+import { addDaysKey, weekKeyFor, fmtMonthDay } from '../lib/time.js'
 import { activeHabits, habitStatusOn, isRequiredOnDay, isDone } from '../lib/logic.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { downloadBackup } from '../lib/backup.js'
@@ -43,7 +43,7 @@ function weekOverall(state, habits, weekStart) {
 
 export default function WeeklyReview({ navigate }) {
   const { state, today, saveWeeklyReview, exportJSON, markExported } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const habits = activeHabits(state)
 
   // Nudge a backup once a week. Show it if it's been more than 6 days, or never.
@@ -76,7 +76,7 @@ export default function WeeklyReview({ navigate }) {
   return (
     <Screen
       title={t('weekly.title')}
-      subtitle={t('weekly.subtitle', { last: prettyDate(lastWeek).split(',')[1], this: prettyDate(thisWeek).split(',')[1] })}
+      subtitle={t('weekly.subtitle', { last: fmtMonthDay(lastWeek, language), this: fmtMonthDay(thisWeek, language) })}
       right={<Button variant="ghost" onClick={() => navigate('today')}>{t('common.close')}</Button>}
     >
       {/* Trend ------------------------------------------------------------- */}

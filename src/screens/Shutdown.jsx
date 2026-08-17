@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { addDaysKey, prettyDate } from '../lib/time.js'
+import { addDaysKey, fmtWeekday } from '../lib/time.js'
 import { appearsOnDay, activeHabits, dayScore } from '../lib/logic.js'
 import { Screen, Card, Button, TextInput, TextArea } from '../components/ui.jsx'
 import HabitCard from '../components/HabitCard.jsx'
@@ -17,7 +17,7 @@ import { useT } from '../i18n.jsx'
  */
 export default function Shutdown({ navigate }) {
   const { state, today, updateDay, syncShutdownTasks } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const [step, setStep] = useState(0)
 
   const tomorrow = addDaysKey(today, 1)
@@ -77,7 +77,7 @@ export default function Shutdown({ navigate }) {
       ),
     },
     {
-      title: t('wind.step4.title', { day: prettyDate(tomorrow).split(',')[0] }),
+      title: t('wind.step4.title', { day: fmtWeekday(tomorrow, language) }),
       hint: t('wind.step4.hint'),
       body: (
         <div className="space-y-2.5">

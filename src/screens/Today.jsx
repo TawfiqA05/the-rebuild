@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '../store.jsx'
-import { prettyDate, weekKeyFor, isSunday } from '../lib/time.js'
+import { fmtWeekday, fmtMonthDay, weekKeyFor, isSunday } from '../lib/time.js'
 import { phaseMeta } from '../lib/seed.js'
 import {
   appearsOnDay, dayScore, habitStatusOn, isDone, activeHabits,
@@ -23,7 +23,7 @@ const ANCHORS = [
 
 export default function Today({ navigate }) {
   const { state, today, setRoughDay } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   const phase = phaseMeta(state.settings.currentPhase)
 
   const habits = useMemo(
@@ -70,8 +70,8 @@ export default function Today({ navigate }) {
           {t('common.phase', { n: phase.n })} · {t(`phase.${phase.n}`)}
         </div>
         <div className="flex items-baseline justify-between">
-          <h1 className="font-display text-[2.5rem] leading-none">{prettyDate(today).split(',')[0]}</h1>
-          <span className="text-[13px] text-[var(--color-muted)]">{prettyDate(today).split(', ')[1]}</span>
+          <h1 className="font-display text-[2.5rem] leading-none">{fmtWeekday(today, language)}</h1>
+          <span className="text-[13px] text-[var(--color-muted)]">{fmtMonthDay(today, language)}</span>
         </div>
       </header>
 

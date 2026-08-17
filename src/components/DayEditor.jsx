@@ -1,5 +1,5 @@
 import { useStore } from '../store.jsx'
-import { prettyDate } from '../lib/time.js'
+import { fmtFullDate } from '../lib/time.js'
 import { activeHabits, appearsOnDay, dayScore } from '../lib/logic.js'
 import { foodForDay } from '../lib/food.js'
 import HabitCard from './HabitCard.jsx'
@@ -14,7 +14,7 @@ import { useT } from '../i18n.jsx'
  */
 export default function DayEditor({ dayKey, onClose }) {
   const { state } = useStore()
-  const { t } = useT()
+  const { t, language } = useT()
   // Show the habits scheduled that day PLUS any that already have a check-in
   // logged that day — even if since archived or off-schedule — so a past
   // completion can always be toggled back off, not just added.
@@ -35,7 +35,7 @@ export default function DayEditor({ dayKey, onClose }) {
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-[var(--color-line)]">
           <div>
             <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">{t('day.fixTitle')}</div>
-            <div className="font-display text-2xl leading-tight">{prettyDate(dayKey)}</div>
+            <div className="font-display text-2xl leading-tight">{fmtFullDate(dayKey, language)}</div>
           </div>
           <div className="text-end">
             <div className="text-sm tabular-nums text-[var(--color-muted)]">{done}/{total}</div>
