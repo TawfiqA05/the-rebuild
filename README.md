@@ -60,6 +60,25 @@ Two things round out the day without touching the discipline machinery:
   calories, macros, goals, windows, or streaks, and it never touches the score.
   Frequent items become one-tap re-add chips; a day with nothing logged is
   neutral, not a warning.
+- **Accountability share.** From the weekly review or Stats, turn the week into
+  something you can send a friend: a plain-text summary and an ivory/gold image
+  card (drawn on a canvas, no external services). Habit scores, streaks, and one
+  line you type. Nothing from the private or food logs ever appears in it.
+
+### Making it yours
+
+- **Themes.** Six palettes (Ivory, Charcoal, Midnight, Sand, Sage, Rose) plus a
+  System option that follows your device. Built on a data-driven theme system —
+  a theme is one palette object — and every palette clears WCAG AA (there's a
+  test). The completion glow and heatmap tint to each theme's accent.
+- **Language.** English and Arabic, with real RTL layout and an Arabic Naskh
+  face. Seeded from your device language, changeable in onboarding and Settings,
+  and carried in the backup. Built on a lazy-loaded string table so more
+  languages are data, not code (more coverage and languages are landing
+  incrementally).
+- **First-run tour + calm start.** A four-step coach tour runs once after
+  onboarding. New devices open to a calm screen (Tasks and Food tucked into
+  one-line sections), and per-device settings remember how you like it.
 
 ## Run it
 
