@@ -212,6 +212,10 @@ function makeActions(setState, stateRef) {
     setPrayerLocation(loc) {
       setState((prev) => ({ ...prev, settings: { ...prev.settings, prayerLocation: loc } }))
     },
+    /** Set the theme choice ('system' | theme id). */
+    setTheme(theme) {
+      setState((prev) => ({ ...prev, settings: { ...prev.settings, theme } }))
+    },
 
     // -- habit CRUD --
     upsertHabit(habit) {

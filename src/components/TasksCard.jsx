@@ -283,7 +283,7 @@ function TaskMarker({ done }) {
   const base = 'w-6 h-6 rounded-full grid place-items-center border transition-colors duration-300'
   if (done) {
     return (
-      <span key="done" className={`${base} border-transparent bg-[var(--color-accent)] text-[#231a09] animate-check`}>
+      <span key="done" className={`${base} border-transparent bg-[var(--color-accent)] text-[var(--color-on-accent)] animate-check`}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 6 L9 17 L4 12" />
         </svg>

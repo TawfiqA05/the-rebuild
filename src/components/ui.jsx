@@ -30,7 +30,7 @@ export function SectionLabel({ children }) {
 export function Button({ children, onClick, variant = 'default', className = '', ...rest }) {
   const styles = {
     default: 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-fg)] hover:bg-[var(--color-surface-2)]',
-    primary: 'border-transparent bg-[var(--color-accent)] text-[#231a09] font-medium hover:bg-[var(--color-accent-strong)]',
+    primary: 'border-transparent bg-[var(--color-accent)] text-[var(--color-on-accent)] font-medium hover:bg-[var(--color-accent-strong)]',
     ghost: 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-fg)]',
     danger: 'border-[var(--color-line-2)] bg-transparent text-[var(--color-danger)] hover:bg-[var(--color-surface-2)]',
   }[variant]

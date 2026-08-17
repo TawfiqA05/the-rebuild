@@ -73,7 +73,7 @@ export default function Welcome() {
                   <span className="text-2xl w-8 text-center">{h.emoji}</span>
                   <span className="flex-1 font-medium text-[15px]">{h.name}</span>
                   <span className={`w-6 h-6 rounded-full grid place-items-center border ${
-                    on ? 'bg-[var(--color-accent)] border-transparent text-[#231a09]' : 'border-[var(--color-line-2)] text-transparent'
+                    on ? 'bg-[var(--color-accent)] border-transparent text-[var(--color-on-accent)]' : 'border-[var(--color-line-2)] text-transparent'
                   }`}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 L9 17 L4 12" /></svg>
                   </span>

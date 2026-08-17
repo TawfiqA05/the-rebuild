@@ -109,7 +109,7 @@ function PrayerCell({ dayKey, p, value, isNow, time }) {
     >
       {isNow && (
         <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wide
-          bg-[var(--color-accent)] text-[#231a09] rounded-full px-1.5 py-px leading-none">now</span>
+          bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-full px-1.5 py-px leading-none">now</span>
       )}
       <span className="text-[11px] font-medium">{SALAH_LABELS[p]}</span>
       <span className="text-[10px] tabular-nums">{time ? compact(time) : '—'}</span>

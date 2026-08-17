@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StoreProvider, useStore, storageAvailable } from './store.jsx'
 import { ToastProvider } from './components/Toast.jsx'
+import { applyTheme } from './lib/themes.js'
 import Welcome from './screens/Welcome.jsx'
 import Today from './screens/Today.jsx'
 import Stats from './screens/Stats.jsx'
@@ -32,6 +33,19 @@ export default function App() {
 
 function AppShell() {
   const { state } = useStore()
+  const themeChoice = state.settings.theme || 'system'
+
+  // Apply the theme whenever the choice changes, and — when on System — follow
+  // the device's light/dark switch live.
+  useEffect(() => {
+    applyTheme(themeChoice)
+    if (themeChoice !== 'system' || typeof matchMedia === 'undefined') return
+    const mq = matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => applyTheme('system')
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [themeChoice])
+
   const [screen, setScreen] = useState('today')
   // Reveal is intentionally ephemeral (not persisted): the Private tab is hidden
   // on every fresh launch until the owner performs the reveal gesture again.

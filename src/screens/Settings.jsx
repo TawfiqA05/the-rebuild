@@ -6,6 +6,7 @@ import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
 import { downloadBackup } from '../lib/backup.js'
 import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
 import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
+import { THEMES } from '../lib/themes.js'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
@@ -47,6 +48,10 @@ export default function Settings({ onRevealPrivate }) {
           Unlock in order, when the current phase feels automatic. You can move back down too.
         </p>
       </Card>
+
+      {/* Appearance -------------------------------------------------------- */}
+      <SectionLabel>Appearance</SectionLabel>
+      <Appearance />
 
       {/* Day rollover ------------------------------------------------------ */}
       <SectionLabel>Day rollover</SectionLabel>
@@ -319,6 +324,53 @@ function HabitEditor({ habit, onClose }) {
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
       </div>
     </Card>
+  )
+}
+
+// --- Appearance (theme picker with live swatches) ----------------------------
+
+function Appearance() {
+  const { state, setTheme } = useStore()
+  const choice = state.settings.theme || 'system'
+  const options = [{ id: 'system', name: 'System' }, ...THEMES.map((t) => ({ id: t.id, name: t.name, palette: t.palette }))]
+  return (
+    <Card className="px-4 py-4">
+      <div className="grid grid-cols-2 gap-2">
+        {options.map((o) => {
+          const on = choice === o.id
+          return (
+            <button key={o.id} onClick={() => setTheme(o.id)}
+              className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${
+                on ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]/40' : 'border-[var(--color-line)]'}`}>
+              <Swatch palette={o.palette} />
+              <span className="text-sm">{o.name}</span>
+              {on && <span className="ml-auto text-[var(--color-accent-ink)] text-xs">✓</span>}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-[11px] text-[var(--color-faint)] mt-2">
+        System follows your device. Your pick stays on this device, and it’s in the backup.
+      </p>
+    </Card>
+  )
+}
+
+// A small preview dot showing a theme's background + accent (or split for System).
+function Swatch({ palette }) {
+  if (!palette) {
+    return (
+      <span className="w-7 h-7 rounded-full border border-[var(--color-line-2)] overflow-hidden flex shrink-0">
+        <span className="w-1/2 h-full" style={{ background: '#f5f0e6' }} />
+        <span className="w-1/2 h-full" style={{ background: '#1b1917' }} />
+      </span>
+    )
+  }
+  return (
+    <span className="w-7 h-7 rounded-full border border-[var(--color-line-2)] grid place-items-center shrink-0"
+      style={{ background: palette.ink }}>
+      <span className="w-3 h-3 rounded-full" style={{ background: palette.accent }} />
+    </span>
   )
 }
 

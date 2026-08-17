@@ -24,6 +24,18 @@
       /* Warm ivory paint before JS/CSS loads — no flash. */
       html, body { background: #f5f0e6; }
     </style>
+    <script>
+      /* Paint the saved theme's background + data-theme before first paint, so
+         a dark-theme device doesn't flash ivory on a cold start. */
+      (function () {
+        try {
+          var id = localStorage.getItem('rebuild:theme-id')
+          var bg = localStorage.getItem('rebuild:bg')
+          if (id) document.documentElement.setAttribute('data-theme', id)
+          if (bg) { document.documentElement.style.background = bg }
+        } catch (e) {}
+      })()
+    </script>
     <meta name="apple-mobile-web-app-title" content="The Rebuild" />
     <title>The Rebuild</title>
   </head>

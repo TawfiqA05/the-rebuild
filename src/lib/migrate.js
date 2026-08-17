@@ -35,6 +35,8 @@ export function migrate(state) {
   merged.settings.prayerLocation = ('prayerLocation' in (state.settings || {}))
     ? state.settings.prayerLocation
     : FISHERS_LOCATION
+  // Theme choice is per-device and rides along in the backup. Default to System.
+  merged.settings.theme = state.settings?.theme || 'system'
   // Add habits that exist in seed but not yet in the saved state (new phases,
   // etc.) without clobbering the user's edits to existing ones.
   const existingIds = new Set((state.habits || []).map((h) => h.id))

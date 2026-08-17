@@ -182,6 +182,7 @@ export function freshState() {
     settings: {
       dayRolloverHour: 3,        // day rolls over at 3am
       currentPhase: 1,           // highest unlocked phase
+      theme: 'system',           // 'system' | theme id (see lib/themes.js)
       // Per-device prayer location. null on a fresh install → onboarding asks,
       // and the Salah card prompts until it's set.
       prayerLocation: null,
