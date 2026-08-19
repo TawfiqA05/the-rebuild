@@ -1,3 +1,22 @@
+# Session report — 2026-08-19
+
+Everything below shipped to `main` and deployed via CI (Cloudflare Pages), one
+feature at a time. Each PR passed CI, and each merge re-ran `npm test` +
+`npm run e2e` + build before publishing. All runs green. Hashes are the deployed
+(squash) commits on `main`.
+
+Test suite now: **232 unit tests** + **11 E2E checks**.
+
+## Shipped
+
+| # | Commit | What |
+|---|--------|------|
+| 1 | `1a59a98` | **Task archive.** Completed tasks stay crossed out for the day, then sweep into an Archive after the 3am rollover instead of vanishing; deleting a task moves it there too (undo toast still the instant path). The Archive sits behind a quiet "Archived" link at the bottom of the Tasks card: searchable, newest first, each entry tagged completed vs deleted with its date, with **Bring back** (revives it open, due today) and **Delete forever** (also undoable). Anything archived over 90 days auto-purges on the next rollover. Rides in the backup export/import; zero effect on score, streaks, or votes. Stats now counts finished tasks across the live list AND the archive, so the lifetime number never drops. Toast now shows Undo only when there's something to undo. EN + AR, RTL verified. Tests: complete→archive→revive, delete→undo and →revive, 90-day purge, search/order, archive-aware count, backup round-trip. |
+| 2 | `5ef439a` | **Food suggestions collapse.** Reproduced first: with a long history the frequent-food chips stacked into a multi-line wall that pushed the log down. Now they live behind one quiet "Suggestions" row that expands on tap into a short, self-scrolling list (bounded height, scrolls past a handful) and collapses again the moment you pick one (which logs it to today). Verified at 390px in EN and AR/RTL with a long history. |
+| 3 | `708dc01` | **Add-to-calendar for tasks (no account).** Every open task gets a small calendar action revealing two on-device options built from the title + due day only: a prefilled **Google Calendar** link (new tab) and a downloadable **.ics** (all-day VEVENT, opens in Apple Calendar or any other). No OAuth, sync, or tokens. Nothing leaves the device until a tap, and only the title/date travel. New network-privacy E2E: opens the options and saves the .ics, asserts the action adds zero requests (not even to Google, which only fires on a real click) and that nothing the app requests carries the task title or other state. EN + AR, RTL verified. Unit tests cover the link shape, .ics body + escaping, filename, and no-leak. |
+
+---
+
 # Session report — 2026-08-17
 
 Everything below shipped to `main` and deployed via CI (Cloudflare Pages). Each
