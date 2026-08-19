@@ -142,6 +142,10 @@ export default {
   'tasks.editAria': 'Edit task',
   'tasks.complete': 'Complete',
   'tasks.reopen': 'Reopen',
+  // add to calendar (no account)
+  'tasks.cal.add': 'Add to calendar',
+  'tasks.cal.google': 'Google Calendar',
+  'tasks.cal.ics': '.ics file',
   // archive
   'tasks.archived': 'Archived ({n})',
   'tasks.archiveSearch': 'Search archive',
