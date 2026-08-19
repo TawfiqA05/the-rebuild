@@ -21,7 +21,7 @@
 import { preview } from 'vite'
 import { chromium, devices } from 'playwright'
 import { fileURLToPath } from 'node:url'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -357,6 +357,100 @@ async function checkNoReverseGeocode(browser, url) {
   }
 }
 
+// Privacy: the task calendar action must build both outputs on-device and send
+// nothing anywhere until the user taps. We record every external request, seed a
+// task plus unrelated data, open the calendar options, read the Google link and
+// save the .ics — asserting nothing left, and that BOTH outputs carry only the
+// task title and its due date (never any other field).
+async function checkTaskCalendarPrivacy(browser, url) {
+  const origin = new URL(url).origin
+  const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT, acceptDownloads: true })
+  const external = []
+  await context.route('**/*', (route) => {
+    const u = route.request().url()
+    // Local app assets, and blob:/data: (the .ics is a local blob) are on-device.
+    if (u.startsWith(origin) || u.startsWith('blob:') || u.startsWith('data:')) return route.continue()
+    external.push(u)
+    return route.abort()
+  })
+
+  // A task due TODAY (so it shows in the open list), plus unrelated state — a
+  // food note with a marker, votes — that must never appear in any output.
+  const localYMD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const dayKeyFor = (date) => { const s = new Date(date.getTime()); s.setHours(s.getHours() - 3); return localYMD(s) }
+  const today = dayKeyFor(new Date())
+  const [yy, mm, dd] = today.split('-').map(Number)
+  const startBasic = today.replaceAll('-', '')
+  const endBasic = localYMD(new Date(yy, mm - 1, dd + 1)).replaceAll('-', '')
+  const TITLE = 'Renew passport'
+  const MARKER = 'ZZSECRETZZ'
+  // includeIslamic:false keeps the prayer-times fetch out of the way, so the only
+  // load-time request is the app's own web font — everything after the baseline
+  // snapshot below is attributable to the calendar action.
+  const save = JSON.stringify({
+    settings: { language: 'en', onboarded: true, tourSeen: true, currentPhase: 1, tasksCollapsed: false, collapseDefaultsApplied: true, includeIslamic: false, prayerLocation: null },
+    tasks: [{ id: 'cal1', text: TITLE, createdAt: 1, createdDay: today, dueDay: today, doneDay: null, doneAt: null, source: 'manual' }],
+    food: [{ id: 'x', text: `${MARKER} pizza`, at: Date.now(), day: today }],
+    votes: 7,
+  })
+  await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', save])
+
+  const page = await context.newPage()
+  const failures = []
+  try {
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(300) // let any load-time requests (fonts) settle
+    // Snapshot what the app has already requested on its own. Anything AFTER this
+    // point is the calendar action, which must be nothing.
+    const baseline = external.length
+    // Open the calendar options for the task — this alone must send nothing.
+    await page.locator('[data-testid="task-calendar"]').first().click()
+    await page.waitForTimeout(150)
+
+    // Google link — host, exactly {action,dates,text}, correct values, no leaks.
+    const href = await page.locator('[data-testid="task-cal-google"]').first().getAttribute('href')
+    const g = new URL(href)
+    if (g.host !== 'calendar.google.com') failures.push(`google link host is ${g.host}`)
+    const keys = [...g.searchParams.keys()].sort().join(',')
+    if (keys !== 'action,dates,text') failures.push(`google link params are {${keys}}`)
+    if (g.searchParams.get('text') !== TITLE) failures.push(`google title is "${g.searchParams.get('text')}"`)
+    if (g.searchParams.get('dates') !== `${startBasic}/${endBasic}`) failures.push(`google dates are "${g.searchParams.get('dates')}"`)
+    if (href.includes(MARKER) || href.includes('pizza')) failures.push('google link leaked unrelated state')
+
+    // .ics — saved locally (a blob), carrying only the title + due date.
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('[data-testid="task-cal-ics"]').first().click(),
+    ])
+    const ics = readFileSync(await download.path(), 'utf8')
+    if (!ics.includes(`SUMMARY:${TITLE}`)) failures.push('ics is missing the title')
+    if (!ics.includes(`DTSTART;VALUE=DATE:${startBasic}`)) failures.push('ics is missing the due date')
+    if (ics.includes(MARKER) || ics.includes('pizza')) failures.push('ics leaked unrelated state')
+
+    // The whole calendar flow added NO new request (not even to Google — the link
+    // only opens when a human clicks it, which this test never does).
+    const leaked = external.slice(baseline)
+    if (leaked.length) failures.push(`the calendar action hit the network: ${leaked.join(', ')}`)
+    // And nothing the app ever requested carried the task or any other state.
+    const carriers = external.filter((u) => /renew|passport|calendar\.google|ZZSECRETZZ|pizza/i.test(u))
+    if (carriers.length) failures.push(`a request carried task/calendar data: ${carriers[0]}`)
+
+    await page.screenshot({ path: resolve(artifacts, 'task-calendar.png') })
+    if (failures.length === 0) {
+      console.log('✓ task calendar · en — Google link + .ics built on-device from title/date only; nothing leaves until a tap')
+      return 0
+    }
+    console.log('✗ task calendar · en:')
+    for (const f of failures) console.log(`    · ${f}`)
+    return 1
+  } catch (err) {
+    console.log(`✗ task calendar · en — threw: ${err.message}`)
+    return 1
+  } finally {
+    await context.close()
+  }
+}
+
 // The interactive tutorial: the spotlight overlay must portal to <body> and fit
 // the viewport (LTR + RTL), driving it by real gestures must advance and finish,
 // it must leave NO trace in storage, and a legacy device must never see it.
@@ -513,13 +607,15 @@ async function run() {
   failed += await checkNoFaithLeak(browser, url)
   // And using my location must not touch a reverse geocoder.
   failed += await checkNoReverseGeocode(browser, url)
+  // And the task calendar action must send nothing until a tap (title/date only).
+  failed += await checkTaskCalendarPrivacy(browser, url)
   // And the interactive tutorial: portal, fit, gesture flow, no trace, legacy skip.
   failed += await checkTutorial(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 5
+  const total = SCENARIOS.length + 6
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)

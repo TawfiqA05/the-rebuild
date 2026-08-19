@@ -130,6 +130,10 @@ export default {
   'tasks.editAria': 'تعديل المهمة',
   'tasks.complete': 'إكمال',
   'tasks.reopen': 'إعادة فتح',
+  // أضف إلى التقويم (بدون حساب)
+  'tasks.cal.add': 'أضف إلى التقويم',
+  'tasks.cal.google': 'تقويم Google',
+  'tasks.cal.ics': 'ملف ‎.ics',
   // الأرشيف
   'tasks.archived': 'المؤرشفة ({n})',
   'tasks.archiveSearch': 'ابحث في الأرشيف',

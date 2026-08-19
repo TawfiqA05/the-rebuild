@@ -4,6 +4,7 @@ import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
 import { QuickAddInput, InlineEditText, useCommitOnOutside } from './entryInput.jsx'
 import { visibleTasks, carryOverLabel, upcomingTasks, groupByDueDay, searchArchive } from '../lib/tasks.js'
+import { googleCalendarUrl, downloadTaskICS } from '../lib/calendar.js'
 import { addDaysKey, fmtFullDate, fmtMonthDay } from '../lib/time.js'
 import { useT } from '../i18n.jsx'
 
@@ -28,6 +29,7 @@ export default function TasksCard({ dayKey }) {
   const archive = state.taskArchive || []
 
   const [editingId, setEditingId] = useState(null)
+  const [calendarId, setCalendarId] = useState(null)
   const [showUpcoming, setShowUpcoming] = useState(false)
   // Upcoming starts collapsed every day — reset whenever the logical day turns.
   useEffect(() => { setShowUpcoming(false) }, [dayKey])
@@ -58,6 +60,8 @@ export default function TasksCard({ dayKey }) {
         onDelete={deleteTask}
         onRestore={restoreTask}
         onMoveToday={variant === 'upcoming' ? moveToday : undefined}
+        calendarOpen={calendarId === task.id}
+        onToggleCalendar={() => setCalendarId((id) => (id === task.id ? null : task.id))}
         toast={toast}
       />
     )
@@ -311,7 +315,7 @@ function TaskEditor({ task, dayKey, onSave, onCancel }) {
   )
 }
 
-function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore, onMoveToday, toast }) {
+function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore, onMoveToday, calendarOpen, onToggleCalendar, toast }) {
   const { t } = useT()
   const done = !!task.doneDay
   const upcoming = variant === 'upcoming'
@@ -337,9 +341,10 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
   const body = useLongPress(canEdit ? () => onEdit(task.id) : undefined, remove)
 
   return (
-    // items-start: on a wrapped multi-line row the ring / × / move stay pinned to
-    // the first line instead of floating in the vertical centre of a tall row.
-    <div className="no-callout flex items-start gap-3 py-1.5">
+   <div className="no-callout">
+    {/* items-start: on a wrapped multi-line row the ring / × / move stay pinned to
+        the first line instead of floating in the vertical centre of a tall row. */}
+    <div className="flex items-start gap-3 py-1.5">
       {upcoming ? (
         <span className="shrink-0 w-[40px] -ms-1.5 flex items-start justify-center text-[var(--color-line-2)]" aria-hidden="true">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-line-2)] mt-2" />
@@ -383,6 +388,23 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
         </button>
       )}
 
+      {/* Add-to-calendar — a quiet toggle that reveals the two no-account options
+          below. Hidden on a finished task (nothing left to schedule). */}
+      {!done && (
+        <button
+          onClick={onToggleCalendar}
+          aria-label={t('tasks.cal.add')}
+          aria-expanded={calendarOpen}
+          data-testid="task-calendar"
+          className="no-callout shrink-0 min-w-[30px] min-h-[26px] flex items-start justify-center pt-1 rounded-lg text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+        </button>
+      )}
+
       {/* Visible, always-on delete affordance — quiet muted ×, no red, no trash. */}
       <button
         onClick={remove}
@@ -390,6 +412,39 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
         className="no-callout shrink-0 -me-1 min-w-[36px] min-h-[26px] flex items-start justify-center pt-0.5 rounded-lg text-lg leading-none text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-90 transition"
       >
         ×
+      </button>
+    </div>
+
+    {calendarOpen && !done && <CalendarPanel task={task} t={t} onClose={onToggleCalendar} />}
+   </div>
+  )
+}
+
+/**
+ * The two no-account calendar options for a task, revealed under its row. The
+ * Google link opens a prefilled event in a new tab; the .ics button saves a
+ * local file that opens in Apple Calendar (or any other). Both are built on the
+ * device from the task title + due day only, and only fire on a tap.
+ */
+function CalendarPanel({ task, t, onClose }) {
+  return (
+    <div className="ms-[52px] me-1 mb-1.5 -mt-0.5 flex flex-wrap items-center gap-2 animate-fade">
+      <a
+        href={googleCalendarUrl(task)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClose}
+        data-testid="task-cal-google"
+        className="no-callout text-[11px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] px-2.5 py-1 active:scale-95 transition"
+      >
+        {t('tasks.cal.google')}
+      </a>
+      <button
+        onClick={() => { downloadTaskICS(task); onClose() }}
+        data-testid="task-cal-ics"
+        className="no-callout text-[11px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] px-2.5 py-1 active:scale-95 transition"
+      >
+        {t('tasks.cal.ics')}
       </button>
     </div>
   )
