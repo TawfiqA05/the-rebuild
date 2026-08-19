@@ -163,7 +163,103 @@ export function planShutdownTasks(tasks, dueDay, texts, { createdDay } = {}) {
   return [...kept, ...added]
 }
 
-/** Lifetime count of completed tasks — the simple number shown on Stats. */
-export function completedTaskCount(tasks) {
-  return (tasks || []).filter((t) => !!t.doneDay).length
+/**
+ * Lifetime count of completed tasks — the simple number shown on Stats. Counts
+ * anything with a `doneDay` across BOTH the live list and the archive, so the
+ * number never drops when a finished task ages into the archive (or is later
+ * deleted). Archive is optional so existing callers/tests keep working.
+ */
+export function completedTaskCount(tasks, archive) {
+  const done = (list) => (list || []).filter((t) => !!t.doneDay).length
+  return done(tasks) + done(archive)
+}
+
+// ---------------------------------------------------------------------------
+// Archive — completed and deleted tasks stop vanishing forever.
+//
+// A finished task stays crossed out on its day, then (after the 3am rollover)
+// moves out of the live list into `taskArchive`. Deleting a task moves it there
+// too. Nothing here ever touches the score, streaks, or votes — an archive entry
+// is just a task with two extra fields:
+//   reason       — 'completed' | 'deleted'
+//   archivedAt   — ms timestamp, used for newest-first order + the 90-day purge
+//   archivedDay  — logical day-key it landed in the archive (for the date label)
+// The archive is pure data, so all of this is unit-testable without React.
+// ---------------------------------------------------------------------------
+
+export const ARCHIVE_TTL_DAYS = 90
+
+/** Wrap a task as an archive entry, preserving every original field. */
+export function makeArchiveEntry(task, reason, { archivedAt, archivedDay }) {
+  return { ...task, reason, archivedAt, archivedDay }
+}
+
+/**
+ * Move one live task into the archive by id (used for an explicit delete).
+ * Returns the new `{ tasks, archive }`. A no-op (same refs) if the id is gone.
+ */
+export function archiveTaskById(tasks, archive, id, { reason = 'deleted', archivedAt, archivedDay }) {
+  const list = tasks || []
+  const task = list.find((t) => t.id === id)
+  if (!task) return { tasks: list, archive: archive || [] }
+  const entry = makeArchiveEntry(task, reason, { archivedAt, archivedDay })
+  return { tasks: list.filter((t) => t.id !== id), archive: [entry, ...(archive || [])] }
+}
+
+/**
+ * Sweep finished tasks whose day has already rolled over (`doneDay < todayKey`)
+ * out of the live list and into the archive as 'completed'. Keeps the entry's
+ * own completion date (doneAt/doneDay) as the archived date. Returns the same
+ * refs untouched when there's nothing to move, so callers can bail cheaply.
+ */
+export function sweepArchivable(tasks, archive, todayKey, now = Date.now()) {
+  const list = tasks || []
+  const stay = []
+  const moved = []
+  for (const t of list) {
+    if (t.doneDay && t.doneDay < todayKey) {
+      moved.push(makeArchiveEntry(t, 'completed', { archivedAt: t.doneAt ?? now, archivedDay: t.doneDay }))
+    } else {
+      stay.push(t)
+    }
+  }
+  if (!moved.length) return { tasks: list, archive: archive || [] }
+  return { tasks: stay, archive: [...moved, ...(archive || [])] }
+}
+
+/**
+ * Drop archive entries older than `ttlDays` (by archivedAt). Returns the same
+ * ref when nothing is purged, so a reconcile pass can no-op cleanly.
+ */
+export function purgeArchive(archive, now = Date.now(), ttlDays = ARCHIVE_TTL_DAYS) {
+  const list = archive || []
+  const cutoff = now - ttlDays * 86_400_000
+  const kept = list.filter((e) => (e.archivedAt ?? 0) >= cutoff)
+  return kept.length === list.length ? list : kept
+}
+
+/** Archive, sorted newest-first and optionally filtered by a text query. */
+export function searchArchive(archive, query = '') {
+  const sorted = [...(archive || [])].sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0))
+  const q = String(query || '').trim().toLowerCase()
+  return q ? sorted.filter((e) => (e.text || '').toLowerCase().includes(q)) : sorted
+}
+
+/**
+ * "Bring back" an archived task to today's open list: strip the archive fields,
+ * clear its completion, and re-due it for `todayKey`. Returns the new archive
+ * (without that id) plus the revived open task (null if the id was gone).
+ */
+export function reviveArchived(archive, id, todayKey) {
+  const list = archive || []
+  const entry = list.find((e) => e.id === id)
+  const nextArchive = list.filter((e) => e.id !== id)
+  if (!entry) return { archive: nextArchive, task: null }
+  const { reason, archivedAt, archivedDay, ...task } = entry
+  return { archive: nextArchive, task: { ...task, dueDay: todayKey, doneDay: null, doneAt: null } }
+}
+
+/** Remove an archive entry for good ("Delete forever"). */
+export function deleteArchivedById(archive, id) {
+  return (archive || []).filter((e) => e.id !== id)
 }

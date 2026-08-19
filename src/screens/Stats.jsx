@@ -47,10 +47,10 @@ export default function Stats({ navigate }) {
         <div className="text-xs text-[var(--color-muted)] mt-1">
           {t('stats.votesSub')}
         </div>
-        {(completedTaskCount(state.tasks) > 0 || daysLoggedCount(state.food) > 0) && (
+        {(completedTaskCount(state.tasks, state.taskArchive) > 0 || daysLoggedCount(state.food) > 0) && (
           <div className="text-xs text-[var(--color-faint)] mt-3 pt-3 border-t border-[var(--color-line)] space-y-0.5">
-            {completedTaskCount(state.tasks) > 0 && (
-              <div>{t('stats.tasksFinished', { n: completedTaskCount(state.tasks).toLocaleString() })}</div>
+            {completedTaskCount(state.tasks, state.taskArchive) > 0 && (
+              <div>{t('stats.tasksFinished', { n: completedTaskCount(state.tasks, state.taskArchive).toLocaleString() })}</div>
             )}
             {daysLoggedCount(state.food) > 0 && (
               <div>{t('stats.foodDays', { n: daysLoggedCount(state.food).toLocaleString() })}</div>

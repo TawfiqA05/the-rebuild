@@ -227,6 +227,7 @@ export function freshState() {
     votes: 0,                    // lifetime completions — only ever goes up
     wins: [],                    // proud moments, shown back on rough days
     tasks: [],                   // one-off to-dos — separate from habits, no streaks
+    taskArchive: [],             // completed/deleted tasks, kept for 90 days; no scoring
     myQuotes: [],                // my own lines, merged into the Daily anchor pool
     food: [],                    // plain food log — awareness only, no scoring
   }

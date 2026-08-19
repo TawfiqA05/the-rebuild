@@ -46,6 +46,25 @@ describe('backup envelope', () => {
     expect(restored.habits.find((h) => h.id === 'bed')).toBeTruthy()
   })
 
+  it('the task archive rides in the backup and survives a round-trip', () => {
+    const state = freshState()
+    state.taskArchive = [
+      { id: 'a', text: 'done thing', createdAt: 1, createdDay: '2026-08-10', dueDay: '2026-08-10',
+        doneDay: '2026-08-10', doneAt: 1, source: 'manual',
+        reason: 'completed', archivedAt: 1, archivedDay: '2026-08-10' },
+      { id: 'b', text: 'ditched thing', createdAt: 2, createdDay: '2026-08-11', dueDay: '2026-08-12',
+        doneDay: null, doneAt: null, source: 'manual',
+        reason: 'deleted', archivedAt: 2, archivedDay: '2026-08-11' },
+    ]
+    // Round-trips exactly (no migrate), and a legacy save with no archive key
+    // gets an empty one back from migrate — never undefined.
+    expect(parseBackup(serializeBackup(state)).taskArchive).toEqual(state.taskArchive)
+    const restored = migrate(parseBackup(serializeBackup(state)))
+    expect(restored.taskArchive).toEqual(state.taskArchive)
+    const legacy = migrate(parseBackup(JSON.stringify({ version: 2, settings: { onboarded: true }, habits: [] })))
+    expect(legacy.taskArchive).toEqual([])
+  })
+
   it('passes a future/unknown envelope version through (forward-compatible)', () => {
     const future = JSON.stringify({ schemaVersion: 99, app: 'the-rebuild', state: { settings: { onboarded: true }, habits: [] } })
     expect(parseBackup(future).settings.onboarded).toBe(true)

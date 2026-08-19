@@ -29,14 +29,18 @@ export function ToastProvider({ children }) {
         >
           {/* rounded-3xl reads as a pill on one line and a rounded card when a
               long entry name wraps — the message never gets clipped. */}
-          <div className="flex items-center gap-3 rounded-3xl border border-[var(--color-line)] bg-[var(--color-surface-2)] pl-4 pr-2 py-2 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+          <div className={`flex items-center gap-3 rounded-3xl border border-[var(--color-line)] bg-[var(--color-surface-2)] py-2 pl-4 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] ${toast.onUndo ? 'pr-2' : 'pr-4'}`}>
             <span className="text-[13px] text-[var(--color-muted)] min-w-0 break-words">{toast.msg}</span>
-            <button
-              onClick={() => { toast.onUndo?.(); dismiss() }}
-              className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-3 py-1 rounded-full"
-            >
-              {t('common.undo')}
-            </button>
+            {/* Only offer Undo when there's actually something to undo — a plain
+                confirmation (like "Brought back") shows the message alone. */}
+            {toast.onUndo && (
+              <button
+                onClick={() => { toast.onUndo(); dismiss() }}
+                className="shrink-0 text-[13px] font-medium text-[var(--color-accent-ink)] px-3 py-1 rounded-full"
+              >
+                {t('common.undo')}
+              </button>
+            )}
           </div>
         </div>
       )}
