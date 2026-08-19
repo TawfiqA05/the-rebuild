@@ -21,7 +21,16 @@ export default function FoodCard({ dayKey }) {
 
   const collapsed = state.settings.foodCollapsed
   const entries = useMemo(() => foodForDay(state.food, dayKey), [state.food, dayKey])
-  const chips = useMemo(() => frequentFoods(state.food, dayKey), [state.food, dayKey])
+  // Pull more than we'll show at once — the expanded list scrolls if there are
+  // more than a handful, so a long history never stacks up on screen.
+  const suggestions = useMemo(() => frequentFoods(state.food, dayKey, { cap: 15 }), [state.food, dayKey])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  const pickSuggestion = (c) => {
+    addFood(c)
+    if (navigator.vibrate) navigator.vibrate(6)
+    setShowSuggestions(false) // collapse again after a pick
+  }
 
   const yesterday = addDaysKey(dayKey, -1)
   const yesterdayEntries = useMemo(() => foodForDay(state.food, yesterday), [state.food, yesterday])
@@ -48,18 +57,38 @@ export default function FoodCard({ dayKey }) {
             onYesterdayAdded={(e) => toast(t('food.addedYesterdayToast', { text: e.text }), () => deleteFood(e.id))}
           />
 
-          {/* Quick re-add — most frequent recent entries, one tap logs now. */}
-          {chips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {chips.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => { addFood(c); if (navigator.vibrate) navigator.vibrate(6) }}
-                  className="no-callout text-[12px] rounded-2xl border border-[var(--color-line-2)] text-[var(--color-muted)] px-2.5 py-1 max-w-full text-left break-words active:scale-95 transition"
+          {/* Suggestions — most frequent recent foods, tucked behind one quiet
+              collapsed row. A long history used to wrap into a wall of chips that
+              pushed the log down; now it opens a short, self-scrolling list, and
+              picking one logs it and closes the list again. */}
+          {suggestions.length > 0 && (
+            <div data-testid="food-suggestions" className="mt-2.5">
+              <button
+                onClick={() => setShowSuggestions((v) => !v)}
+                aria-expanded={showSuggestions}
+                className="w-full flex items-center justify-between text-[12px] text-[var(--color-muted)]"
+              >
+                <span>{t('food.suggestions')}</span>
+                <span className="text-[var(--color-faint)] text-[13px] leading-none rtl:rotate-180">{showSuggestions ? '⌄' : '›'}</span>
+              </button>
+
+              {showSuggestions && (
+                <div
+                  data-testid="food-suggestions-list"
+                  className="mt-1.5 max-h-44 overflow-y-auto rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-2)]/40 p-1 space-y-0.5 animate-fade"
                 >
-                  {c}
-                </button>
-              ))}
+                  {suggestions.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => pickSuggestion(c)}
+                      className="no-callout w-full flex items-center gap-2 text-start text-[13px] text-[var(--color-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-ink-2)] rounded-lg px-2.5 py-2 active:scale-[0.99] transition"
+                    >
+                      <span className="text-[var(--color-faint)] shrink-0" aria-hidden="true">+</span>
+                      <span className="min-w-0 break-words">{c}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

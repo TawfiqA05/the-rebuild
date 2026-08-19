@@ -145,6 +145,7 @@ export default {
   'food.title': 'الطعام',
   'food.logged': '{n} مُسجّلة',
   'food.nothing': 'لا شيء مُسجّل.',
+  'food.suggestions': 'اقتراحات',
   'food.addPlaceholder': 'ماذا أكلت؟',
   'food.addYesterdayPlaceholder': 'ماذا أكلت أمس؟',
   'food.toggleYesterday': '+ أضف إلى الأمس',
