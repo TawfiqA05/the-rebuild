@@ -29,6 +29,35 @@ describe('translation + fallback', () => {
   })
 })
 
+// English is the base and every other catalog is an overlay that falls back to
+// it. That fallback is a feature (a partial translation never leaks a raw key)
+// but it also hides rot: a new EN key with no Arabic entry silently shows English
+// to Arabic users, and the existing "resolves to real text" test passes anyway.
+// These assertions make Arabic parity explicit so it can't degrade unnoticed.
+describe('Arabic catalog parity', () => {
+  // Strings intentionally identical across languages — product name and proper
+  // nouns that shouldn't be translated. Everything NOT listed here must differ
+  // from English, so an untranslated copy-paste fails instead of shipping.
+  const SHARED = new Set([
+    'ob.brand', // the product name, kept in its original form
+  ])
+
+  it('has an Arabic entry for every English key (no silent English fallback)', () => {
+    const missing = Object.keys(en).filter((k) => !(k in ar))
+    expect(missing, `Arabic is missing: ${missing.join(', ')}`).toEqual([])
+  })
+
+  it('has no orphan Arabic keys that no longer exist in English (catches typos)', () => {
+    const orphan = Object.keys(ar).filter((k) => !(k in en))
+    expect(orphan, `Arabic has keys English doesn't: ${orphan.join(', ')}`).toEqual([])
+  })
+
+  it('every Arabic value is a real translation, not an English copy', () => {
+    const untranslated = Object.keys(en).filter((k) => k in ar && ar[k] === en[k] && !SHARED.has(k))
+    expect(untranslated, `still English in ar.js: ${untranslated.join(', ')}`).toEqual([])
+  })
+})
+
 describe('RTL flags', () => {
   it('marks Arabic RTL and English LTR', () => {
     expect(dirOf('ar')).toBe('rtl')
