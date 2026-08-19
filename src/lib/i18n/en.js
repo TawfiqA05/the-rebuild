@@ -158,6 +158,7 @@ export default {
   'food.title': 'Food',
   'food.logged': '{n} logged',
   'food.nothing': 'Nothing logged.',
+  'food.suggestions': 'Suggestions',
   'food.addPlaceholder': 'What did you eat?',
   'food.addYesterdayPlaceholder': 'What did you eat yesterday?',
   'food.toggleYesterday': '+ add to yesterday',
