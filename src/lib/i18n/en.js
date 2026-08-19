@@ -142,6 +142,17 @@ export default {
   'tasks.editAria': 'Edit task',
   'tasks.complete': 'Complete',
   'tasks.reopen': 'Reopen',
+  // archive
+  'tasks.archived': 'Archived ({n})',
+  'tasks.archiveSearch': 'Search archive',
+  'tasks.archiveEmpty': 'Nothing archived yet.',
+  'tasks.archiveNoMatch': 'No matches.',
+  'tasks.archivedCompleted': 'Completed',
+  'tasks.archivedDeleted': 'Deleted',
+  'tasks.bringBack': 'Bring back',
+  'tasks.deleteForever': 'Delete forever',
+  'tasks.broughtBackToast': 'Brought back · {text}',
+  'tasks.deletedForeverToast': 'Deleted for good · {text}',
 
   // food
   'food.title': 'Food',

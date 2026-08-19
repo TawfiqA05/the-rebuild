@@ -3,6 +3,8 @@ import {
   makeTask, visibleTasks, carryOverLabel, toggleTaskDone, completedTaskCount,
   deleteTaskById, insertTask, planShutdownTasks,
   upcomingTasks, groupByDueDay, updateTaskFields,
+  makeArchiveEntry, archiveTaskById, sweepArchivable, purgeArchive,
+  reviveArchived, deleteArchivedById, searchArchive,
 } from './tasks.js'
 import { dayScore, currentStreak } from './logic.js'
 
@@ -214,6 +216,110 @@ describe('upcoming (future-dated) tasks', () => {
     const pushedOut = updateTaskFields([todayTask], 'g', { dueDay: '2026-01-19' })
     expect(visibleTasks(pushedOut, '2026-01-15').open).toEqual([])
     expect(upcomingTasks(pushedOut, '2026-01-15').map((x) => x.id)).toEqual(['g'])
+  })
+})
+
+describe('archive: completed + deleted tasks stop vanishing', () => {
+  it('complete → archive after the rollover → bring back (open, due today)', () => {
+    // Finish the task on the 15th.
+    const r = toggleTaskDone([t({ id: 'a', dueDay: '2026-01-15' })], 'a', '2026-01-15', 5000)
+    expect(r.tasks[0].doneDay).toBe('2026-01-15')
+
+    // Same day: it stays in the live list, crossed out — NOT archived yet.
+    const sameDay = sweepArchivable(r.tasks, [], '2026-01-15')
+    expect(sameDay.tasks).toHaveLength(1)
+    expect(sameDay.archive).toHaveLength(0)
+    expect(sameDay.tasks).toBe(r.tasks) // cheap no-op keeps the same ref
+
+    // After the 3am rollover to the 16th: it moves into the archive as completed.
+    const rolled = sweepArchivable(r.tasks, [], '2026-01-16')
+    expect(rolled.tasks).toHaveLength(0)
+    expect(rolled.archive).toHaveLength(1)
+    expect(rolled.archive[0].reason).toBe('completed')
+    expect(rolled.archive[0].archivedDay).toBe('2026-01-15') // the day it was finished
+    expect(rolled.archive[0].archivedAt).toBe(5000)          // its completion time
+
+    // Bring back → a fresh OPEN task, re-dated to today (the 20th).
+    const back = reviveArchived(rolled.archive, 'a', '2026-01-20')
+    expect(back.archive).toHaveLength(0)
+    expect(back.task.id).toBe('a')
+    expect(back.task.doneDay).toBe(null)
+    expect(back.task.doneAt).toBe(null)
+    expect(back.task.dueDay).toBe('2026-01-20')
+  })
+
+  it('delete → archive (reason: deleted); undo restores it exactly, bring-back revives it today', () => {
+    const task = t({ id: 'd', dueDay: '2026-01-13', source: 'shutdown' })
+    const del = archiveTaskById([task], [], 'd', { reason: 'deleted', archivedAt: 9000, archivedDay: '2026-01-15' })
+    expect(del.tasks).toEqual([])
+    expect(del.archive[0].reason).toBe('deleted')
+    expect(del.archive[0].archivedDay).toBe('2026-01-15')
+
+    // Undo (the toast path) mirrors the store: re-insert the exact task, drop the
+    // archive entry. The task comes back with its ORIGINAL due day, untouched.
+    const undoneTasks = insertTask(del.tasks, task)
+    const undoneArchive = deleteArchivedById(del.archive, 'd')
+    expect(undoneTasks.find((x) => x.id === 'd')).toEqual(task)
+    expect(undoneArchive).toEqual([])
+
+    // Bring-back (the Archive screen path) instead revives it OPEN and due today,
+    // preserving id + source.
+    const back = reviveArchived(del.archive, 'd', '2026-01-15')
+    expect(back.task.dueDay).toBe('2026-01-15')
+    expect(back.task.source).toBe('shutdown')
+    expect(back.archive).toEqual([])
+  })
+
+  it('purges anything archived more than 90 days ago, keeps the rest', () => {
+    const now = Date.UTC(2026, 0, 15)
+    const day = 86_400_000
+    const fresh = makeArchiveEntry(t({ id: 'f' }), 'deleted', { archivedAt: now - 10 * day, archivedDay: '2026-01-05' })
+    const old = makeArchiveEntry(t({ id: 'o' }), 'completed', { archivedAt: now - 91 * day, archivedDay: '2025-10-16' })
+    expect(purgeArchive([fresh, old], now).map((e) => e.id)).toEqual(['f'])
+  })
+
+  it('returns the same archive ref when nothing needs purging', () => {
+    const now = 1_700_000_000_000
+    const a = [makeArchiveEntry(t({ id: 'x' }), 'deleted', { archivedAt: now, archivedDay: '2026-01-15' })]
+    expect(purgeArchive(a, now)).toBe(a)
+  })
+
+  it('lists newest-first and filters by a text query (case-insensitive)', () => {
+    const a = makeArchiveEntry(t({ id: 'a', text: 'Call the bank' }), 'deleted', { archivedAt: 100, archivedDay: '2026-01-10' })
+    const b = makeArchiveEntry(t({ id: 'b', text: 'Book flights' }), 'completed', { archivedAt: 300, archivedDay: '2026-01-12' })
+    const c = makeArchiveEntry(t({ id: 'c', text: 'Bank transfer' }), 'completed', { archivedAt: 200, archivedDay: '2026-01-11' })
+    expect(searchArchive([a, b, c]).map((e) => e.id)).toEqual(['b', 'c', 'a'])
+    expect(searchArchive([a, b, c], 'BANK').map((e) => e.id)).toEqual(['c', 'a'])
+  })
+
+  it('completedTaskCount counts finished tasks in the live list AND the archive', () => {
+    const live = [{ ...t({ id: 'a' }), doneDay: '2026-01-15' }, t({ id: 'b' })]
+    const archive = [
+      makeArchiveEntry({ ...t({ id: 'c' }), doneDay: '2026-01-10' }, 'completed', { archivedAt: 1, archivedDay: '2026-01-10' }),
+      makeArchiveEntry(t({ id: 'd' }), 'deleted', { archivedAt: 2, archivedDay: '2026-01-11' }), // was open → not finished
+    ]
+    expect(completedTaskCount(live, archive)).toBe(2) // a (live) + c (archived, done)
+    expect(completedTaskCount(live)).toBe(1)          // back-compat: one argument
+  })
+
+  it('the archive never touches the score or a streak', () => {
+    const habit = { id: 'read', type: 'standard', phase: 1, frequency: { kind: 'daily' } }
+    const base = {
+      settings: { dayRolloverHour: 3, currentPhase: 1 },
+      habits: [habit],
+      logs: { '2026-01-14': { read: { status: 'full' } }, '2026-01-15': { read: { status: 'full' } } },
+      days: {}, votes: 0,
+      tasks: [{ ...t({ id: 'x', dueDay: '2026-01-14' }), doneDay: '2026-01-14', doneAt: 1 }],
+      taskArchive: [],
+    }
+    const before = { score: dayScore(base, '2026-01-15'), streak: currentStreak(base, habit, '2026-01-15') }
+    // Sweep the finished task into the archive: score + streak must not budge.
+    const swept = sweepArchivable(base.tasks, base.taskArchive, '2026-01-15')
+    const after = { ...base, tasks: swept.tasks, taskArchive: swept.archive }
+    expect(swept.archive).toHaveLength(1)
+    expect(dayScore(after, '2026-01-15')).toEqual(before.score)
+    expect(currentStreak(after, habit, '2026-01-15')).toBe(before.streak)
+    expect(before.streak).toBe(2)
   })
 })
 

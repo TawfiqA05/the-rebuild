@@ -86,6 +86,7 @@ export function migrate(state) {
   merged.votes = typeof state.votes === 'number' ? state.votes : 0
   merged.wins = Array.isArray(state.wins) ? state.wins : []
   merged.tasks = Array.isArray(state.tasks) ? state.tasks : []
+  merged.taskArchive = Array.isArray(state.taskArchive) ? state.taskArchive : []
   merged.myQuotes = Array.isArray(state.myQuotes) ? state.myQuotes : []
   merged.food = Array.isArray(state.food) ? state.food : []
   merged.version = base.version

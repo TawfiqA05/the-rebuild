@@ -15,7 +15,10 @@ import { freshState } from './lib/seed.js'
 import { migrate } from './lib/migrate.js'
 import { todayKey } from './lib/time.js'
 import { habitStatusOn, isDone, salahSummary, isFaithHabit } from './lib/logic.js'
-import { makeTask, toggleTaskDone, deleteTaskById, insertTask, planShutdownTasks, updateTaskFields } from './lib/tasks.js'
+import {
+  makeTask, toggleTaskDone, insertTask, planShutdownTasks, updateTaskFields,
+  archiveTaskById, sweepArchivable, purgeArchive, reviveArchived, deleteArchivedById,
+} from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
 import { serializeBackup, parseBackup } from './lib/backup.js'
 
@@ -89,6 +92,11 @@ export function StoreProvider({ children }) {
   stateRef.current = state
 
   const actions = useMemo(() => makeActions(setState, stateRef), [])
+
+  // On load and at every 3am rollover, sweep finished tasks into the archive and
+  // purge anything archived over 90 days ago. Idempotent, so it no-ops when
+  // there's nothing to move.
+  useEffect(() => { actions.reconcileTasks(today) }, [today, actions])
 
   const value = useMemo(() => ({ state, today, ...actions }), [state, today, actions])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
@@ -308,15 +316,62 @@ function makeActions(setState, stateRef) {
       setState((prev) => ({ ...prev, tasks: updateTaskFields(prev.tasks, id, patch) }))
     },
 
-    // Delete never touches `votes` — undo is the only safety net, and votes
+    // Delete moves the task into the archive (reason: deleted) instead of erasing
+    // it — the undo toast is still the instant path. Never touches `votes`: votes
     // (once earned) only ever grow, so removing a done task doesn't claw one back.
     deleteTask(id) {
-      setState((prev) => ({ ...prev, tasks: deleteTaskById(prev.tasks, id) }))
+      setState((prev) => {
+        const now = Date.now()
+        const { tasks, archive } = archiveTaskById(prev.tasks, prev.taskArchive, id, {
+          reason: 'deleted', archivedAt: now, archivedDay: todayKey(prev.settings.dayRolloverHour),
+        })
+        return { ...prev, tasks, taskArchive: archive }
+      })
     },
-    /** Re-insert a task object exactly as it was (used to undo a delete). */
+    // Undo a delete: pull the task back out of the archive and re-insert it
+    // exactly as it was (its original due day, open/done state, everything).
     restoreTask(task) {
       if (!task) return
-      setState((prev) => ({ ...prev, tasks: insertTask(prev.tasks, task) }))
+      setState((prev) => ({
+        ...prev,
+        tasks: insertTask(prev.tasks, task),
+        taskArchive: deleteArchivedById(prev.taskArchive, task.id),
+      }))
+    },
+    // "Bring back" from the Archive screen: revive the entry as a fresh OPEN task
+    // due today (not the exact-restore that undo does). Never re-counts a vote.
+    reviveArchivedTask(id) {
+      setState((prev) => {
+        const { archive, task } = reviveArchived(prev.taskArchive, id, todayKey(prev.settings.dayRolloverHour))
+        if (!task) return prev
+        return { ...prev, tasks: insertTask(prev.tasks, task), taskArchive: archive }
+      })
+    },
+    /** "Delete forever" — drop an archive entry permanently. */
+    deleteArchivedTask(id) {
+      setState((prev) => ({ ...prev, taskArchive: deleteArchivedById(prev.taskArchive, id) }))
+    },
+    // Undo a "Delete forever": put the exact archive entry back. Its archivedAt
+    // is preserved, so it sorts straight back to where it was in the list.
+    restoreArchivedEntry(entry) {
+      if (!entry) return
+      setState((prev) => ({
+        ...prev,
+        taskArchive: [entry, ...deleteArchivedById(prev.taskArchive, entry.id)],
+      }))
+    },
+    /**
+     * Roll the archive forward: sweep finished tasks whose day has passed into
+     * the archive, and drop anything archived over 90 days ago. Idempotent — a
+     * no-op returns `prev` untouched, so it's safe to run on every day-change.
+     */
+    reconcileTasks(dayKey, now = Date.now()) {
+      setState((prev) => {
+        const swept = sweepArchivable(prev.tasks || [], prev.taskArchive || [], dayKey, now)
+        const purged = purgeArchive(swept.archive, now)
+        if (swept.tasks === (prev.tasks || []) && purged === (prev.taskArchive || [])) return prev
+        return { ...prev, tasks: swept.tasks, taskArchive: purged }
+      })
     },
     /**
      * Reconcile the evening-shutdown plan into real tasks for `dueDay`: drop the

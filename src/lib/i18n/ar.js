@@ -130,6 +130,17 @@ export default {
   'tasks.editAria': 'تعديل المهمة',
   'tasks.complete': 'إكمال',
   'tasks.reopen': 'إعادة فتح',
+  // الأرشيف
+  'tasks.archived': 'المؤرشفة ({n})',
+  'tasks.archiveSearch': 'ابحث في الأرشيف',
+  'tasks.archiveEmpty': 'لا شيء في الأرشيف بعد.',
+  'tasks.archiveNoMatch': 'لا نتائج.',
+  'tasks.archivedCompleted': 'مكتملة',
+  'tasks.archivedDeleted': 'محذوفة',
+  'tasks.bringBack': 'استعادة',
+  'tasks.deleteForever': 'حذف نهائي',
+  'tasks.broughtBackToast': 'استُعيدت · {text}',
+  'tasks.deletedForeverToast': 'حُذفت نهائيًا · {text}',
 
   'food.title': 'الطعام',
   'food.logged': '{n} مُسجّلة',

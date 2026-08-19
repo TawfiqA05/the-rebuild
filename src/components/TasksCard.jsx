@@ -3,8 +3,8 @@ import { useStore } from '../store.jsx'
 import { useToast } from './Toast.jsx'
 import { useLongPress } from './useLongPress.js'
 import { QuickAddInput, InlineEditText, useCommitOnOutside } from './entryInput.jsx'
-import { visibleTasks, carryOverLabel, upcomingTasks, groupByDueDay } from '../lib/tasks.js'
-import { addDaysKey, fmtFullDate } from '../lib/time.js'
+import { visibleTasks, carryOverLabel, upcomingTasks, groupByDueDay, searchArchive } from '../lib/tasks.js'
+import { addDaysKey, fmtFullDate, fmtMonthDay } from '../lib/time.js'
 import { useT } from '../i18n.jsx'
 
 /**
@@ -16,12 +16,16 @@ import { useT } from '../i18n.jsx'
  * "Upcoming" list. No badges, no red, no guilt copy.
  */
 export default function TasksCard({ dayKey }) {
-  const { state, addTask, toggleTask, deleteTask, restoreTask, updateTask, setTasksCollapsed } = useStore()
+  const {
+    state, addTask, toggleTask, deleteTask, restoreTask, updateTask, setTasksCollapsed,
+    reviveArchivedTask, deleteArchivedTask, restoreArchivedEntry,
+  } = useStore()
   const { t, language } = useT()
   const toast = useToast()
   const collapsed = state.settings.tasksCollapsed
   const { open, done } = useMemo(() => visibleTasks(state.tasks, dayKey), [state.tasks, dayKey])
   const upcoming = useMemo(() => upcomingTasks(state.tasks, dayKey), [state.tasks, dayKey])
+  const archive = state.taskArchive || []
 
   const [editingId, setEditingId] = useState(null)
   const [showUpcoming, setShowUpcoming] = useState(false)
@@ -112,7 +116,100 @@ export default function TasksCard({ dayKey }) {
           )}
         </div>
       )}
+
+      {/* Archived — completed + deleted tasks, kept 90 days, behind a quiet link. */}
+      {archive.length > 0 && (
+        <ArchiveSection
+          archive={archive}
+          onRevive={(entry) => {
+            reviveArchivedTask(entry.id)
+            toast(t('tasks.broughtBackToast', { text: entry.text }))
+          }}
+          onDeleteForever={(entry) => {
+            if (navigator.vibrate) navigator.vibrate(15)
+            deleteArchivedTask(entry.id)
+            toast(t('tasks.deletedForeverToast', { text: entry.text }), () => restoreArchivedEntry(entry))
+          }}
+        />
+      )}
       </>)}
+    </div>
+  )
+}
+
+/**
+ * The Archive, tucked behind a quiet "Archived" link at the bottom of the card.
+ * Expands to a search box + a newest-first list (its own scroll region so a big
+ * archive never stretches the card). Each row shows completed vs deleted and the
+ * date, with Bring back / Delete forever.
+ */
+function ArchiveSection({ archive, onRevive, onDeleteForever }) {
+  const { t, language } = useT()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const results = useMemo(() => searchArchive(archive, query), [archive, query])
+
+  return (
+    <div className="mt-3 pt-3 border-t border-[var(--color-line)]">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between text-[12px] text-[var(--color-muted)]"
+      >
+        <span>{t('tasks.archived', { n: archive.length })}</span>
+        <span className="text-[var(--color-faint)] text-[13px] leading-none rtl:rotate-180">{open ? '⌄' : '›'}</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 animate-fade">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('tasks.archiveSearch')}
+            aria-label={t('tasks.archiveSearch')}
+            className="w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-ink-2)] px-3 py-2 text-[13px] text-[var(--color-fg)] placeholder:text-[var(--color-faint)] outline-none focus:border-[var(--color-accent)]/60"
+          />
+          {results.length === 0 ? (
+            <div className="text-[12px] text-[var(--color-faint)] mt-2">
+              {query ? t('tasks.archiveNoMatch') : t('tasks.archiveEmpty')}
+            </div>
+          ) : (
+            <div className="mt-2 max-h-64 overflow-y-auto space-y-1.5 pe-1">
+              {results.map((e) => (
+                <ArchiveRow key={e.id} entry={e} language={language} t={t} onRevive={onRevive} onDeleteForever={onDeleteForever} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ArchiveRow({ entry, language, t, onRevive, onDeleteForever }) {
+  const day = entry.archivedDay || entry.doneDay || entry.dueDay
+  const reason = entry.reason === 'completed' ? t('tasks.archivedCompleted') : t('tasks.archivedDeleted')
+  return (
+    <div className="rounded-lg border border-[var(--color-line-2)] px-3 py-2">
+      <div className="text-[14px] leading-snug break-words text-[var(--color-fg)]">{entry.text}</div>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="text-[11px] text-[var(--color-faint)]">{reason} · {day ? fmtMonthDay(day, language) : ''}</span>
+        <span className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => onRevive(entry)}
+            className="no-callout text-[11px] text-[var(--color-accent-ink)] hover:underline active:scale-95 transition"
+          >
+            {t('tasks.bringBack')}
+          </button>
+          <button
+            onClick={() => onDeleteForever(entry)}
+            className="no-callout text-[11px] text-[var(--color-faint)] hover:text-[var(--color-muted)] active:scale-95 transition"
+          >
+            {t('tasks.deleteForever')}
+          </button>
+        </span>
+      </div>
     </div>
   )
 }
