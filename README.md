@@ -208,10 +208,10 @@ so a backup taken today still restores cleanly after future format or data-model
 changes. Restores on any device. That's your whole backup story — no cloud
 required.
 
-## Deploying (Cloudflare Pages, from a private repo)
+## Deploying (Cloudflare Pages)
 
-The repo stays **private** on GitHub; **Cloudflare Pages** hosts it for free.
-Live site: `https://the-rebuild.pages.dev`.
+**Cloudflare Pages** hosts it for free.
+Live site: https://the-rebuild.pages.dev
 
 There are two ways to ship, and both are set up:
 
