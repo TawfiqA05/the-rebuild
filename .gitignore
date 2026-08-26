@@ -4,3 +4,6 @@ dist
 *.local
 .vite
 e2e-artifacts
+.env
+.env.*
+!.env.example
