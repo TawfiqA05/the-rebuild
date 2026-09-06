@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "The Rebuild — a personal habit-tracking app that enforces a specific discipline system. Local-first, no backend.",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

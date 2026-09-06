@@ -249,3 +249,7 @@ After that, every push to `main` auto-deploys.
   your browser's localStorage.
 - To keep the *site* private, enable **Cloudflare Access** (Pages project →
   Settings) for email or one-time-PIN login.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
