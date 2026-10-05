@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { migrate } from './migrate.js'
-import { freshState, FISHERS_LOCATION } from './seed.js'
+import { freshState } from './seed.js'
+import { serializeBackup, parseBackup } from './backup.js'
+import { computeTimes } from './prayerTimes.js'
 
 // Migration has to be lossless: an older save (and the JSON backup that mirrors
 // it) must come back with every field intact and any newly-shipped slots filled
@@ -33,9 +35,40 @@ describe('existing users migrate without loss', () => {
     expect(m.habits.find((h) => h.id === 'custom')).toBeTruthy() // custom habit kept
   })
 
-  it('keeps a pre-feature device on Fishers (no prayerLocation key → default)', () => {
+  // Three kinds of device, one per test. Whatever a device already has saved
+  // stays exactly as it is; only a save with no location setting at all is
+  // left without one, and the Salah card then asks.
+  it('a device that chose a location keeps it exactly', () => {
+    const typed = { mode: 'address', label: 'Chicago, IL', address: 'Chicago, IL', lat: null, lng: null }
+    const located = { mode: 'coords', lat: 41.8781, lng: -87.6298 }
+    for (const loc of [typed, located]) {
+      const saved = { ...legacy, settings: { ...legacy.settings, prayerLocation: loc } }
+      const m = migrate(saved)
+      expect(m.settings.prayerLocation).toStrictEqual(loc)
+      expect(migrate(m).settings.prayerLocation).toStrictEqual(loc)
+    }
+  })
+
+  it('a device that got the old default and saved it keeps it exactly', () => {
+    // Shaped like the default older builds filled in: an address, no coordinates.
+    const oldDefault = { mode: 'address', label: 'Chicago, Illinois', address: 'Chicago, Illinois, USA', lat: null, lng: null }
+    const saved = { ...legacy, settings: { ...legacy.settings, prayerLocation: oldDefault } }
+    const m = migrate(saved)
+    expect(m.settings.prayerLocation).toStrictEqual(oldDefault)
+    expect(migrate(parseBackup(serializeBackup(m))).settings.prayerLocation).toStrictEqual(oldDefault)
+  })
+
+  it('a device with no location setting ends with none, so the app asks', () => {
     expect('prayerLocation' in legacy.settings).toBe(false)
-    expect(migrate(legacy).settings.prayerLocation).toEqual(FISHERS_LOCATION)
+    const m = migrate(legacy)
+    expect(m.settings.prayerLocation).toBe(null)
+    // An old backup restores the same way.
+    const restored = migrate(parseBackup(JSON.stringify(legacy)))
+    expect(restored.settings.prayerLocation).toBe(null)
+    // No location means no times and no lookup; the Salah card shows its prompt.
+    expect(computeTimes('2026-10-05', m.settings).source).toBe('none')
+    expect(m.logs).toEqual(legacy.logs)
+    expect(m.votes).toBe(42)
   })
 
   it('respects an explicit prayerLocation, including a new user who skipped (null)', () => {

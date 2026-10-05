@@ -10,7 +10,7 @@
 // unit-tested directly.
 // ---------------------------------------------------------------------------
 
-import { freshState, SEED_HABITS, FISHERS_LOCATION } from './seed.js'
+import { freshState, SEED_HABITS } from './seed.js'
 import { STOCK_NAME_TO_KEY } from './i18n/seedHabits.js'
 
 /** Merge any newly-shipped seed habits / settings into an older saved state. */
@@ -29,13 +29,12 @@ export function migrate(state) {
     merged.settings.pinFails = 0
     merged.settings.pinLockUntil = 0
   }
-  // Prayer location is per-device now. A save from before this feature has no
-  // `prayerLocation` key at all → keep those users on Fishers so nothing changes
-  // under them. A key that's present (even explicit null from a new user who
-  // skipped onboarding) is respected as-is.
+  // Prayer location is per-device. A saved location is kept exactly as it is,
+  // and so is an explicit null from someone who skipped that step. A save with
+  // no `prayerLocation` key at all gets null, so the Salah card asks for one.
   merged.settings.prayerLocation = ('prayerLocation' in (state.settings || {}))
     ? state.settings.prayerLocation
-    : FISHERS_LOCATION
+    : null
   // Theme choice is per-device and rides along in the backup. Default to System.
   merged.settings.theme = state.settings?.theme || 'system'
   // Language rides in the backup too. Existing devices keep English unless set.

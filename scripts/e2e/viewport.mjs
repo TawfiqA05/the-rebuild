@@ -309,7 +309,7 @@ async function checkNoReverseGeocode(browser, url) {
   const context = await browser.newContext({
     ...devices['iPhone 13'],
     viewport: VIEWPORT,
-    geolocation: { latitude: 39.9556, longitude: -86.0139 },
+    geolocation: { latitude: 41.8781, longitude: -87.6298 },
     permissions: ['geolocation'],
   })
   const external = []

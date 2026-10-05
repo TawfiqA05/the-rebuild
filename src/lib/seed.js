@@ -170,12 +170,6 @@ export const URGE_PROMPTS = [
   'Every minute you wait, it gets weaker.',
 ]
 
-// The prayer location existing devices keep, so nothing changes for them.
-// New installs start with `null` and are asked during onboarding.
-export const FISHERS_LOCATION = {
-  mode: 'address', label: 'Fishers, Indiana', address: 'Fishers, Indiana, USA', lat: null, lng: null,
-}
-
 // Default fresh-install state.
 export function freshState() {
   const now = new Date().toISOString()

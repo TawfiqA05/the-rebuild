@@ -9,13 +9,13 @@ import { locKey, computeTimes } from './prayerTimes.js'
 describe('locKey', () => {
   it('is null-safe and distinguishes coords from addresses', () => {
     expect(locKey(null)).toBe('none')
-    expect(locKey({ mode: 'coords', lat: 39.9568, lng: -86.0139 })).toBe('geo:39.957,-86.014')
-    expect(locKey({ mode: 'address', address: 'Fishers, Indiana, USA' })).toBe('addr:fishers, indiana, usa')
+    expect(locKey({ mode: 'coords', lat: 41.8781, lng: -87.6298 })).toBe('geo:41.878,-87.630')
+    expect(locKey({ mode: 'address', address: 'Chicago, Illinois, USA' })).toBe('addr:chicago, illinois, usa')
   })
 
   it('rounds coordinates so tiny GPS jitter maps to the same cache key', () => {
-    const a = locKey({ mode: 'coords', lat: 39.95681, lng: -86.01388 })
-    const b = locKey({ mode: 'coords', lat: 39.95699, lng: -86.01402 })
+    const a = locKey({ mode: 'coords', lat: 41.87811, lng: -87.62988 })
+    const b = locKey({ mode: 'coords', lat: 41.87829, lng: -87.63002 })
     expect(a).toBe(b)
   })
 
