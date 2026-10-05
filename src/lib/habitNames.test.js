@@ -33,10 +33,10 @@ describe('display names follow the language for stock habits', () => {
   })
 
   it('a custom habit stays literal in every language', () => {
-    const custom = { id: 'cold-x1', name: 'Cold plunge', minVersion: '30 seconds', frequency: { kind: 'daily' } }
-    expect(habitDisplayName(custom, 'en')).toBe('Cold plunge')
-    expect(habitDisplayName(custom, 'ar')).toBe('Cold plunge')
-    expect(habitDisplayMin(custom, 'ar')).toBe('30 seconds')
+    const custom = { id: 'stretch-x1', name: 'Evening stretch', minVersion: 'One stretch', frequency: { kind: 'daily' } }
+    expect(habitDisplayName(custom, 'en')).toBe('Evening stretch')
+    expect(habitDisplayName(custom, 'ar')).toBe('Evening stretch')
+    expect(habitDisplayMin(custom, 'ar')).toBe('One stretch')
   })
 
   it('falls back to English for an unknown stock key', () => {
@@ -72,10 +72,10 @@ describe('migration: name → key conversion', () => {
   })
 
   it('a user-authored habit is untouched', () => {
-    const m = migrate(legacy([{ id: 'cold-x1', name: 'Cold plunge', phase: 3, frequency: { kind: 'daily' } }]))
-    const c = m.habits.find((h) => h.id === 'cold-x1')
+    const m = migrate(legacy([{ id: 'stretch-x1', name: 'Evening stretch', phase: 3, frequency: { kind: 'daily' } }]))
+    const c = m.habits.find((h) => h.id === 'stretch-x1')
     expect(c.stock).toBe(false)
-    expect(c.name).toBe('Cold plunge')
+    expect(c.name).toBe('Evening stretch')
   })
 
   it('is idempotent and respects an explicit prior decision', () => {
