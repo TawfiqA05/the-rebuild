@@ -178,6 +178,16 @@ export function StoreProvider({ children }) {
   const rescueActions = useMemo(() => ({
     // The saved data and every rescue copy, read from storage, as a file.
     exportSaved: () => savedDataExport(STORAGE_KEY),
+    // Reset and import replace everything, so a report about the old save
+    // (and the copies Reset removes) no longer holds.
+    resetAll: () => {
+      actions.resetAll()
+      setRescue(null)
+    },
+    importJSON: (json) => {
+      actions.importJSON(json)
+      setRescue(null)
+    },
     dismissRescue: () => setRescue(null),
     // Erase what couldn't be read and start saving again, from a fresh state.
     startFresh: () => {
@@ -185,7 +195,7 @@ export function StoreProvider({ children }) {
       setRescue(null)
       setState(freshState())
     },
-  }), [])
+  }), [actions])
 
   // On load and at every 3am rollover, sweep finished tasks into the archive and
   // purge anything archived over 90 days ago. Idempotent, so it no-ops when

@@ -439,6 +439,23 @@ describe('when a rescue copy already exists', () => {
     expect(saved().settings.onboarded).toBe(false)
   })
 
+  it('Reset everything or an import clears the repair report, so it never speaks of a copy that is gone', () => {
+    const s = sampleSave()
+    delete s.habits[0].frequency
+    localStorage.setItem(KEY, JSON.stringify(s))
+    const app = mount()
+    expect(app.store().rescue.kind).toBe('repaired')
+    act(() => app.store().resetAll())
+    expect(app.store().rescue).toBe(null)
+
+    localStorage.clear()
+    localStorage.setItem(KEY, JSON.stringify(s))
+    const again = mount()
+    expect(again.store().rescue.kind).toBe('repaired')
+    act(() => again.store().importJSON(serializeBackup(sampleSave())))
+    expect(again.store().rescue).toBe(null)
+  })
+
   it('the saved-data export holds the save and every copy, read from storage', () => {
     localStorage.setItem(OLD_KEY, OLD_COPY)
     const app = mount()
