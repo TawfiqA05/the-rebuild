@@ -79,12 +79,39 @@ export function StoreProvider({ children }) {
   // True while the last save failed. Not saved itself; the next change tries
   // again and clears it once a save works.
   const [saveFailed, setSaveFailed] = useState(false)
+  // The last JSON this tab wrote or took from another tab, and the state it
+  // took, so a state that is already saved is never written back.
+  const lastRaw = useRef(null)
+  const adopted = useRef(null)
 
   // Persist on every change.
   useEffect(() => {
+    if (state === adopted.current) return
     const raw = saveState(state)
+    if (raw !== null) lastRaw.current = raw
     setSaveFailed(raw === null)
   }, [state])
+
+  // Another tab of the app saved: take its state so this tab doesn't write an
+  // older copy over it on its next change. A cleared or unreadable value is
+  // ignored, and this tab's next change saves as usual.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== STORAGE_KEY || e.newValue == null || e.newValue === lastRaw.current) return
+      let next
+      try {
+        next = migrate(JSON.parse(e.newValue))
+      } catch {
+        return
+      }
+      lastRaw.current = e.newValue
+      adopted.current = next
+      setState(next)
+      setSaveFailed(false)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   // The current logical day-key, refreshed periodically so the app rolls over
   // to a new day without a manual reload.

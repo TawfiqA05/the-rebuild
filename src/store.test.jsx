@@ -45,6 +45,11 @@ function mount() {
   return handle
 }
 
+// What another tab's save looks like to this one.
+function storageEventFrom(oldValue, newValue) {
+  window.dispatchEvent(new StorageEvent('storage', { key: KEY, oldValue, newValue, storageArea: localStorage }))
+}
+
 beforeEach(() => {
   localStorage.clear()
   localStorage.setItem(KEY, JSON.stringify(sampleSave()))
@@ -128,5 +133,42 @@ describe('a save that fails', () => {
     expect(app.store().saveFailed).toBe(false)
     const saved = JSON.parse(localStorage.getItem(KEY))
     expect(saved.wins.map((w) => w.text)).toEqual(['Slept on time', 'Drank water', 'Took the stairs', 'Cooked at home all week'])
+  })
+})
+
+describe('two tabs open at once', () => {
+  it('settle after one change in each, with no repeated writes and nothing lost', () => {
+    const a = mount()
+    const b = mount()
+    const writes = vi.spyOn(Storage.prototype, 'setItem')
+    const keyWrites = () => writes.mock.calls.filter(([k]) => k === KEY).length
+
+    // A change in tab A is written once. Tab B hears about it and takes it.
+    let old = localStorage.getItem(KEY)
+    act(() => a.store().addWin('From the first tab'))
+    expect(keyWrites()).toBe(1)
+    act(() => storageEventFrom(old, localStorage.getItem(KEY)))
+    expect(b.store().state.wins[0].text).toBe('From the first tab')
+    expect(keyWrites()).toBe(1)
+
+    // A change in tab B now builds on A's, and A takes it back the same way.
+    old = localStorage.getItem(KEY)
+    act(() => b.store().addWin('From the second tab'))
+    expect(keyWrites()).toBe(2)
+    act(() => storageEventFrom(old, localStorage.getItem(KEY)))
+    expect(keyWrites()).toBe(2)
+
+    const texts = (s) => s.wins.map((w) => w.text)
+    expect(texts(a.store().state)).toEqual(['From the second tab', 'From the first tab', 'Cooked at home all week'])
+    expect(a.store().state).toEqual(b.store().state)
+    expect(texts(JSON.parse(localStorage.getItem(KEY)))).toEqual(texts(a.store().state))
+  })
+
+  it('ignores a cleared or unreadable value from the other tab', () => {
+    const a = mount()
+    const before = a.store().state
+    act(() => storageEventFrom(localStorage.getItem(KEY), null))
+    act(() => storageEventFrom(localStorage.getItem(KEY), '{"settings":'))
+    expect(a.store().state).toBe(before)
   })
 })

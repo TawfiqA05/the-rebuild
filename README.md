@@ -235,6 +235,8 @@ Honest list, for future-me:
   through `migrate()` so newly-shipped seed habits merge into old saves. If a
   save fails (storage full or blocked), a calm line says so and the next change
   tries again.
+- **Two open tabs stay in step.** When one tab saves, the other takes that
+  state instead of writing its older copy back over it.
 - **`votes`** (the "who I'm becoming" counter) is a monotonic counter incremented
   on each new completion and never decremented. It only goes up.
 
