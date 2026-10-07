@@ -394,6 +394,7 @@ export default {
   'bk.daysLogged': 'Days logged',
   'bk.replaceNote': 'Everything on this device will be swapped for the backup. Export first if you want to keep what’s here.',
   'bk.replace': 'Replace',
+  'save.failed': 'Your last change didn’t save on this device. It will try again with your next change.',
   'bk.today': 'today',
   'bk.yesterday': 'yesterday',
   'bk.daysAgo': '{n} days ago',

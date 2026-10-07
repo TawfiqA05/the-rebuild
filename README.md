@@ -232,7 +232,9 @@ Honest list, for future-me:
   (default 3am), so a 12:30am check-in still counts as *today*. All logic keys
   off `dayKeyFor()` in `lib/time.js`.
 - **One state object**, persisted to `localStorage` on every change and loaded
-  through `migrate()` so newly-shipped seed habits merge into old saves.
+  through `migrate()` so newly-shipped seed habits merge into old saves. If a
+  save fails (storage full or blocked), a calm line says so and the next change
+  tries again.
 - **`votes`** (the "who I'm becoming" counter) is a monotonic counter incremented
   on each new completion and never decremented. It only goes up.
 

@@ -57,11 +57,16 @@ function loadState() {
   }
 }
 
+// Returns the JSON it wrote, or null when the save failed (storage full,
+// blocked, or gone).
 function saveState(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    const raw = JSON.stringify(state)
+    localStorage.setItem(STORAGE_KEY, raw)
+    return raw
   } catch (err) {
     console.error('Failed to save state:', err)
+    return null
   }
 }
 
@@ -71,9 +76,15 @@ const StoreContext = createContext(null)
 
 export function StoreProvider({ children }) {
   const [state, setState] = useState(loadState)
+  // True while the last save failed. Not saved itself; the next change tries
+  // again and clears it once a save works.
+  const [saveFailed, setSaveFailed] = useState(false)
 
   // Persist on every change.
-  useEffect(() => { saveState(state) }, [state])
+  useEffect(() => {
+    const raw = saveState(state)
+    setSaveFailed(raw === null)
+  }, [state])
 
   // The current logical day-key, refreshed periodically so the app rolls over
   // to a new day without a manual reload.
@@ -99,7 +110,7 @@ export function StoreProvider({ children }) {
   // there's nothing to move.
   useEffect(() => { actions.reconcileTasks(today) }, [today, actions])
 
-  const value = useMemo(() => ({ state, today, ...actions }), [state, today, actions])
+  const value = useMemo(() => ({ state, today, saveFailed, ...actions }), [state, today, saveFailed, actions])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
 

@@ -367,6 +367,7 @@ export default {
   'bk.daysLogged': 'أيام مسجّلة', // REVIEW: new line, please check
   'bk.replaceNote': 'سيُستبدل كل ما على هذا الجهاز بالنسخة الاحتياطية. صدّر نسخة أولًا إن أردت الاحتفاظ بما هنا.', // REVIEW: new line, please check
   'bk.replace': 'استبدال', // REVIEW: new line, please check
+  'save.failed': 'لم يُحفظ آخر تغيير على هذا الجهاز. ستتم المحاولة مرة أخرى مع تغييرك التالي.', // REVIEW: new line, please check
   'bk.today': 'اليوم',
   'bk.yesterday': 'أمس',
   'bk.daysAgo': 'قبل {n} يوم',

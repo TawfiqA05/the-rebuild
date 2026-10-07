@@ -101,3 +101,32 @@ describe('importing a backup through the store', () => {
     expect(JSON.parse(localStorage.getItem(KEY)).votes).toBe(99)
   })
 })
+
+describe('a save that fails', () => {
+  it('says so, tries again on the next change, and clears once a save works', () => {
+    const app = mount()
+    expect(app.store().saveFailed).toBe(false)
+
+    const realSet = Storage.prototype.setItem
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function () {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    act(() => app.store().addWin('Took the stairs'))
+    expect(spy).toHaveBeenCalled()
+    expect(app.store().saveFailed).toBe(true)
+
+    // Still failing: the next change tries again and the line stays.
+    const callsSoFar = spy.mock.calls.length
+    act(() => app.store().addWin('Drank water'))
+    expect(spy.mock.calls.length).toBeGreaterThan(callsSoFar)
+    expect(app.store().saveFailed).toBe(true)
+
+    // Storage works again: the next change saves everything and the line goes.
+    spy.mockImplementation(function (...args) { return realSet.apply(this, args) })
+    act(() => app.store().addWin('Slept on time'))
+    expect(app.store().saveFailed).toBe(false)
+    const saved = JSON.parse(localStorage.getItem(KEY))
+    expect(saved.wins.map((w) => w.text)).toEqual(['Slept on time', 'Drank water', 'Took the stairs', 'Cooked at home all week'])
+  })
+})

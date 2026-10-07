@@ -65,7 +65,7 @@ function AppShell() {
   const revealExtra = () => { setExtraRevealed(true); setScreen('extra') }
 
   // First run only. Existing devices are marked onboarded by migrate().
-  if (!state.settings.onboarded) return <Welcome />
+  if (!state.settings.onboarded) return <><SaveNotice /><Welcome /></>
 
   // Guard: if the tab isn't revealed, never render its screen.
   const activeScreen = screen === 'extra' && !extraRevealed ? 'today' : screen
@@ -83,6 +83,7 @@ function AppShell() {
             Storage is blocked in this browser, so nothing you log will be saved. Try leaving private mode.
           </div>
         )}
+        <SaveNotice />
         <main>
           {activeScreen === 'today' && <Today navigate={navigate} />}
           {activeScreen === 'stats' && <Stats navigate={navigate} />}
@@ -94,6 +95,24 @@ function AppShell() {
         <BottomNav screen={activeScreen} setScreen={setScreen} extraRevealed={extraRevealed} />
       </div>
     </TutorialProvider>
+  )
+}
+
+// A calm line while the last save failed. The store tries again on the next
+// change and the line goes once a save works. When storage is blocked outright,
+// the banner above already says so.
+function SaveNotice() {
+  const { saveFailed } = useStore()
+  const { t: T } = useT()
+  if (!saveFailed || !storageAvailable) return null
+  return (
+    <div
+      role="status"
+      data-testid="save-failed"
+      className="sticky top-0 z-30 bg-[var(--color-min-soft)] text-[var(--color-min)] text-[12.5px] text-center px-4 py-2 leading-snug"
+    >
+      {T('save.failed')}
+    </div>
   )
 }
 
