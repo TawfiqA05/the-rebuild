@@ -137,6 +137,7 @@ export default {
   'tasks.cal.add': 'أضف إلى التقويم',
   'tasks.cal.google': 'تقويم Google',
   'tasks.cal.ics': 'ملف ‎.ics',
+  'tasks.cal.hint': 'تقويم Google يستلم العنوان وتاريخ الاستحقاق. ملف ‎.ics يبقى على هذا الجهاز.', // REVIEW: new line, please check
   // الأرشيف
   'tasks.archived': 'المؤرشفة ({n})',
   'tasks.archiveSearch': 'ابحث في الأرشيف',

@@ -147,6 +147,7 @@ export default {
   'tasks.cal.add': 'Add to calendar',
   'tasks.cal.google': 'Google Calendar',
   'tasks.cal.ics': '.ics file',
+  'tasks.cal.hint': 'Google Calendar gets the title and due date. The .ics file stays on this device.',
   // archive
   'tasks.archived': 'Archived ({n})',
   'tasks.archiveSearch': 'Search archive',

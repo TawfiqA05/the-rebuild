@@ -424,28 +424,34 @@ function TaskRow({ task, dayKey, variant, onEdit, onToggle, onDelete, onRestore,
  * The two no-account calendar options for a task, revealed under its row. The
  * Google link opens a prefilled event in a new tab; the .ics button saves a
  * local file that opens in Apple Calendar (or any other). Both are built on the
- * device from the task title + due day only, and only fire on a tap.
+ * device from the task title + due day only, and only fire on a tap. A line
+ * under them says what the Google link sends.
  */
 function CalendarPanel({ task, t, onClose }) {
   return (
-    <div className="ms-[52px] me-1 mb-1.5 -mt-0.5 flex flex-wrap items-center gap-2 animate-fade">
-      <a
-        href={googleCalendarUrl(task)}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onClose}
-        data-testid="task-cal-google"
-        className="no-callout text-[11px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] px-2.5 py-1 active:scale-95 transition"
-      >
-        {t('tasks.cal.google')}
-      </a>
-      <button
-        onClick={() => { downloadTaskICS(task); onClose() }}
-        data-testid="task-cal-ics"
-        className="no-callout text-[11px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] px-2.5 py-1 active:scale-95 transition"
-      >
-        {t('tasks.cal.ics')}
-      </button>
+    <div className="ms-[52px] me-1 mb-1.5 -mt-0.5 animate-fade">
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={googleCalendarUrl(task)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onClose}
+          data-testid="task-cal-google"
+          className="no-callout text-[11px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] px-2.5 py-1 active:scale-95 transition"
+        >
+          {t('tasks.cal.google')}
+        </a>
+        <button
+          onClick={() => { downloadTaskICS(task); onClose() }}
+          data-testid="task-cal-ics"
+          className="no-callout text-[11px] rounded-full border border-[var(--color-line-2)] text-[var(--color-muted)] hover:text-[var(--color-accent-ink)] px-2.5 py-1 active:scale-95 transition"
+        >
+          {t('tasks.cal.ics')}
+        </button>
+      </div>
+      <p data-testid="task-cal-hint" className="text-[11px] text-[var(--color-muted)] mt-1.5 leading-snug">
+        {t('tasks.cal.hint')}
+      </p>
     </div>
   )
 }
