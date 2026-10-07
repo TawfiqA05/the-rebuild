@@ -26,6 +26,18 @@
 // same save in everything but the location, which ends empty.
 // Reverse (new build, then old again, which is what a revert does): the old
 // build must open what the new one saved with nothing lost.
+//
+// Three more saved states, written in today's saved shape (the old build's own
+// built-in habits plus made-up data), then opened and saved by the old build:
+//   5. a new person on day one
+//   6. a long-time person: every phase unlocked, months of logs, finished
+//      tasks, wins, food, and every other part of the save filled in
+//   7. a person with Islamic practices off
+// For each, the new build opens what the old build saved, and separately
+// imports the old build's export through the restore sheet. Both must match
+// the old build on every habit, log, streak, percent and label on Today and
+// Stats, and in the export apart from exportedAt and lastExportAt. Then the
+// old build opens what the new one saved, with nothing lost.
 // Reset: on the new build, Reset everything must leave the app's key holding
 // only a fresh state, and the prayer cache key must be gone.
 //
@@ -263,6 +275,32 @@ async function exportBackup() {
   return json
 }
 
+// What a snapshot holds, in numbers, for the before and after table.
+function summary(snap) {
+  const st = snap.state
+  return {
+    habits: st.habits.filter((h) => !h.archived).length,
+    loggedDays: Object.values(st.logs || {}).filter((d) => Object.keys(d).length).length,
+    streaks: snap.streaks.length,
+    percents: (snap.stats.match(/\d+%/g) || []).join(' '),
+    votes: st.votes,
+    tasks: (st.tasks || []).length,
+    archived: (st.taskArchive || []).length,
+    food: (st.food || []).length,
+    wins: (st.wins || []).length,
+    exportBytes: JSON.stringify(comparable(snap.exported)).length,
+  }
+}
+
+// Import a backup file on the build that is open, through the restore sheet.
+async function importFile(json) {
+  await tab('Settings')
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(json) })
+  await page.locator('[data-testid="restore-replace"]').click()
+  await page.locator('[data-testid="restore-sheet"]').waitFor({ state: 'detached' })
+  await page.waitForTimeout(300)
+}
+
 // Strip the two fields that are allowed to differ between exports.
 function comparable(exported, { dropLocation = false } = {}) {
   const e = structuredClone(exported)
@@ -376,6 +414,138 @@ const STATES = [
   { n: 4, name: 'no location setting', make: null },
 ]
 
+// --- states 5 to 7, in today's saved shape --------------------------------------
+
+// The old build's own built-in habits, exactly as it saves them.
+async function builtInHabits() {
+  await resetStorage({ settings: { onboarded: true, tourSeen: true } })
+  await openApp('old')
+  return (await saved()).habits
+}
+
+function fullSettings(patch) {
+  return {
+    dayRolloverHour: 3, currentPhase: 1, theme: 'ivory', language: 'en', includeIslamic: true, prayerLocation: null,
+    tasksCollapsed: false, foodCollapsed: false, collapseDefaultsApplied: true, tourSeen: true,
+    pinHash: null, pinSalt: null, pinFails: 0, pinLockUntil: 0, dismissedUnlock: {}, prayerAdjustMin: {},
+    lastExportAt: null, onboarded: true, ...patch,
+  }
+}
+
+function emptyParts() {
+  return {
+    days: {}, weeklyReviews: {}, focusThisWeek: null, privateLog: { entries: [], waves: [] },
+    votes: 0, wins: [], tasks: [], taskArchive: [], myQuotes: [], food: [],
+  }
+}
+
+const at = (day, hhmm) => Date.parse(`${day}T${hhmm}:00-05:00`)
+
+function dayOneSave(habits) {
+  return {
+    version: 2,
+    settings: fullSettings({ currentPhase: 1 }),
+    habits: habits.map((h) => (h.id === 'clean-feed' || h.id === 'phone-kitchen' ? { ...h, archived: true } : h)),
+    logs: { [TODAY]: { bed: { status: 'full', at: at(TODAY, '07:40') }, sleep: { status: 'min', at: at(TODAY, '07:41') }, salah: { fajr: 'ontime' } } },
+    ...emptyParts(),
+    votes: 3,
+    tasks: [{ id: 'd1', text: 'Buy a water bottle', createdAt: at(TODAY, '08:00'), createdDay: TODAY, dueDay: TODAY, doneDay: null, doneAt: null, source: 'manual' }],
+    food: [{ id: 'df1', text: 'Toast and eggs', at: at(TODAY, '08:15'), day: TODAY }],
+  }
+}
+
+function longTimeSave(habits) {
+  let seed = 11
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+  const logs = {}
+  const days = {}
+  const food = []
+  const ids = habits.filter((h) => h.type !== 'salah').map((h) => h.id)
+  for (let i = 0; i <= 150; i++) {
+    const day = addDays(TODAY, -i)
+    const l = {}
+    if (i > 0 || rnd() < 2) l.salah = Object.fromEntries(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map((p) => [p, rnd() < 0.8 ? 'ontime' : 'late']))
+    for (const id of ids) {
+      const r = rnd()
+      if (r < 0.62) l[id] = { status: 'full', at: at(day, '12:00') }
+      else if (r < 0.74) l[id] = { status: 'min', at: at(day, '12:00') }
+    }
+    if (i % 23 === 7) delete l.gym // a few gaps
+    logs[day] = l
+    if (i % 3 === 0) food.push({ id: `lf${i}`, text: ['Oatmeal', 'Lentil soup', 'Chicken and rice', 'Apple and peanut butter'][i % 4], at: at(day, '13:05'), day })
+    if (i % 9 === 4) days[day] = { roughDay: true }
+    if (i % 5 === 1) days[day] = { ...(days[day] || {}), gratitude: ['A long walk', 'Dinner with family'], shutdownAt: at(day, '22:10') }
+    if (i % 12 === 2) days[day] = { ...(days[day] || {}), journal: { text: 'Steady day. Slept on time.' } }
+  }
+  logs[TODAY] = { salah: { fajr: 'ontime', dhuhr: 'ontime' }, bed: { status: 'full', at: at(TODAY, '07:30') }, read: { status: 'min', at: at(TODAY, '08:00') } }
+  return {
+    version: 2,
+    settings: fullSettings({ currentPhase: 5, theme: 'sage', dismissedUnlock: { 2: true }, prayerAdjustMin: { fajr: 2, isha: -3 }, lastExportAt: at(addDays(TODAY, -20), '20:00') }),
+    habits: [...habits, { id: 'stretch-x2', name: 'Morning stretch', emoji: '🧘', phase: 2, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'Touch my toes once', stock: false, archived: false, createdAt: '2026-05-10T12:00:00.000Z' }],
+    logs,
+    ...emptyParts(),
+    days,
+    weeklyReviews: { [addDays(TODAY, -8)]: { focus: 'Lights out by eleven', checklist: {}, done: true } },
+    focusThisWeek: { text: 'Lights out by eleven', weekKey: addDays(TODAY, -1) },
+    privateLog: {
+      entries: [
+        { id: 'pe1', at: at(addDays(TODAY, -12), '21:40'), trigger: 'boredom', note: 'Went for a walk instead', rodeOut: true },
+        { id: 'pe2', at: at(addDays(TODAY, -3), '23:05'), trigger: 'urge', note: '', rodeOut: false },
+      ],
+      waves: [],
+    },
+    votes: 3912,
+    wins: [
+      { id: 'lw1', at: at(addDays(TODAY, -2), '19:00'), text: 'Ran my first 5k' },
+      { id: 'lw2', at: at(addDays(TODAY, -40), '19:00'), text: 'Cooked every night this week' },
+      { id: 'lw3', at: at(addDays(TODAY, -90), '19:00'), text: 'Paid off the card' },
+    ],
+    tasks: [
+      { id: 'lt1', text: 'Return library books', createdAt: at(addDays(TODAY, -3), '09:00'), createdDay: addDays(TODAY, -3), dueDay: TODAY, doneDay: null, doneAt: null, source: 'manual' },
+      { id: 'lt2', text: 'Call the dentist', createdAt: at(TODAY, '09:00'), createdDay: TODAY, dueDay: TODAY, doneDay: TODAY, doneAt: at(TODAY, '10:00'), source: 'manual' },
+      { id: 'lt3', text: 'Plan the weekend trip', createdAt: at(addDays(TODAY, -1), '22:00'), createdDay: addDays(TODAY, -1), dueDay: addDays(TODAY, 1), doneDay: null, doneAt: null, source: 'shutdown' },
+      { id: 'lt4', text: 'Send the rent', createdAt: at(addDays(TODAY, -4), '09:00'), createdDay: addDays(TODAY, -4), dueDay: addDays(TODAY, -2), doneDay: addDays(TODAY, -2), doneAt: at(addDays(TODAY, -2), '11:00'), source: 'manual' },
+    ],
+    taskArchive: [
+      { id: 'la1', text: 'Renew car registration', createdAt: at(addDays(TODAY, -30), '09:00'), createdDay: addDays(TODAY, -30), dueDay: addDays(TODAY, -28), doneDay: addDays(TODAY, -28), doneAt: at(addDays(TODAY, -28), '10:00'), source: 'manual', reason: 'completed', archivedAt: at(addDays(TODAY, -27), '03:10'), archivedDay: addDays(TODAY, -27) },
+      { id: 'la2', text: 'Old idea for a shelf', createdAt: at(addDays(TODAY, -15), '09:00'), createdDay: addDays(TODAY, -15), dueDay: addDays(TODAY, -15), doneDay: null, doneAt: null, source: 'manual', reason: 'deleted', archivedAt: at(addDays(TODAY, -14), '18:00'), archivedDay: addDays(TODAY, -14) },
+    ],
+    myQuotes: [{ id: 'mq1', at: at(addDays(TODAY, -60), '08:00'), text: 'Small and steady beats big and rare.' }],
+    food,
+  }
+}
+
+function islamicOffSave(habits) {
+  const logs = {}
+  for (let i = 0; i <= 40; i++) {
+    const day = addDays(TODAY, -i)
+    logs[day] = {
+      salah: { fajr: 'ontime', dhuhr: i % 4 ? 'ontime' : 'late' },
+      bed: { status: i % 6 ? 'full' : 'min', at: at(day, '07:00') },
+      ...(i % 5 ? { sleep: { status: 'full', at: at(day, '07:00') } } : {}),
+      ...(i % 2 ? { quran: { status: 'full', at: at(day, '21:00') } } : {}),
+      ...(i % 3 === 0 ? { read: { status: 'full', at: at(day, '21:30') } } : {}),
+      ...(i % 7 === 0 ? { 'weekly-plan': { status: 'full', at: at(day, '18:00') } } : {}),
+    }
+  }
+  return {
+    version: 2,
+    settings: fullSettings({ currentPhase: 3, includeIslamic: false, theme: 'charcoal' }),
+    habits,
+    logs,
+    ...emptyParts(),
+    votes: 188,
+    wins: [{ id: 'iw1', at: at(addDays(TODAY, -6), '20:00'), text: 'Kept the phone out of the bedroom all week' }],
+    food: [{ id: 'if1', text: 'Greek yogurt', at: at(TODAY, '09:20'), day: TODAY }],
+  }
+}
+
+const NEW_STATES = [
+  { n: 5, name: 'day one', make: dayOneSave, base: islamicOffSave },
+  { n: 6, name: 'long-time', make: longTimeSave, base: dayOneSave },
+  { n: 7, name: 'Islamic practices off', make: islamicOffSave, base: dayOneSave },
+]
+
 let failed = 0
 const fwd = { checked: 0, skipped: 0 }
 const rev = { checked: 0, skipped: 0 }
@@ -433,6 +603,49 @@ try {
       console.log(`✗ ${label}: threw: ${err.message}`)
       failed++
     }
+  }
+
+  const habits = await builtInHabits()
+  const table = []
+  for (const st of NEW_STATES) {
+    const label = `state ${st.n} (${st.name})`
+    try {
+      // The old build opens the save and writes it back in its own hands.
+      await resetStorage(st.make(habits))
+      await openApp('old')
+      const before = await snapshot()
+      const oldExport = JSON.stringify(before.exported)
+
+      // The new build opens what the old one saved.
+      await openApp('new')
+      const opened = await snapshot()
+      if (compare(`forward ${label}`, before, opened)) fwd.checked++
+      else failed++
+      await openApp('old')
+      if (compare(`reverse ${label}`, opened, await snapshot())) rev.checked++
+      else failed++
+
+      // The new build imports the old build's export over someone else's save.
+      await resetStorage(st.base(habits))
+      await openApp('new')
+      await importFile(oldExport)
+      const imported = await snapshot()
+      if (compare(`import ${label}`, before, imported)) fwd.checked++
+      else failed++
+      await openApp('old')
+      const revertedImport = await snapshot()
+      if (compare(`reverse after import ${label}`, imported, revertedImport)) rev.checked++
+      else failed++
+
+      table.push({ state: `${st.n} ${st.name}`, old: summary(before), new: summary(opened), imported: summary(imported), reverted: summary(revertedImport) })
+    } catch (err) {
+      console.log(`✗ ${label}: threw: ${err.message}`)
+      failed++
+    }
+  }
+  console.log('\nbefore and after (old build, new build opening it, new build importing its export, old build again):')
+  for (const row of table) {
+    for (const k of ['old', 'new', 'imported', 'reverted']) console.log(`  ${row.state.padEnd(26)} ${k.padEnd(9)} ${JSON.stringify(row[k])}`)
   }
 
   // Reset everything on the new build: the app's key holds only a fresh state
