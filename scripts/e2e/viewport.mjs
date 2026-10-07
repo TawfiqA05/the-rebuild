@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // viewport.mjs — the E2E pass. A real headless Chromium loads the built app
-// at 390px (iPhone 12/13/14 width) with made-up saved data and runs 11 checks.
+// at 390px (iPhone 12/13/14 width) with made-up saved data and runs 15 checks.
 //
 // Share sheet (5 checks). Opened from the Stats button and from the Sunday
 // weekly-review path, across a few themes, a long typed-in line, and
@@ -11,7 +11,7 @@
 //   - Share / Copy / Save are all on-screen, reachable without scrolling
 //   - nothing inside the sheet actually needs scrolling to reach them
 //
-// Then six more:
+// Then ten more:
 //   - day editor: the "fix a past day" panel fits the screen
 //   - daily anchor: it sits under the score card and above the habits
 //   - no faith leak: with Islamic practices off, no Islamic term shows on any
@@ -22,6 +22,20 @@
 //     device from the title and date, and nothing is sent until a tap
 //   - tutorial: the spotlight fits, the gestures advance it, it leaves no
 //     trace, and an existing device never sees it
+//   - import: a wrong or cut-off file changes nothing and says so, and a good
+//     one asks first in the app's own sheet, with counts, before replacing
+//   - failed save: a calm line shows, the next change tries again, and the
+//     line goes once a save works
+//   - two tabs: a change in one tab reaches the other with no repeated
+//     writes, and neither tab's change is lost
+//   - network: no service worker registers, the fonts were blocked, and no
+//     request anywhere in the run got past the allow-list
+//
+// The network is closed in every check. Each browser context comes from
+// newContext(), which blocks service workers and lets through only the
+// preview server, blob: and data:. Everything else is aborted (or, for the one
+// check that needs it, answered by a stub) and the run fails if any other
+// address got through.
 //
 // Run with:  npm run e2e   (builds, then drives this)
 // ---------------------------------------------------------------------------
@@ -39,6 +53,54 @@ mkdirSync(artifacts, { recursive: true })
 // iPhone 12/13/14 logical width. The home-bar inset is what the safe-area
 // padding has to clear, so we emulate a device that reports one.
 const VIEWPORT = { width: 390, height: 844 }
+
+// --- the network allow-list ---------------------------------------------------
+
+let ORIGIN = null // the preview server, set in run()
+const isAllowed = (u) => u.startsWith(`${ORIGIN}/`) || u.startsWith('blob:') || u.startsWith('data:')
+const NETWORK = {
+  stubbed: new Set(), // answered by a check's stub, never sent
+  blocked: [],        // aborted
+  closed: new Set(),  // the outside requests the route aborted or stubbed
+  outside: [],        // every outside request any page made, whatever happened to it
+  fromWorker: [],     // answered by a service worker: fails the run
+}
+// An outside request the route didn't close was let through: fails the run.
+const escaped = () => NETWORK.outside.filter((req) => !NETWORK.closed.has(req)).map((req) => req.url())
+
+// Every context in this file comes from here. `stub(url)` may return a route
+// fulfillment for an outside address (it is answered locally and never sent);
+// `onExternal(url)` sees every outside address a page asked for.
+async function newContext(browser, options = {}, { stub, onExternal } = {}) {
+  const context = await browser.newContext({
+    ...devices['iPhone 13'],
+    viewport: VIEWPORT,
+    ...options,
+    serviceWorkers: 'block',
+  })
+  await context.route('**/*', (route) => {
+    const u = route.request().url()
+    if (isAllowed(u)) return route.continue()
+    onExternal?.(u)
+    const answer = stub?.(u)
+    NETWORK.closed.add(route.request())
+    if (answer) {
+      NETWORK.stubbed.add(u)
+      return route.fulfill(answer)
+    }
+    NETWORK.blocked.push(u)
+    return route.abort()
+  })
+  // An independent record of every request, including redirects, which the
+  // route never sees.
+  context.on('request', (req) => {
+    if (!isAllowed(req.url())) NETWORK.outside.push(req)
+  })
+  context.on('response', (res) => {
+    if (res.fromServiceWorker()) NETWORK.fromWorker.push(res.url())
+  })
+  return context
+}
 
 // A fully-onboarded save. migrate() backfills every other field and (because a
 // save exists) marks the device onboarded, so no Welcome flow is in the way.
@@ -155,7 +217,7 @@ function panelFits(testid) {
 // `fixed` overlay rendered from inside a screen, so it shares the containing-block
 // trap — this pins that it stays on-screen.
 async function checkDayEditor(browser, url) {
-  const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT })
+  const context = await newContext(browser)
   await context.addInitScript(
     ([key, value]) => window.localStorage.setItem(key, value),
     ['the-rebuild:v1', seed({ language: 'en', theme: 'ivory' })],
@@ -189,7 +251,7 @@ async function checkDayEditor(browser, url) {
 // The Daily anchor must sit directly under the score card and above the habits
 // (Salah is the first habit) — a small grace note, not buried below the list.
 async function checkAnchorPosition(browser, url) {
-  const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT })
+  const context = await newContext(browser)
   await context.addInitScript(
     ([key, value]) => window.localStorage.setItem(key, value),
     ['the-rebuild:v1', seed({ language: 'en', theme: 'ivory' })],
@@ -252,7 +314,7 @@ async function checkNoFaithLeak(browser, url) {
   let failed = 0
   for (const legacy of [false, true]) {
     const label = legacy ? 'legacy' : 'fresh'
-    const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT })
+    const context = await newContext(browser)
     await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', noFaithSeed(legacy)])
     const page = await context.newPage()
     try {
@@ -315,23 +377,17 @@ async function scanForTerms(page, ctx, onFail) {
 // geocoder. We grant a mock geolocation, record every request, and stub external
 // hosts so nothing actually leaves, then assert what the app tried to reach.
 async function checkNoReverseGeocode(browser, url) {
-  const origin = new URL(url).origin
-  const context = await browser.newContext({
-    ...devices['iPhone 13'],
-    viewport: VIEWPORT,
+  const external = []
+  const context = await newContext(browser, {
     geolocation: { latitude: 41.8781, longitude: -87.6298 },
     permissions: ['geolocation'],
-  })
-  const external = []
-  await context.route('**/*', (route) => {
-    const u = route.request().url()
-    if (u.startsWith(origin)) return route.continue() // local app assets
-    external.push(u)
-    if (u.includes('aladhan.com')) {
-      // Pretend AlAdhan answered, so useMyLocation completes without real network.
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 200, data: [] }) })
-    }
-    return route.abort() // fonts, and anything else — recorded, never sent
+  }, {
+    onExternal: (u) => external.push(u),
+    // Pretend AlAdhan answered, so useMyLocation completes without real network.
+    // This is the one check with a stub. Fonts and anything else are aborted.
+    stub: (u) => new URL(u).hostname.endsWith('aladhan.com')
+      ? { status: 200, contentType: 'application/json', body: JSON.stringify({ code: 200, data: [] }) }
+      : null,
   })
   await context.addInitScript(
     ([k, v]) => window.localStorage.setItem(k, v),
@@ -373,16 +429,9 @@ async function checkNoReverseGeocode(browser, url) {
 // save the .ics — asserting nothing left, and that BOTH outputs carry only the
 // task title and its due date (never any other field).
 async function checkTaskCalendarPrivacy(browser, url) {
-  const origin = new URL(url).origin
-  const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT, acceptDownloads: true })
+  // Local app assets, and blob:/data: (the .ics is a local blob) are on-device.
   const external = []
-  await context.route('**/*', (route) => {
-    const u = route.request().url()
-    // Local app assets, and blob:/data: (the .ics is a local blob) are on-device.
-    if (u.startsWith(origin) || u.startsWith('blob:') || u.startsWith('data:')) return route.continue()
-    external.push(u)
-    return route.abort()
-  })
+  const context = await newContext(browser, { acceptDownloads: true }, { onExternal: (u) => external.push(u) })
 
   // A task due TODAY (so it shows in the open list), plus unrelated state — a
   // food note with a marker, votes — that must never appear in any output.
@@ -479,7 +528,7 @@ async function checkTutorial(browser, url) {
     : JSON.stringify({ settings: { onboarded: true, tourSeen: false, language: lang, currentPhase: 1, includeIslamic: true }, votes: 0 })
 
   const open = async (lang, legacy) => {
-    const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT, locale: lang === 'ar' ? 'ar' : 'en-US' })
+    const context = await newContext(browser, { locale: lang === 'ar' ? 'ar' : 'en-US' })
     await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', seed(lang, legacy)])
     const page = await context.newPage()
     await page.goto(url, { waitUntil: 'networkidle' })
@@ -532,7 +581,7 @@ async function checkTutorial(browser, url) {
   }
   // 4) Reduced motion: the overlay still renders, with no rise animation.
   {
-    const context = await browser.newContext({ ...devices['iPhone 13'], viewport: VIEWPORT, reducedMotion: 'reduce' })
+    const context = await newContext(browser, { reducedMotion: 'reduce' })
     await context.addInitScript(([k, v]) => window.localStorage.setItem(k, v), ['the-rebuild:v1', seed('en', false)])
     const page = await context.newPage()
     await page.goto(url, { waitUntil: 'networkidle' })
@@ -555,18 +604,293 @@ async function checkTutorial(browser, url) {
   return 1
 }
 
+// --- import, failed save, two tabs ------------------------------------------
+
+const KEY = 'the-rebuild:v1'
+
+// A made-up save for the checks below: two habits of my own on top of the
+// built-in ones and a few days logged. Islamic practices are off unless asked
+// for, so every habit button on Today is a plain one.
+function plainSave({ votes = 21, winText = 'Took the stairs all week', days = 4, includeIslamic = false } = {}) {
+  const logs = {}
+  for (let i = 1; i <= days; i++) logs[`2026-09-${String(10 + i).padStart(2, '0')}`] = { 'read-x1': { status: 'full', at: i } }
+  return {
+    version: 2,
+    settings: { onboarded: true, tourSeen: true, language: 'en', theme: 'ivory', currentPhase: 1, includeIslamic, prayerLocation: null, collapseDefaultsApplied: true },
+    habits: [
+      { id: 'read-x1', name: 'Read ten pages', emoji: '📖', phase: 1, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'One page', stock: false, archived: false, createdAt: '2026-09-01T12:00:00.000Z' },
+      { id: 'walk-x1', name: 'Evening walk', emoji: '🚶', phase: 1, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'To the corner', stock: false, archived: false, createdAt: '2026-09-01T12:00:00.000Z' },
+    ],
+    logs,
+    days: {},
+    votes,
+    wins: [{ id: 'w1', at: 1, text: winText }],
+  }
+}
+
+// Counted from what the app saved, the way the restore sheet counts: habits
+// on screen (not archived, in an unlocked phase) and days with anything logged.
+// Only for saves with Islamic practices on, where no habit is hidden.
+function countsIn(saved) {
+  if (saved.settings.includeIslamic === false) throw new Error('countsIn needs Islamic practices on')
+  return {
+    habits: saved.habits.filter((h) => !h.archived && h.phase <= saved.settings.currentPhase).length,
+    days: Object.values(saved.logs || {}).filter((d) => d && Object.keys(d).length > 0).length,
+  }
+}
+
+// Replaces confirm and alert so a check can tell if either was used.
+const RECORD_DIALOGS = () => {
+  window.__dialogs = []
+  window.confirm = (m) => { window.__dialogs.push(`confirm: ${m}`); return true }
+  window.alert = (m) => { window.__dialogs.push(`alert: ${m}`) }
+}
+
+async function checkImport(browser, url) {
+  const context = await newContext(browser)
+  await context.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v) }, [KEY, JSON.stringify(plainSave({ includeIslamic: true }))])
+  await context.addInitScript(RECORD_DIALOGS)
+  const page = await context.newPage()
+  const failures = []
+  const nativeDialogs = []
+  page.on('dialog', (d) => { nativeDialogs.push(d.type()); d.dismiss().catch(() => {}) })
+  const raw = () => page.evaluate((k) => localStorage.getItem(k), KEY)
+  const pick = (name, text) => page.locator('input[type="file"][accept*="json"]').setInputFiles({ name, mimeType: 'application/json', buffer: Buffer.from(text) })
+  const sheet = page.locator('[data-testid="restore-sheet"]')
+
+  // The bad files are hand-made. None of them is a real backup.
+  const goodState = plainSave({ votes: 77, winText: 'Finished the long book', days: 6, includeIslamic: true })
+  goodState.habits.push({ id: 'water-x1', name: 'Glass of water first', emoji: '💧', phase: 1, type: 'standard', frequency: { kind: 'daily' }, minVersion: 'A sip', stock: false, archived: false, createdAt: '2026-09-02T12:00:00.000Z' })
+  const goodFile = JSON.stringify({ schemaVersion: 1, app: 'the-rebuild', exportedAt: '2026-10-01T18:00:00.000Z', state: goodState }, null, 2)
+  const BAD = [
+    { name: 'empty object', text: '{}', message: 'That file didn’t look like a valid backup.' },
+    { name: 'list', text: '[]', message: 'That file didn’t look like a valid backup.' },
+    { name: 'empty state', text: JSON.stringify({ schemaVersion: 1, app: 'the-rebuild', exportedAt: '2026-10-01T18:00:00.000Z', state: {} }), message: 'That file didn’t look like a valid backup.' },
+    { name: 'another app', text: JSON.stringify({ schemaVersion: 2, app: 'notes-app', exportedAt: '2026-10-01T18:00:00.000Z', notes: [] }), message: 'That file comes from another app, not The Rebuild.' },
+    { name: 'cut off', text: goodFile.slice(0, Math.floor(goodFile.length / 2)), message: 'That file couldn’t be read. It may be cut off, or it isn’t a backup.' },
+  ]
+
+  try {
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.locator('[data-testid="nav-settings"]').click()
+    const original = await raw()
+    if (!original) throw new Error('no saved state to start from')
+
+    for (const bad of BAD) {
+      await pick(`${bad.name}.json`, bad.text)
+      await page.locator('[data-testid="restore-sheet"][data-state="refused"]').waitFor({ timeout: 3000 })
+      const text = await sheet.innerText()
+      if (!text.includes('Nothing was changed') || !text.includes(bad.message)) failures.push(`${bad.name}: sheet says "${text.replace(/\s+/g, ' ')}"`)
+      if (bad.name === 'another app') await page.screenshot({ path: resolve(artifacts, 'import-refused.png') })
+      await page.locator('[data-testid="restore-close"]').click()
+      await sheet.waitFor({ state: 'detached' })
+      if ((await raw()) !== original) failures.push(`${bad.name}: storage changed`)
+      if (!(await page.locator('[data-testid="nav-settings"]').isVisible())) failures.push(`${bad.name}: the app went blank`)
+    }
+
+    // A good file: the sheet asks first, with counts. Cancel changes nothing.
+    const now = countsIn(JSON.parse(original))
+    await pick('backup.json', goodFile)
+    await page.locator('[data-testid="restore-sheet"][data-state="confirm"]').waitFor({ timeout: 3000 })
+    await settleRise(page, 'restore-sheet')
+    const shown = await page.evaluate(() => {
+      const n = (row, which) => Number(document.querySelector(`[data-testid="${row}"] [data-count="${which}"]`)?.textContent)
+      return { now: { habits: n('restore-habits', 'now'), days: n('restore-days', 'now') }, file: { habits: n('restore-habits', 'file'), days: n('restore-days', 'file') } }
+    })
+    const fits = await page.evaluate(panelFits, 'restore-sheet')
+    if (!fits.ok) failures.push(`restore sheet does not fit: ${fits.failures.join('; ')}`)
+    await page.screenshot({ path: resolve(artifacts, 'import-confirm.png') })
+    if (shown.now.habits !== now.habits || shown.now.days !== now.days) failures.push(`sheet shows ${JSON.stringify(shown.now)} on the device, saved data has ${JSON.stringify(now)}`)
+    if (shown.file.days !== 6) failures.push(`sheet shows ${shown.file.days} days in the file, the file has 6`)
+    await page.locator('[data-testid="restore-cancel"]').click()
+    await sheet.waitFor({ state: 'detached' })
+    if ((await raw()) !== original) failures.push('cancel changed storage')
+
+    // Replace restores it, and the counts the sheet gave match what was saved.
+    await pick('backup.json', goodFile)
+    await page.locator('[data-testid="restore-replace"]').click()
+    await sheet.waitFor({ state: 'detached' })
+    await page.getByText('Backup restored.').waitFor({ timeout: 3000 })
+    const after = JSON.parse(await raw())
+    if (after.votes !== 77 || after.wins[0]?.text !== 'Finished the long book') failures.push('replace did not restore the file')
+    const fileCounts = countsIn(after)
+    if (fileCounts.habits !== shown.file.habits || fileCounts.days !== shown.file.days) failures.push(`sheet promised ${JSON.stringify(shown.file)}, restored ${JSON.stringify(fileCounts)}`)
+
+    const dialogs = await page.evaluate(() => window.__dialogs)
+    if (dialogs.length || nativeDialogs.length) failures.push(`a browser dialog was used: ${[...dialogs, ...nativeDialogs].join(', ')}`)
+  } catch (err) {
+    failures.push(`threw: ${err.message}`)
+  } finally {
+    await context.close()
+  }
+  if (failures.length === 0) {
+    console.log(`✓ import · en — ${BAD.length} wrong files change nothing and say so; a good one asks first with counts, Cancel keeps, Replace restores; no browser dialogs`)
+    return 0
+  }
+  console.log('✗ import · en:')
+  for (const f of failures) console.log(`    · ${f}`)
+  return 1
+}
+
+// Storage that throws on demand, for the app's key only, so the probe at
+// start-up still sees working storage.
+const FAILING_STORAGE = (key) => {
+  window.__failSaves = false
+  window.__writes = 0
+  const real = Storage.prototype.setItem
+  Storage.prototype.setItem = function (k, v) {
+    if (k === key) {
+      window.__writes++
+      if (window.__failSaves) throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    }
+    return real.call(this, k, v)
+  }
+}
+
+const habitButton = (page, i) => page.locator('[data-testid="habit-list"] button[aria-pressed]').nth(i)
+
+async function checkSaveFailure(browser, url) {
+  const context = await newContext(browser)
+  await context.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v) }, [KEY, JSON.stringify(plainSave())])
+  await context.addInitScript(FAILING_STORAGE, KEY)
+  const page = await context.newPage()
+  const failures = []
+  const line = page.locator('[data-testid="save-failed"]')
+  const raw = () => page.evaluate((k) => localStorage.getItem(k), KEY)
+  try {
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await habitButton(page, 0).waitFor()
+    if (await line.count()) failures.push('the line shows before anything failed')
+    const before = await raw()
+
+    await page.evaluate(() => { window.__failSaves = true })
+    await habitButton(page, 0).click()
+    await line.waitFor({ timeout: 3000 })
+    const text = await line.innerText()
+    if (text !== 'Your last change didn’t save on this device. It will try again with your next change.') failures.push(`line says "${text}"`)
+    await page.screenshot({ path: resolve(artifacts, 'save-failed.png') })
+    if ((await raw()) !== before) failures.push('storage changed while saves were failing')
+
+    // Still failing: the next change tries again and the line stays.
+    const writes = await page.evaluate(() => window.__writes)
+    await habitButton(page, 1).click()
+    await page.waitForTimeout(200)
+    if ((await page.evaluate(() => window.__writes)) <= writes) failures.push('the next change did not try to save')
+    if (!(await line.isVisible())) failures.push('the line went while saves still fail')
+
+    // Storage works again: the next change saves both earlier taps too.
+    await page.evaluate(() => { window.__failSaves = false })
+    await habitButton(page, 0).click() // full → min, still logged
+    await line.waitFor({ state: 'detached', timeout: 3000 })
+    const saved = JSON.parse(await raw())
+    const today = Object.values(saved.logs).find((d) => d['walk-x1'])
+    if (!today || today['read-x1']?.status !== 'min' || today['walk-x1']?.status !== 'full') failures.push('the change made while saves failed was not saved later')
+  } catch (err) {
+    failures.push(`threw: ${err.message}`)
+  } finally {
+    await context.close()
+  }
+  if (failures.length === 0) {
+    console.log('✓ failed save · en — calm line shows, the next change retries, the line goes once a save works')
+    return 0
+  }
+  console.log('✗ failed save · en:')
+  for (const f of failures) console.log(`    · ${f}`)
+  return 1
+}
+
+// Two tabs of the app in one browser profile share storage. A change in one
+// must reach the other without either writing it again, so a later change in
+// the other tab can't put the old state back.
+async function checkTwoTabs(browser, url) {
+  const context = await newContext(browser)
+  await context.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v) }, [KEY, JSON.stringify(plainSave())])
+  await context.addInitScript(FAILING_STORAGE, KEY)
+  const failures = []
+  try {
+    const a = await context.newPage()
+    await a.goto(url, { waitUntil: 'networkidle' })
+    const b = await context.newPage()
+    await b.goto(url, { waitUntil: 'networkidle' })
+    await habitButton(a, 0).waitFor()
+    await habitButton(b, 0).waitFor()
+    await a.waitForTimeout(300)
+    const writes = async () => [await a.evaluate(() => window.__writes), await b.evaluate(() => window.__writes)]
+    const start = await writes()
+    const pressed = (page) => page.locator('[data-testid="habit-list"] button[aria-pressed="true"]').count()
+
+    await habitButton(a, 0).click()
+    await b.waitForFunction(() => document.querySelectorAll('[data-testid="habit-list"] button[aria-pressed="true"]').length === 1, null, { timeout: 3000 })
+    await habitButton(b, 1).click()
+    await a.waitForFunction(() => document.querySelectorAll('[data-testid="habit-list"] button[aria-pressed="true"]').length === 2, null, { timeout: 3000 })
+    await a.waitForTimeout(800) // room for any echo write to show up
+
+    const end = await writes()
+    const delta = [end[0] - start[0], end[1] - start[1]]
+    if (delta[0] !== 1 || delta[1] !== 1) failures.push(`expected one write per tab, got ${delta[0]} and ${delta[1]}`)
+    const saved = JSON.parse(await a.evaluate((k) => localStorage.getItem(k), KEY))
+    // Only today has the walk logged; the older days hold the reading alone.
+    const today = Object.values(saved.logs).find((d) => d['walk-x1']) || {}
+    if (!today['read-x1'] || !today['walk-x1']) failures.push('a change was lost: storage does not hold both taps')
+    if ((await pressed(a)) !== 2 || (await pressed(b)) !== 2) failures.push('the tabs show different days')
+  } catch (err) {
+    failures.push(`threw: ${err.message}`)
+  } finally {
+    await context.close()
+  }
+  if (failures.length === 0) {
+    console.log('✓ two tabs · en — each change reaches the other tab, one write each, nothing lost')
+    return 0
+  }
+  console.log('✗ two tabs · en:')
+  for (const f of failures) console.log(`    · ${f}`)
+  return 1
+}
+
+// The app registers a service worker and loads its fonts from Google. In this
+// run neither may happen: the worker is blocked and the fonts are aborted
+// (that they show up as blocked also proves the allow-list is in force).
+async function checkNetworkClosed(browser, url) {
+  const context = await newContext(browser)
+  await context.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v) }, [KEY, JSON.stringify(plainSave())])
+  const page = await context.newPage()
+  const failures = []
+  try {
+    await page.goto(url, { waitUntil: 'load' })
+    await page.waitForTimeout(1500) // the app registers its worker after load
+    const worker = await page.evaluate(async () => ({
+      controlled: Boolean(navigator.serviceWorker?.controller),
+      registrations: navigator.serviceWorker ? (await navigator.serviceWorker.getRegistrations()).length : 0,
+    }))
+    if (worker.controlled || worker.registrations) failures.push(`a service worker registered (${worker.registrations})`)
+  } catch (err) {
+    failures.push(`threw: ${err.message}`)
+  } finally {
+    await context.close()
+  }
+  const blockedHosts = [...new Set(NETWORK.blocked.map((u) => new URL(u).host))]
+  if (!blockedHosts.some((h) => h.endsWith('googleapis.com') || h.endsWith('gstatic.com'))) failures.push('the fonts were not seen and blocked, so the allow-list may not be in force')
+  if (escaped().length) failures.push(`got past the allow-list: ${[...new Set(escaped())].join(', ')}`)
+  if (NETWORK.fromWorker.length) failures.push(`answered by a service worker: ${[...new Set(NETWORK.fromWorker)].join(', ')}`)
+  const stubbedHosts = [...new Set([...NETWORK.stubbed].map((u) => new URL(u).host))]
+  if (failures.length === 0) {
+    console.log(`✓ network — no service worker; ${NETWORK.outside.length} outside requests, all closed: blocked ${blockedHosts.join(', ')}; stubbed ${stubbedHosts.join(', ') || 'nothing'}`)
+    return 0
+  }
+  console.log('✗ network:')
+  for (const f of failures) console.log(`    · ${f}`)
+  return 1
+}
+
 async function run() {
   const server = await preview({ root, preview: { port: 0 }, logLevel: 'silent' })
   const url = server.resolvedUrls.local[0]
+  ORIGIN = new URL(url).origin
   const browser = await chromium.launch()
   let failed = 0
 
   for (const s of SCENARIOS) {
-    const context = await browser.newContext({
-      ...devices['iPhone 13'],
-      viewport: VIEWPORT,
-      locale: s.lang === 'ar' ? 'ar' : 'en-US',
-    })
+    const context = await newContext(browser, { locale: s.lang === 'ar' ? 'ar' : 'en-US' })
     // Seed the save before any app code runs.
     await context.addInitScript(
       ([key, value]) => window.localStorage.setItem(key, value),
@@ -621,16 +945,22 @@ async function run() {
   failed += await checkTaskCalendarPrivacy(browser, url)
   // And the interactive tutorial: portal, fit, gesture flow, no trace, legacy skip.
   failed += await checkTutorial(browser, url)
+  // And importing a file, a failed save, and two open tabs.
+  failed += await checkImport(browser, url)
+  failed += await checkSaveFailure(browser, url)
+  failed += await checkTwoTabs(browser, url)
+  // Last, so it covers every request the run made.
+  failed += await checkNetworkClosed(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 6
+  const total = SCENARIOS.length + 10
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)
   }
-  console.log(`\nviewport-fit E2E: all ${total} checks fit the viewport.`)
+  console.log(`\nviewport-fit E2E: all ${total} checks passed.`)
 }
 
 run().catch((err) => { console.error(err); process.exit(1) })

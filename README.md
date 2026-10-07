@@ -168,7 +168,11 @@ Daily anchor, the faith registry, and the store itself, mounted in jsdom.
 pass on the built app at 390px: the share sheet and day editor fit the screen,
 the Daily anchor stays put, no Islamic term shows in No mode, "use my
 location" only reaches AlAdhan, the calendar buttons send nothing until you tap
-them, and the first-run tour works. Both run in CI before every deploy.
+them, the first-run tour works, a wrong backup file changes nothing, a failed
+save shows its line, and two open tabs don't overwrite each other. The e2e
+runs with the network closed: only the local preview server answers, service
+workers are blocked, AlAdhan gets a made-up reply, and the run fails if any
+other address gets through. Both run in CI before every deploy.
 
 ## How it's organized
 
@@ -218,8 +222,8 @@ Honest list, for future-me:
   offsets in Settings can nudge each one.
 - **The E2E is layout/leak-focused, not a full functional suite.** It guards
   viewport fit, anchor position, the faith no-leak rule, what the location and
-  calendar buttons send, and the first-run tour; it doesn't yet assert every
-  interaction.
+  calendar buttons send, the first-run tour, importing, a failed save and two
+  open tabs; it doesn't yet assert every interaction.
 - **Cache bloat over time.** The service worker keeps old fingerprinted assets in
   its runtime cache across many deploys (correctness is fine because HTML is
   network-first, but Cache Storage grows slowly).
