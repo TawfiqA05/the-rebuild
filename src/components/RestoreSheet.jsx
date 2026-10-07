@@ -53,12 +53,10 @@ export default function RestoreSheet({ pending, onReplace, onClose }) {
           </>
         ) : (
           <>
-            <div className="mt-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-              <div className="grid grid-cols-3 gap-2 text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)]">
-                <span />
-                <span className="text-end">{t('bk.replaceNow')}</span>
-                <span className="text-end">{t('bk.replaceFile')}</span>
-              </div>
+            <div className="mt-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-5 gap-y-2 items-baseline">
+              <span />
+              <span className="text-end text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)] whitespace-nowrap">{t('bk.replaceNow')}</span>
+              <span className="text-end text-[11px] uppercase tracking-[0.14em] text-[var(--color-faint)] whitespace-nowrap">{t('bk.replaceFile')}</span>
               <CountRow label={t('bk.habits')} now={pending.now.habits} file={pending.file.habits} testid="restore-habits" />
               <CountRow label={t('bk.daysLogged')} now={pending.now.days} file={pending.file.days} testid="restore-days" />
             </div>
@@ -75,12 +73,14 @@ export default function RestoreSheet({ pending, onReplace, onClose }) {
   )
 }
 
+// One row of the counts grid. `contents` lets its three cells sit in the
+// parent's columns, so the numbers line up under their headings.
 function CountRow({ label, now, file, testid }) {
   return (
-    <div data-testid={testid} className="grid grid-cols-3 gap-2 items-baseline mt-2 text-[14px]">
-      <span className="text-[var(--color-muted)]">{label}</span>
-      <span data-count="now" className="text-end tabular-nums">{now}</span>
-      <span data-count="file" className="text-end tabular-nums text-[var(--color-fg)] font-medium">{file}</span>
+    <div data-testid={testid} className="contents text-[14px]">
+      <span className="text-[14px] text-[var(--color-muted)]">{label}</span>
+      <span data-count="now" className="text-[14px] text-end tabular-nums">{now}</span>
+      <span data-count="file" className="text-[14px] text-end tabular-nums text-[var(--color-fg)] font-medium">{file}</span>
     </div>
   )
 }
