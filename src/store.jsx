@@ -21,6 +21,7 @@ import {
 } from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
 import { serializeBackup, parseBackup } from './lib/backup.js'
+import { clearPrayerCache } from './lib/prayerTimes.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
 
@@ -522,6 +523,9 @@ function makeActions(setState, stateRef) {
       setState(() => migrate(parseBackup(json)))
     },
     resetAll() {
+      // The prayer cache lives under its own key and holds the place, so it
+      // goes too. Done here, not inside the state update.
+      clearPrayerCache()
       setState(() => freshState())
     },
   }

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { locKey, computeTimes, monthUrl } from './prayerTimes.js'
+import { describe, it, expect, afterEach } from 'vitest'
+import { locKey, computeTimes, monthUrl, clearPrayerCache } from './prayerTimes.js'
 
 // Location handling is the crux of the per-device rewrite: the cache/identity
 // key must be stable per place, and computeTimes must degrade sensibly when
@@ -60,5 +60,25 @@ describe('computeTimes without a cached month', () => {
     })
     expect(r.source).toBe('manual')
     expect(r.times.fajr).toBe('05:30')
+  })
+})
+
+describe('clearPrayerCache', () => {
+  afterEach(() => { delete globalThis.localStorage })
+
+  it('removes the saved months and leaves every other key alone', () => {
+    const store = new Map([['rebuild:prayer-cache:v2', '{"addr:x":{}}'], ['the-rebuild:v1', '{}']])
+    globalThis.localStorage = {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    }
+    clearPrayerCache()
+    expect(store.has('rebuild:prayer-cache:v2')).toBe(false)
+    expect(store.get('the-rebuild:v1')).toBe('{}')
+  })
+
+  it('does not throw when storage is blocked', () => {
+    expect(() => clearPrayerCache()).not.toThrow()
   })
 })

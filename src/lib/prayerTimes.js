@@ -50,6 +50,11 @@ function saveCache(c) {
 }
 const monthOf = (dateKey) => dateKey.slice(0, 7) // "YYYY-MM"
 
+/** Drop every saved month (and the places they're keyed by). Used by Reset. */
+export function clearPrayerCache() {
+  try { localStorage.removeItem(CACHE_KEY) } catch { /* storage blocked */ }
+}
+
 /** The cached month record for a date at a location, or null. */
 export function getCachedMonth(dateKey, loc) {
   return loadCache()[locKey(loc)]?.[monthOf(dateKey)] || null
