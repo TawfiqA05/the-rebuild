@@ -1,9 +1,10 @@
 # The Rebuild
 
 A personal, local-first habit tracker that enforces one specific discipline
-system, not a generic streak app. Everything runs in your browser; there is no
-account, no backend, and no data ever leaves your device (it lives in
-`localStorage`, with JSON export/import for backup).
+system, not a generic streak app. It runs in your browser with no account and
+no backend. What you log lives in `localStorage`, with JSON export/import for
+backup. A few requests do go out, and I list every one under
+[What leaves your device](#what-leaves-your-device).
 
 Built with **Vite + React + Tailwind v4**. Dark, mobile-first, installable as a
 PWA.
@@ -89,6 +90,27 @@ Two things round out the day without touching the discipline machinery:
 - **First-run tour + calm start.** A four-step coach tour runs once after
   onboarding. New devices open to a calm screen (Tasks and Food tucked into
   one-line sections), and per-device settings remember how you like it.
+
+## What leaves your device
+
+Your habits, logs, tasks, food entries, journal lines and settings stay in your
+browser. Besides loading the app's own files from Cloudflare Pages, these are
+the only requests it makes:
+
+- **Fonts.** The app loads its fonts from Google Fonts (`fonts.googleapis.com`
+  and `fonts.gstatic.com`) the first time it opens, and again after some
+  updates. In between, the service worker uses the copy saved on your device.
+  Google sees what any browser request carries, like your IP address, but
+  nothing you've logged.
+- **Prayer times.** Only with Islamic practices on and a location set. The app
+  asks AlAdhan (`api.aladhan.com`) for a month of times: either the place you
+  typed, or your position from "use my location" rounded to two decimals
+  (about 1 km). The exact position stays saved on your device. Each month is
+  cached, so it only asks again for a new month or a new place.
+- **Google Calendar link.** Next to a task, the Google Calendar button opens
+  Google with the task's title and due date in the link. Nothing is sent until
+  you tap it. The .ics button beside it saves a file on your device and sends
+  nothing.
 
 ## Run it
 

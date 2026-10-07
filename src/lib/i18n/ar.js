@@ -32,7 +32,8 @@ export default {
   'ob.pitchTitle': 'ابْنِ الشخص الذي تريد أن تكونه، خطوة تلو الأخرى.',
   'ob.pitch1': 'تطبيق لتتبّع العادات بقاعدة واحدة تهمّ: لا تفوّت مرتين. فوّت يومًا، لا بأس. فقط لا تفوّت اليوم التالي. لكل عادة نسخة من دقيقتين، فبدل أن تتخطّاها في يوم صعب، صغّرها.',
   'ob.pitch2': 'أضف مهامًا سريعة إلى جانب عاداتك، ودوّن ما تأكله. كلاهما جانبيّ ولا يمسّ سلاسل إنجازك.',
-  'ob.pitch3': 'كل شيء يبقى على جهازك. لا حساب ولا تسجيل.',
+  'ob.pitch3': 'ما تسجّله يبقى على هذا الجهاز. لا حساب ولا تسجيل. شيئان فقط يتصلان بالإنترنت: الخطوط تُحمَّل من Google، والضغط على رابط تقويم Google لمهمة يرسل عنوانها وتاريخ استحقاقها إلى Google.', // REVIEW: new wording, please check
+  'ob.pitch3Prayer': 'ما تسجّله يبقى على هذا الجهاز. لا حساب ولا تسجيل. ثلاثة أشياء فقط تتصل بالإنترنت: الخطوط تُحمَّل من Google، وأوقات الصلاة تأتي من AlAdhan حسب المكان الذي تحدّده، والضغط على رابط تقويم Google لمهمة يرسل عنوانها وتاريخ استحقاقها إلى Google.', // REVIEW: new wording, please check
   'ob.getStarted': 'لنبدأ',
   'ob.langTitle': 'اختر لغتك',
   'ob.langIntro': 'يمكنك تغييرها في أي وقت من الإعدادات.',
@@ -95,7 +96,7 @@ export default {
   'salah.allOnTime': 'الخمس كلها في وقتها ✓',
   'salah.prayedLate': 'صُلّيت الخمس ({n} متأخرة)', // REVIEW: plural agreement with {n}
   'salah.prayedCount': '{n}/5 صُلّيت',
-  'salah.setLocation': 'حدّد موقعك لرؤية أوقات الصلاة. يبقى على جهازك.',
+  'salah.setLocation': 'حدّد موقعك لرؤية أوقات الصلاة. يُحفظ على هذا الجهاز. لجلب الأوقات، يصل إلى AlAdhan المكان الذي تكتبه، أو موقعك مقرّبًا إلى نحو ١ كم.', // REVIEW: new wording, please check
   'salah.offline': 'دون إنترنت، نستخدم أوقاتك اليدوية',
   'salah.loadingTimes': 'جارٍ تحميل أوقات الصلاة…',
   'salah.unavailable': 'لا أوقات صلاة بعد. حدّد موقعًا من الإعدادات',
@@ -272,7 +273,7 @@ export default {
   'weekly.vsPrior': 'مقارنة بالسابق',
   'weekly.backupTitle': 'انسخ بياناتك احتياطيًّا',
   'weekly.backupOver': 'مرّ أكثر من أسبوع. ضغطة واحدة تحفظ نسخة JSON.',
-  'weekly.backupNever': 'كل شيء على هذا الجهاز. احفظ نسخة وأنت هنا.',
+  'weekly.backupNever': 'ما تسجّله محفوظ على هذا الجهاز فقط. احفظ نسخة وأنت هنا.', // REVIEW: new wording, please check
   'weekly.export': 'تصدير',
   'weekly.howItWent': 'كيف سار الأسبوع الماضي',
   'weekly.pickOne': 'اختر شيئًا واحدًا لتحسّنه',
@@ -358,7 +359,7 @@ export default {
   'bk.today': 'اليوم',
   'bk.yesterday': 'أمس',
   'bk.daysAgo': 'قبل {n} يوم',
-  'bk.version': 'The Rebuild · إصدار {v} · كل شيء يبقى على هذا الجهاز',
+  'bk.version': 'The Rebuild · إصدار {v} · ما تسجّله محفوظ على هذا الجهاز فقط. الخطوط تُحمَّل من Google، ورابط التقويم لمهمة يرسل عنوانها وتاريخ استحقاقها إلى Google عند الضغط عليه.', // REVIEW: new wording, please check
 
   'share.eyebrow': 'شارك أسبوعك',
   'share.title': 'أرسله لشخص',

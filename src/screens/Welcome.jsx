@@ -87,7 +87,7 @@ export default function Welcome() {
           <h1 className="font-display text-[2.6rem] leading-[1.05]">{t('ob.pitchTitle')}</h1>
           <p className="text-[15px] text-[var(--color-muted)] mt-5 leading-relaxed">{t('ob.pitch1')}</p>
           <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">{t('ob.pitch2')}</p>
-          <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">{t('ob.pitch3')}</p>
+          <p className="text-[15px] text-[var(--color-muted)] mt-3 leading-relaxed">{t(includeIslamic ? 'ob.pitch3Prayer' : 'ob.pitch3')}</p>
           <div className="flex-1" />
           <Button variant="primary" className="w-full mt-8 py-3.5" onClick={() => setStep(3)}>{t('ob.getStarted')}</Button>
           <button onClick={() => setStep(1)} className="text-[13px] text-[var(--color-faint)] mt-4">{t('common.back')}</button>
