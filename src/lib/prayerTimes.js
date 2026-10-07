@@ -81,11 +81,18 @@ function shiftHM(hm, minutes) {
 
 // --- fetching ---------------------------------------------------------------
 
-/** Build the AlAdhan month URL for a location (coords → calendar, else address). */
-function monthUrl(y, mNum, loc) {
+/**
+ * Build the AlAdhan month URL for a location (coords → calendar, else address).
+ * Coordinates go out rounded to two decimals (about 1 km), which moves the
+ * times by a minute at most. Only the request is rounded: the saved location
+ * and the cache key (locKey) keep their own precision.
+ */
+export function monthUrl(y, mNum, loc) {
   if (loc.mode === 'coords' && loc.lat != null && loc.lng != null) {
+    const lat = Number(loc.lat).toFixed(2)
+    const lng = Number(loc.lng).toFixed(2)
     return `https://api.aladhan.com/v1/calendar/${y}/${mNum}`
-      + `?latitude=${loc.lat}&longitude=${loc.lng}&method=${METHOD}`
+      + `?latitude=${lat}&longitude=${lng}&method=${METHOD}`
   }
   return `https://api.aladhan.com/v1/calendarByAddress/${y}/${mNum}`
     + `?address=${encodeURIComponent(loc.address || loc.label)}&method=${METHOD}`

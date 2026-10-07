@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { locKey, computeTimes } from './prayerTimes.js'
+import { locKey, computeTimes, monthUrl } from './prayerTimes.js'
 
 // Location handling is the crux of the per-device rewrite: the cache/identity
 // key must be stable per place, and computeTimes must degrade sensibly when
@@ -22,6 +22,27 @@ describe('locKey', () => {
   it('normalises address case', () => {
     expect(locKey({ mode: 'address', address: 'Cairo, EG' }))
       .toBe(locKey({ mode: 'address', address: 'cairo, eg' }))
+  })
+})
+
+describe('monthUrl', () => {
+  it('sends coordinates rounded to two decimals, nothing finer', () => {
+    const url = monthUrl('2026', 10, { mode: 'coords', lat: 41.878113, lng: -87.629799 })
+    const q = new URL(url).searchParams
+    expect(q.get('latitude')).toBe('41.88')
+    expect(q.get('longitude')).toBe('-87.63')
+    expect(url).not.toContain('41.878')
+    expect(url).not.toContain('87.629')
+  })
+
+  it('leaves the cache key at three decimals', () => {
+    expect(locKey({ mode: 'coords', lat: 41.878113, lng: -87.629799 })).toBe('geo:41.878,-87.630')
+  })
+
+  it('sends a typed place as typed', () => {
+    const url = monthUrl('2026', 10, { mode: 'address', address: 'Chicago, IL' })
+    expect(new URL(url).searchParams.get('address')).toBe('Chicago, IL')
+    expect(url).toContain('/v1/calendarByAddress/2026/10')
   })
 })
 
