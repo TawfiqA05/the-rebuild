@@ -9,8 +9,10 @@
 // machine and every run sees the same day.
 //
 // Four saved states, each made with made-up data:
-//   1. a place typed as an address (Chicago), set through the old build
-//   2. a place from "use my location" (a mock position in Chicago)
+//   1. a place typed as an address (Chicago), set through the old build, with
+//      this month's prayer times saved
+//   2. a place from "use my location" (a mock position in Chicago), with this
+//      month's prayer times saved
 //   3. a location the old build filled in by default and saved. This only
 //      exists while the old build still has a default; the script never holds
 //      one itself. It seeds no location, lets the old build fill it in, and
@@ -19,10 +21,13 @@
 //
 // Forward (old build, then new): states 1 to 3 must keep every habit, log,
 // streak and the saved location, and their exports must match apart from
-// exportedAt and lastExportAt. State 4 must match the old build's view of the
+// exportedAt and lastExportAt. Saved prayer times must match too, and the saved
+// month must show on Today with no new request. State 4 must match the old build's view of the
 // same save in everything but the location, which ends empty.
 // Reverse (new build, then old again, which is what a revert does): the old
 // build must open what the new one saved with nothing lost.
+// Reset: on the new build, Reset everything must leave the app's key holding
+// only a fresh state, and the prayer cache key must be gone.
 //
 // Run:  npm run build
 //       node scripts/upgrade-check.mjs --old <old dist folder> --new dist
@@ -50,6 +55,20 @@ const TODAY = '2026-10-05'
 const PINNED = new Date('2026-10-05T19:30:00-05:00') // a Monday evening in Chicago
 const CHICAGO = { latitude: 41.8781, longitude: -87.6298 }
 const TYPED_PLACE = 'Chicago, IL'
+
+// Screen text that is meant to change between the two builds. Each pair is
+// [old, new]; both read as the same thing when screens are compared. Anything
+// not listed here must match exactly. Update this list with each wording change.
+const WORDING_CHANGES = [
+  [/^— /gm, ''], // the quote citation lost its leading dash
+  ['Set your location to see prayer times. It stays on this device.',
+    'Set your location to see prayer times. It’s saved on this device. To look up the times, AlAdhan gets the place you type, or your position rounded to about 1 km.'],
+]
+function sameWording(text) {
+  let t = text
+  for (const [from, to] of WORDING_CHANGES) t = typeof from === 'string' ? t.split(from).join(to) : t.replace(from, to)
+  return t
+}
 
 // --- a static server whose folder can be swapped between builds -------------
 
@@ -162,11 +181,16 @@ await context.clock.setFixedTime(PINNED)
 
 let prayerCalls = 0
 const leaked = []
+const finerThanTwoDecimals = [] // coordinates the new build sent with more than two decimals
 await context.route('**/*', (route) => {
   const u = route.request().url()
   if (u.startsWith(ORIGIN)) return route.continue()
   if (u.includes('aladhan.com')) {
     prayerCalls++
+    const q = new URL(u).searchParams
+    for (const k of ['latitude', 'longitude']) {
+      if (servedDir === NEW && q.has(k) && !/^-?\d+(\.\d{1,2})?$/.test(q.get(k))) finerThanTwoDecimals.push(k)
+    }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(stubMonth(u)) })
   }
   leaked.push(new URL(u).host)
@@ -179,10 +203,10 @@ page.on('pageerror', (e) => consoleErrors.push(e.message))
 
 // --- helpers --------------------------------------------------------------------
 
-async function openApp(which) {
+async function openApp(which, { waitForNav = true } = {}) {
   servedDir = which === 'old' ? OLD : NEW
   await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle' })
-  await page.locator('nav button').first().waitFor()
+  if (waitForNav) await page.locator('nav button').first().waitFor()
   const loaded = await page.evaluate(() => [...document.scripts].map((s) => s.src).join(' '))
   if (!loaded.includes(BUNDLE[which])) throw new Error(`expected the ${which} build, got another bundle`)
   await page.waitForTimeout(300)
@@ -194,13 +218,28 @@ async function resetStorage(save) {
 }
 
 const saved = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), STORAGE_KEY)
+const savedPrayers = () => page.evaluate((k) => localStorage.getItem(k), PRAYER_CACHE_KEY)
+
+// Wait until this month's prayer times are saved for the location just set.
+const waitForSavedMonth = () => page.waitForFunction(([k, month]) => {
+  const c = JSON.parse(localStorage.getItem(k) || '{}')
+  return Object.values(c).some((byMonth) => byMonth && byMonth[month])
+}, [PRAYER_CACHE_KEY, TODAY.slice(0, 7)])
+
+// Today's Fajr as the stub serves it, in the two ways the card might print it.
+function stubFajrToday() {
+  const d = Number(TODAY.slice(8, 10))
+  const t = 5 * 60 + 34 + Math.round(1.1 * (d - 1))
+  const h = Math.floor(t / 60), m = String(t % 60).padStart(2, '0')
+  return [`${String(h).padStart(2, '0')}:${m}`, `${h}:${m}`]
+}
 
 const tab = (name) => page.locator('nav button', { hasText: name }).click()
 
 async function screenText(name) {
   await tab(name)
   await page.waitForTimeout(250)
-  return page.evaluate(() => document.querySelector('main')?.innerText ?? document.body.innerText)
+  return sameWording(await page.evaluate(() => document.querySelector('main')?.innerText ?? document.body.innerText))
 }
 
 // The streak shown for each habit on Stats (🔥 number), by habit name.
@@ -239,6 +278,7 @@ async function snapshot() {
   const exported = await exportBackup()
   return {
     state: await saved(),
+    prayers: await savedPrayers(),
     exported,
     streaks: await streaks(),
     stats: await screenText('Stats'),
@@ -255,6 +295,16 @@ function diffKeys(a, b) {
   return out
 }
 
+// The lines that differ between two screen texts, for the failure message.
+function lineDiff(a, b) {
+  const A = a.split('\n'), B = b.split('\n')
+  const out = []
+  for (let i = 0; i < Math.max(A.length, B.length); i++) {
+    if (A[i] !== B[i]) out.push(`      - ${A[i] ?? ''}\n      + ${B[i] ?? ''}`)
+  }
+  return out.slice(0, 6).join('\n')
+}
+
 function compare(label, before, after, { location = 'same' } = {}) {
   const failures = []
   const dropLocation = location !== 'same'
@@ -265,7 +315,8 @@ function compare(label, before, after, { location = 'same' } = {}) {
   if (before.stats !== after.stats) failures.push('Stats screen text differs')
   if (location === 'same') {
     if (!isDeepStrictEqual(s1.settings.prayerLocation, s2.settings.prayerLocation)) failures.push('saved location differs')
-    if (before.today !== after.today) failures.push('Today screen text differs')
+    if (before.prayers !== after.prayers) failures.push('saved prayer times differ')
+    if (before.today !== after.today) failures.push(`Today screen text differs:\n${lineDiff(before.today, after.today)}`)
   } else if (location === 'empty') {
     if (s2.settings.prayerLocation !== null) failures.push('location is not empty')
   }
@@ -292,6 +343,7 @@ async function makeTyped() {
   await page.waitForFunction((k) => JSON.parse(localStorage.getItem(k))?.settings?.prayerLocation?.mode === 'address', STORAGE_KEY)
   const loc = (await saved()).settings.prayerLocation
   if (loc.address !== TYPED_PLACE) throw new Error('typed place was not saved as typed')
+  await waitForSavedMonth()
   return true
 }
 
@@ -303,6 +355,7 @@ async function makeLocated() {
   await page.waitForFunction((k) => JSON.parse(localStorage.getItem(k))?.settings?.prayerLocation?.mode === 'coords', STORAGE_KEY)
   const loc = (await saved()).settings.prayerLocation
   if (Math.abs(loc.lat - CHICAGO.latitude) > 1e-6 || Math.abs(loc.lng - CHICAGO.longitude) > 1e-6) throw new Error('mock position was not saved')
+  await waitForSavedMonth()
   return true
 }
 
@@ -357,6 +410,17 @@ try {
         console.log(`✗ ${label}: the new build asked for prayer times with no location set`)
         failed++
       }
+      if (location === 'same' && before.prayers) {
+        if (prayerCalls !== callsBefore) {
+          console.log(`✗ ${label}: the new build asked for a month that was already saved`)
+          failed++
+        } else if (!stubFajrToday().some((t) => after.today.includes(t))) {
+          console.log(`✗ ${label}: the saved month does not show on Today`)
+          failed++
+        } else {
+          console.log(`✓ ${label}: saved month shows on Today with no new request`)
+        }
+      }
       if (compare(`forward ${label}`, before, after, { location })) fwd.checked++
       else failed++
 
@@ -370,6 +434,36 @@ try {
       failed++
     }
   }
+
+  // Reset everything on the new build: the app's key holds only a fresh state
+  // and the prayer cache key is gone.
+  try {
+    await resetStorage(null)
+    await openApp('new', { waitForNav: false })
+    await page.waitForFunction((k) => localStorage.getItem(k) !== null, STORAGE_KEY)
+    const fresh = await saved()
+    await resetStorage(sampleSave({ mode: 'coords', lat: CHICAGO.latitude, lng: CHICAGO.longitude }))
+    await openApp('new')
+    await waitForSavedMonth()
+    await tab('Settings')
+    page.once('dialog', (d) => d.accept())
+    await page.getByRole('button', { name: 'Reset everything' }).click()
+    await page.waitForFunction((k) => JSON.parse(localStorage.getItem(k))?.settings?.onboarded === false, STORAGE_KEY)
+    await page.waitForTimeout(300)
+    const after = await saved()
+    const cacheLeft = await savedPrayers()
+    const keysLeft = await page.evaluate(() => Object.keys(localStorage).sort())
+    // createdAt stamps are the only thing allowed to differ between two fresh states.
+    const strip = (st) => JSON.parse(JSON.stringify(st, (k, v) => (k === 'createdAt' ? undefined : v)))
+    const problems = []
+    if (!isDeepStrictEqual(strip(after), strip(fresh))) problems.push('the app key does not hold a fresh state')
+    if (cacheLeft !== null) problems.push('the prayer cache key is still there')
+    if (problems.length) { console.log('✗ reset'); for (const p of problems) console.log(`    · ${p}`); failed++ }
+    else console.log(`✓ reset: fresh state only, prayer cache gone (keys left: ${keysLeft.join(', ')})`)
+  } catch (err) {
+    console.log(`✗ reset: threw: ${err.message}`)
+    failed++
+  }
 } finally {
   await context.close()
   server.close()
@@ -379,6 +473,7 @@ try {
 if (leaked.length) console.log(`blocked outside requests: ${[...new Set(leaked)].join(', ')}`)
 if (consoleErrors.length) { console.log(`page errors: ${consoleErrors.length}`); for (const e of consoleErrors) console.log(`    · ${e}`); failed++ }
 console.log(`prayer-times requests answered by the stub: ${prayerCalls}`)
+if (finerThanTwoDecimals.length) { console.log(`✗ the new build sent coordinates finer than two decimals (${finerThanTwoDecimals.length})`); failed++ }
 console.log(`forward: ${fwd.checked} checked, ${fwd.skipped} skipped`)
 console.log(`reverse: ${rev.checked} checked, ${rev.skipped} skipped`)
 if (failed) {
