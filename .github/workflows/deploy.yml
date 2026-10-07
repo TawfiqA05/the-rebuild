@@ -13,6 +13,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only token: the deploy uses the Cloudflare secret, not GitHub write access.
+permissions:
+  contents: read
+
+# One deploy at a time. A newer push waits for the running deploy to finish
+# instead of cancelling it halfway through an upload. If several pushes pile
+# up, only the newest waiting one runs.
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

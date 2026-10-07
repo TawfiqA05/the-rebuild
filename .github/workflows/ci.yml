@@ -8,6 +8,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only token: this workflow only checks out and tests the code.
+permissions:
+  contents: read
+
+# A newer push to the same pull request cancels the run that's still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
