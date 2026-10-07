@@ -1,13 +1,17 @@
 # The Rebuild
 
+[![Deploy](https://github.com/TawfiqA05/the-rebuild/actions/workflows/deploy.yml/badge.svg)](https://github.com/TawfiqA05/the-rebuild/actions/workflows/deploy.yml)
+
+Live: https://the-rebuild.pages.dev
+
 A personal, local-first habit tracker that enforces one specific discipline
 system, not a generic streak app. It runs in your browser with no account and
 no backend. What you log lives in `localStorage`, with JSON export/import for
 backup. A few requests do go out, and I list every one under
 [What leaves your device](#what-leaves-your-device).
 
-Built with **Vite + React + Tailwind v4**. Dark, mobile-first, installable as a
-PWA.
+Built with **Vite + React + Tailwind v4**. Mobile-first and installable as a
+PWA. A new install follows your device: Ivory in light mode, Charcoal in dark.
 
 ## Screenshots
 
@@ -36,7 +40,8 @@ The philosophy is baked into the *logic*, not just the copy:
 
 Habits are grouped into phases you unlock in order:
 
-1. **Anchors**: Salah on time, consistent sleep/wake, gym 3×/week, make bed
+1. **Anchors**: Salah on time, consistent sleep/wake, gym 3×/week, make bed,
+   phone to the kitchen by 10:30pm, clean feed
 2. **Mind & Structure**: plan tomorrow, Sunday plan, read, Quran, no snooze
 3. **Body & Focus**: no-phone windows, deep work, water, protein, walk, tidy
 4. **Money & Admin**: expenses, meal prep, chore days, 48h impulse rule
@@ -54,6 +59,9 @@ Two things round out the day without touching the discipline machinery:
   daily score, streaks, or never-miss-twice (it does count a single *vote*).
   Unfinished tasks roll quietly to the next day with a soft "since Tue" tag; the
   evening shutdown's "plan tomorrow's top 3" creates real tasks for tomorrow.
+  Finished and deleted tasks wait in a searchable archive for 90 days, and you
+  can bring one back from there. A task can also go on your calendar, as a
+  Google Calendar link or an .ics file.
 - **Daily anchor.** One quiet line of motivation, fixed for the whole day
   (deterministic by date, not a feed, no refresh button). It rotates through a
   curated set of verified quotes (with your own additions from Settings) and,
@@ -65,9 +73,10 @@ Two things round out the day without touching the discipline machinery:
   Frequent items become one-tap re-add chips; a day with nothing logged is
   neutral, not a warning.
 - **Accountability share.** From the weekly review or Stats, turn the week into
-  something you can send a friend: a plain-text summary and an ivory/gold image
-  card (drawn on a canvas, no external services). Habit scores, streaks, and one
-  line you type. Nothing from the food log ever appears in it.
+  something you can send a friend: a plain-text summary and an image card in
+  your current theme's colors (drawn on a canvas, no external services).
+  Habit scores, streaks, and one line you type. Nothing from the food log ever
+  appears in it.
 
 ### Making it yours
 
@@ -85,9 +94,11 @@ Two things round out the day without touching the discipline machinery:
   Mon/Thu fasting, scripture in the Daily anchor, prayer-time setup. Off is a
   clean, universal app with all of that hidden. It's visibility-only: nothing is
   deleted, so flipping it back on restores everything with history intact. A
-  central registry (`src/lib/faith.js`) is the single source of what's Islamic,
-  and a CI test renders every screen in No mode and fails if any of it leaks.
-- **First-run tour + calm start.** A four-step coach tour runs once after
+  registry (`src/lib/faith.js`) lists the Islamic habits, prompts and quotes.
+  Today and Settings also check the setting directly for a few lines of their
+  own. A CI check opens every main screen in No mode and fails if an Islamic term
+  shows up.
+- **First-run tour + calm start.** A five-step coach tour runs once after
   onboarding. New devices open to a calm screen (Tasks and Food tucked into
   one-line sections), and per-device settings remember how you like it.
 
@@ -118,13 +129,16 @@ Node 20 is required (pinned in `.nvmrc`; CI uses 20).
 
 ```bash
 npm install
-npm run dev      # local dev server (prints a URL, open it on your phone too)
+npm run dev      # local dev server, on this computer only
 npm run build    # production build → dist/
 npm run preview  # serve the production build locally
 ```
 
-Open the printed URL on your phone (same Wi-Fi) and "Add to Home Screen" to use
-it as an installable app.
+The dev server only answers on this computer, so a phone can't open it as is.
+Exposing it with `npm run dev -- --host` doesn't fix that: the phone gets it
+over plain http, where the browser hides `crypto.randomUUID` and
+`crypto.subtle`, and parts of the app need them. To use it on a phone, open
+the live site and choose "Add to Home Screen".
 
 ## What's built
 
@@ -143,14 +157,17 @@ All the core screens are built and shipping:
 - **Accountability share**: plain-text + a canvas image card, from Stats or the
   weekly review.
 
-Still not built: web-notification reminders (morning / 10:30pm / shutdown /
-Sunday). The service worker has the upgrade path stubbed for it.
+There are no reminders. The app never sends notifications.
 
-Quality gates: `npm test` runs the unit suite (Vitest, 215 tests over the rules
-engine, migrations, i18n, backup, and the faith registry). `npm run e2e` is a
-headless-Chromium pass that pins the real layout: the share sheet and day
-editor fit a 390px viewport, the Daily anchor stays put, and no Islamic term
-leaks in No mode. It runs in CI as a deploy gate.
+Quality gates: `npm test` runs the unit suite (Vitest). It covers the rules
+engine and streaks, migrations, backup and import, both string tables (Arabic
+must have every English key, with the same placeholders), tasks and the
+archive, the food log, prayer times, themes and their contrast, sharing, the
+Daily anchor, and the faith registry. `npm run e2e` is a headless-Chromium
+pass on the built app at 390px: the share sheet and day editor fit the screen,
+the Daily anchor stays put, no Islamic term shows in No mode, "use my
+location" only reaches AlAdhan, the calendar buttons send nothing until you tap
+them, and the first-run tour works. Both run in CI before every deploy.
 
 ## How it's organized
 
@@ -160,16 +177,24 @@ src/
     time.js     # logical-day math, day rolls over at 3am (configurable)
     seed.js     # the system as data: all phases, habits, 2-min versions
     logic.js    # pure rules engine: streaks, never-miss-twice, phase %, MVD
-    faith.js    # registry of every Islamic surface; the toggle reads only this
+    faith.js    # registry of the Islamic habits, prompts and quotes
     migrate.js  # forward-migrate any saved state into the current shape
     backup.js   # versioned JSON export/import envelope
     anchor.js, quotes.js, share.js, prayerTimes.js, tasks.js, food.js, …
-  i18n/         # en/ar string tables + stock-habit name resolver
+    i18n/       # en/ar string tables + stock-habit name resolver
+  hooks/        # usePrayerLocation, usePrayerTimes
+  i18n.jsx      # language provider; keeps the page's lang and dir in sync
   store.jsx     # single localStorage-backed state + intent-named actions
   components/   # HabitCard, SalahCard, ShareSheet, DayEditor, AnchorCard, …
   screens/      # Today, Stats, Shutdown, WeeklyReview, Settings, Welcome
   App.jsx       # shell + bottom nav
-scripts/e2e/    # viewport.mjs, the headless layout / no-leak pass
+scripts/
+  e2e/viewport.mjs   # the headless layout / no-leak pass
+  upgrade-check.mjs  # opens an old build's saved data in a new build and back
+  readme-shots.mjs   # retakes the README screenshots from made-up data
+  gen-icons.mjs      # turns the icon SVGs into the PNG sizes
+  deploy.sh          # manual deploy: tests, build, upload
+screenshots/    # the images in this README
 public/
   manifest.webmanifest, sw.js, icons   # PWA
 ```
@@ -178,16 +203,22 @@ public/
 
 Honest list, for future-me:
 
-- **Reminders aren't built.** No morning / evening / Sunday notifications yet.
-  The service worker has `push` / `notificationclick` stubs noted but unwired.
+- **There are no reminders.** The app sends no notifications of any kind.
 - **Two languages.** English and Arabic only. The engine is data-driven, but
   every other language is still untranslated (falls back to English).
-- **Prayer times need a network fetch once.** They come from the AlAdhan API and
-  are cached to localStorage for offline use; the very first load per location
-  needs a connection (a manual fallback exists in Settings).
+- **Prayer times need a connection once a month per location.** They come from
+  the AlAdhan API a month at a time and are cached in localStorage for offline
+  use. A new month or a new place needs a connection again (a manual fallback
+  exists in Settings).
+- **One calculation method for everyone.** Prayer times always use ISNA
+  (method 2), the usual North American method, set in `src/lib/prayerTimes.js`.
+  There's no setting to choose another, so the times may not match what a
+  local masjid uses, especially outside North America. The per-prayer minute
+  offsets in Settings can nudge each one.
 - **The E2E is layout/leak-focused, not a full functional suite.** It guards
-  viewport fit, anchor position, and the faith no-leak rule; it doesn't yet
-  assert every interaction.
+  viewport fit, anchor position, the faith no-leak rule, what the location and
+  calendar buttons send, and the first-run tour; it doesn't yet assert every
+  interaction.
 - **Cache bloat over time.** The service worker keeps old fingerprinted assets in
   its runtime cache across many deploys (correctness is fine because HTML is
   network-first, but Cache Storage grows slowly).
@@ -247,8 +278,10 @@ fails, nothing is uploaded. Requires a one-time `wrangler login`.
 
 ### 2. Automatic on every push (GitHub Actions)
 
-`.github/workflows/deploy.yml` builds and deploys to Cloudflare Pages on every
-push to `main`. `.github/workflows/ci.yml` runs a build check on pull requests.
+`.github/workflows/deploy.yml` runs the tests, the build and the layout check,
+then deploys to Cloudflare Pages on every push to `main`. If any of them fails,
+nothing deploys. `.github/workflows/ci.yml` runs the same tests, build and layout
+check on pull requests.
 
 One-time setup: add a repo secret so the Action can deploy:
 
@@ -266,8 +299,8 @@ After that, every push to `main` auto-deploys.
 
 - `base: './'` in `vite.config.js` means the app works at any path/domain.
 - Node is pinned to 20 via `.nvmrc`.
-- No personal data is ever in the repo or on the server. All app data lives in
-  your browser's localStorage.
+- The app has no server of its own and no accounts. What you log stays in your
+  browser's localStorage; Cloudflare only serves the app's files.
 - To keep the *site* private, enable **Cloudflare Access** (Pages project →
   Settings) for email or one-time-PIN login.
 
