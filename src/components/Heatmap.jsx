@@ -5,8 +5,8 @@ import { habitStatusOn, isRequiredOnDay } from '../lib/logic.js'
 /**
  * A GitHub-style contribution grid for one habit: columns = weeks, rows = days
  * (Sun→Sat), most recent week on the right.
- *   full rep → emerald
- *   min rep  → amber
+ *   full rep → the theme's accent, at full strength
+ *   min rep  → the same accent, dimmed
  *   scheduled but missed → faint outline (no shame — it's just absence)
  *   not scheduled / future → blank
  */

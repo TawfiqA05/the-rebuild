@@ -5,7 +5,7 @@
 // gated by guessing at names or scanning text at runtime: a thing is Islamic
 // because it's listed in this file, full stop. When you add a new Islamic
 // feature — a habit, a prompt, a card, a quote pool — register it here or the
-// no-leak test (see includeIslamic-noleak in the E2E) will fail CI.
+// no-leak check (checkNoFaithLeak in scripts/e2e/viewport.mjs) will fail CI.
 //
 // The rule everywhere is visibility-only: registered content is hidden when the
 // toggle is off and shown when it's on, and is NEVER deleted — so flipping the

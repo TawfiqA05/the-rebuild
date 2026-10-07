@@ -1,19 +1,27 @@
 // ---------------------------------------------------------------------------
-// viewport.mjs — the E2E pass: prove the accountability share view fits the
-// screen on a small phone, with nothing hidden below the fold.
+// viewport.mjs — the E2E pass. A real headless Chromium loads the built app
+// at 390px (iPhone 12/13/14 width) with made-up saved data and runs 11 checks.
 //
-// A real headless Chromium loads the built app at 390px (iPhone 12/13/14
-// width), seeds a fully-onboarded state, opens the share sheet from both the
-// Stats button and the Sunday weekly-review path, then measures the real
-// layout. We assert:
+// Share sheet (5 checks). Opened from the Stats button and from the Sunday
+// weekly-review path, across a few themes, a long typed-in line, and
+// Arabic/RTL, where the card mirrors. For each we assert:
 //   - the sheet opens scrolled to the top (its top edge isn't above the screen)
 //   - the whole sheet fits inside the viewport (bottom edge on-screen)
 //   - the preview card is fully visible (scaled down to fit, never clipped)
-//   - Share / Copy / Save are all on-screen — reachable without scrolling
+//   - Share / Copy / Save are all on-screen, reachable without scrolling
 //   - nothing inside the sheet actually needs scrolling to reach them
 //
-// It runs across a couple of themes, a long typed-in line, and Arabic/RTL,
-// where the card mirrors — the fit has to hold in both directions.
+// Then six more:
+//   - day editor: the "fix a past day" panel fits the screen
+//   - daily anchor: it sits under the score card and above the habits
+//   - no faith leak: with Islamic practices off, no Islamic term shows on any
+//     screen, on a fresh save and on an old one
+//   - location privacy: "use my location" contacts AlAdhan only, never a
+//     reverse geocoder
+//   - task calendar: the Google link and the .ics file are built on the
+//     device from the title and date, and nothing is sent until a tap
+//   - tutorial: the spotlight fits, the gestures advance it, it leaves no
+//     trace, and an existing device never sees it
 //
 // Run with:  npm run e2e   (builds, then drives this)
 // ---------------------------------------------------------------------------
