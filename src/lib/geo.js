@@ -23,8 +23,8 @@ export function getPosition(opts = {}) {
 
 /** Turn a geolocation error into a short, friendly message. */
 export function geoErrorMessage(err) {
-  if (err && err.code === 1) return 'Location permission denied — search for a city instead.'
-  if (err && err.code === 3) return 'Location timed out — search for a city instead.'
-  if (err && err.message === 'unsupported') return 'This device can’t share location — search for a city.'
-  return 'Couldn’t get your location — search for a city instead.'
+  if (err && err.code === 1) return 'Location permission denied. Search for a city instead.'
+  if (err && err.code === 3) return 'Location timed out. Search for a city instead.'
+  if (err && err.message === 'unsupported') return 'This device can’t share location. Search for a city.'
+  return 'Couldn’t get your location. Search for a city instead.'
 }

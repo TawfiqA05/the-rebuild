@@ -38,7 +38,7 @@ export default function AnchorCard({ biasOwn = false }) {
             <span className="text-[var(--color-accent-ink)]/60">“</span>{quote}<span className="text-[var(--color-accent-ink)]/60">”</span>
           </p>
           {cite && (
-            <div className="text-[11px] text-[var(--color-faint)] mt-1.5">— {cite}</div>
+            <div className="text-[11px] text-[var(--color-faint)] mt-1.5">{cite}</div>
           )}
         </>
       )}

@@ -272,4 +272,4 @@ After that, every push to `main` auto-deploys.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

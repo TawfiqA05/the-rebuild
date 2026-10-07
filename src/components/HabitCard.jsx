@@ -76,7 +76,7 @@ export default function HabitCard({ habit, dayKey }) {
           label carries the current state so a screen reader announces it. */}
       <button
         {...press}
-        aria-label={`${t('habit.log', { name })} — ${
+        aria-label={`${t('habit.log', { name })}, ${
           status === 'full' ? t('habit.toastFull') : status === 'min' ? t('habit.toastMin') : t('habit.hint')
         }`}
         aria-pressed={done}

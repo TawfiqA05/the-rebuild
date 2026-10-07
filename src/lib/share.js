@@ -94,7 +94,7 @@ export function shareSummaryToText(summary) {
   ]
   for (const r of summary.rows) {
     const streak = r.streak > 0 ? ` · ${r.streak}-day streak` : ''
-    lines.push(`${r.emoji} ${r.name} — ${scoreLabel(r)}${streak}`)
+    lines.push(`${r.emoji} ${r.name}: ${scoreLabel(r)}${streak}`)
   }
   if (summary.note) { lines.push('', `“${summary.note}”`) }
   lines.push('', 'Never miss twice.')
