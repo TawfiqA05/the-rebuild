@@ -38,7 +38,7 @@ export const storageAvailable = (() => {
   }
 })()
 
-// Private-log lockout policy.
+// Lockout policy.
 const MAX_PIN_FAILS = 5
 const PIN_LOCK_MS = 60 * 60 * 1000 // 1 hour
 
@@ -450,7 +450,6 @@ function makeActions(setState, stateRef) {
       }))
     },
 
-    // -- private log --
     addPrivateEntry(entry) {
       setState((prev) => ({
         ...prev,
@@ -469,7 +468,7 @@ function makeActions(setState, stateRef) {
         },
       }))
     },
-    /** Set the one-and-only owner PIN (hash + per-device salt). Clears lockout. */
+    /** Set the hash and per-device salt. Clears lockout. */
     setOwnerPin(pinHash, pinSalt) {
       setState((prev) => ({
         ...prev,
@@ -477,7 +476,7 @@ function makeActions(setState, stateRef) {
       }))
     },
     /**
-     * Record a wrong PIN attempt. After MAX_PIN_FAILS in a row, lock the tab for
+     * Record a wrong attempt. After MAX_PIN_FAILS in a row, lock for
      * PIN_LOCK_MS. The count/lock live in persisted settings so reloading the app
      * can't reset the strike count or skip the lockout.
      */

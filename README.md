@@ -66,7 +66,7 @@ Two things round out the day without touching the discipline machinery:
 - **Accountability share.** From the weekly review or Stats, turn the week into
   something you can send a friend: a plain-text summary and an ivory/gold image
   card (drawn on a canvas, no external services). Habit scores, streaks, and one
-  line you type. Nothing from the private or food logs ever appears in it.
+  line you type. Nothing from the food log ever appears in it.
 
 ### Making it yours
 
@@ -116,8 +116,6 @@ All the core screens are built and shipping:
 - **Wind down**: the evening shutdown wizard (reflect, plan tomorrow's top
   tasks).
 - **Weekly review**: score last week, pick one thing to improve, plan the week.
-- **Private log**: single-owner, PIN-gated (salted SHA-256, per-device), with a
-  20-minute urge timer and trigger-pattern stats.
 - **Settings**: full habit editor, phase control, themes, language, the Islamic
   practices toggle, prayer location + times, day-rollover hour, and backup.
 - **Accountability share**: plain-text + a canvas image card, from Stats or the
@@ -147,7 +145,7 @@ src/
   i18n/         # en/ar string tables + stock-habit name resolver
   store.jsx     # single localStorage-backed state + intent-named actions
   components/   # HabitCard, SalahCard, ShareSheet, DayEditor, AnchorCard, …
-  screens/      # Today, Stats, Shutdown, WeeklyReview, Private, Settings, Welcome
+  screens/      # Today, Stats, Shutdown, WeeklyReview, Settings, Welcome
   App.jsx       # shell + bottom nav
 scripts/e2e/    # viewport.mjs, the headless layout / no-leak pass
 public/

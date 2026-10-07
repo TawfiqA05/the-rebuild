@@ -359,7 +359,6 @@ export default {
   'bk.yesterday': 'أمس',
   'bk.daysAgo': 'قبل {n} يوم',
   'bk.version': 'The Rebuild · إصدار {v} · كل شيء يبقى على هذا الجهاز',
-  'bk.privateRevealed': 'ظهر التبويب الخاص',
 
   'share.eyebrow': 'شارك أسبوعك',
   'share.title': 'أرسله لشخص',
@@ -368,7 +367,7 @@ export default {
   'share.share': 'مشاركة',
   'share.copy': 'نسخ النص',
   'share.saveImage': 'حفظ الصورة',
-  'share.note': 'عاداتك وسلاسلك فقط. لا شيء من السجل الخاص أو الطعام.',
+  'share.note': 'عاداتك وسلاسلك فقط.', // REVIEW: new wording, "Only your habits and streaks."
   'share.copied': 'نُسخ. الصقه أينما شئت.',
   'share.copyFail': 'تعذّر النسخ. حدّد النص وانسخه.',
   'share.card.thisWeek': 'هذا الأسبوع · {date}',

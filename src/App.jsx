@@ -9,17 +9,17 @@ import Today from './screens/Today.jsx'
 import Stats from './screens/Stats.jsx'
 import Shutdown from './screens/Shutdown.jsx'
 import WeeklyReview from './screens/WeeklyReview.jsx'
-import Private from './screens/Private.jsx'
+import Extra from './screens/Extra.jsx'
 import Settings from './screens/Settings.jsx'
 
 // Bottom-nav tabs. "weekly" is a screen reachable from Today/Stats but not a tab
-// of its own. "private" is hidden by default — it only appears after the owner
-// reveals it (tap the version number in Settings 5×), and re-hides on reload.
+// of its own. Tabs marked hidden stay out of the nav until revealed for the
+// session, and re-hide on reload.
 const TABS = [
   { id: 'today', tkey: 'nav.today', icon: '◎' },
   { id: 'stats', tkey: 'nav.stats', icon: '▤' },
   { id: 'shutdown', tkey: 'nav.windDown', icon: '☾' },
-  { id: 'private', tkey: 'nav.private', icon: '🔒', hidden: true },
+  { id: 'extra', tkey: 'nav.private', icon: '🔒', hidden: true },
   { id: 'settings', tkey: 'nav.settings', icon: '⚙' },
 ]
 
@@ -57,18 +57,18 @@ function AppShell() {
   }, [themeChoice])
 
   const [screen, setScreen] = useState('today')
-  // Reveal is intentionally ephemeral (not persisted): the Private tab is hidden
-  // on every fresh launch until the owner performs the reveal gesture again.
-  const [privateRevealed, setPrivateRevealed] = useState(false)
+  // Reveal is intentionally ephemeral (not persisted): a hidden tab stays hidden
+  // on every fresh launch until it's revealed again.
+  const [extraRevealed, setExtraRevealed] = useState(false)
   const navigate = setScreen
 
-  const revealPrivate = () => { setPrivateRevealed(true); setScreen('private') }
+  const revealExtra = () => { setExtraRevealed(true); setScreen('extra') }
 
   // First run only. Existing devices are marked onboarded by migrate().
   if (!state.settings.onboarded) return <Welcome />
 
-  // Guard: if the tab isn't revealed, never render the Private screen.
-  const activeScreen = screen === 'private' && !privateRevealed ? 'today' : screen
+  // Guard: if the tab isn't revealed, never render its screen.
+  const activeScreen = screen === 'extra' && !extraRevealed ? 'today' : screen
 
   // The learn-by-doing tutorial runs on first launch (existing devices are marked
   // tourSeen by migrate, so they never see it), and only on the Today screen
@@ -88,20 +88,20 @@ function AppShell() {
           {activeScreen === 'stats' && <Stats navigate={navigate} />}
           {activeScreen === 'shutdown' && <Shutdown navigate={navigate} />}
           {activeScreen === 'weekly' && <WeeklyReview navigate={navigate} />}
-          {activeScreen === 'private' && <Private navigate={navigate} />}
-          {activeScreen === 'settings' && <Settings navigate={navigate} onRevealPrivate={revealPrivate} />}
+          {activeScreen === 'extra' && <Extra navigate={navigate} />}
+          {activeScreen === 'settings' && <Settings navigate={navigate} onReveal={revealExtra} />}
         </main>
-        <BottomNav screen={activeScreen} setScreen={setScreen} privateRevealed={privateRevealed} />
+        <BottomNav screen={activeScreen} setScreen={setScreen} extraRevealed={extraRevealed} />
       </div>
     </TutorialProvider>
   )
 }
 
-function BottomNav({ screen, setScreen, privateRevealed }) {
+function BottomNav({ screen, setScreen, extraRevealed }) {
   const { t: T } = useT()
   // "weekly" highlights the Stats tab since that's where it's launched from.
   const active = screen === 'weekly' ? 'stats' : screen
-  const tabs = TABS.filter((t) => !t.hidden || (t.id === 'private' && privateRevealed))
+  const tabs = TABS.filter((t) => !t.hidden || (t.id === 'extra' && extraRevealed))
   return (
     <nav
       className="fixed bottom-0 inset-x-0 border-t border-[var(--color-line)] bg-[var(--color-ink)]/90 backdrop-blur-md"

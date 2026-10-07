@@ -261,7 +261,7 @@ async function checkNoFaithLeak(browser, url) {
       await page.locator('[data-testid="weekly-review-link"]').click().catch(() => {})
       await page.waitForTimeout(200)
       await scanForTerms(page, `${label}·weekly`, () => (failed++))
-      // Reveal + open the Private tab (PIN setup screen)
+      // Reveal + open the extra tab (its first screen)
       await page.locator('nav button').nth(3).click()
       await page.waitForTimeout(150)
       const ver = page.getByText(/v0\.1\.0/)
@@ -269,7 +269,7 @@ async function checkNoFaithLeak(browser, url) {
       await page.waitForTimeout(150)
       await page.getByText('🔒', { exact: false }).click().catch(() => {})
       await page.waitForTimeout(200)
-      await scanForTerms(page, `${label}·private`, () => (failed++))
+      await scanForTerms(page, `${label}·extra`, () => (failed++))
     } catch (err) {
       console.log(`✗ no-leak ${label} — threw: ${err.message}`)
       failed++

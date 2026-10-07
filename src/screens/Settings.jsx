@@ -14,7 +14,7 @@ import { useT } from '../i18n.jsx'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-export default function Settings({ navigate, onRevealPrivate }) {
+export default function Settings({ navigate, onReveal }) {
   const {
     state, updateSettings, unlockNextPhase, setPhase,
     exportJSON, importJSON, resetAll, setTourSeen,
@@ -110,20 +110,15 @@ export default function Settings({ navigate, onRevealPrivate }) {
       <SectionLabel>{T('settings.backup')}</SectionLabel>
       <BackupControls exportJSON={exportJSON} importJSON={importJSON} resetAll={resetAll} />
 
-      {/* Version — tap 5× to reveal the owner-only Private tab -------------- */}
-      <VersionTapper onReveal={onRevealPrivate} />
+      {/* Version line --------------------------------------------------------- */}
+      <VersionTapper onReveal={onReveal} />
     </Screen>
   )
 }
 
 const APP_VERSION = '0.1.0'
 
-/**
- * The app version, doubling as the hidden entry point to the Private tab.
- * Tap it 5 times (within a few seconds) to reveal the tab for this session.
- * No visible hint before then — the tab is meant to be discoverable only by
- * the owner who knows the gesture.
- */
+/** The app version line. */
 function VersionTapper({ onReveal }) {
   const { t: T } = useT()
   const [count, setCount] = useState(0)
@@ -150,9 +145,6 @@ function VersionTapper({ onReveal }) {
       <div className="text-[11px] text-[var(--color-faint)]">
         {T('bk.version', { v: APP_VERSION })}
       </div>
-      {revealed && (
-        <div className="text-[11px] text-[var(--color-accent-ink)] mt-1 animate-fade">{T('bk.privateRevealed')}</div>
-      )}
     </button>
   )
 }

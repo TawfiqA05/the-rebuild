@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { migrate } from './migrate.js'
 import { dayKeyFor, todayKey } from './time.js'
-import { urgePromptIndices } from './faith.js'
+import { promptIndices } from './faith.js'
 
 // Targeted tests for logic paths that were thin on coverage: a migration branch,
 // the day rollover as it happens during an open session, and a faith-toggle edge.
 
-describe('migrate: a legacy PIN with no per-device salt is cleared', () => {
-  it('drops an unverifiable pinHash and resets the lockout, keeping private entries', () => {
+describe('migrate: a legacy hash with no per-device salt is cleared', () => {
+  it('drops an unverifiable hash and resets the lockout, keeping the log entries', () => {
     const legacy = {
       version: 1,
       settings: { onboarded: true, pinHash: 'oldhash', pinFails: 4, pinLockUntil: 999 }, // no pinSalt
@@ -21,7 +21,7 @@ describe('migrate: a legacy PIN with no per-device salt is cleared', () => {
     expect(m.privateLog.entries).toHaveLength(1) // the log itself is untouched
   })
 
-  it('keeps a modern salted PIN intact', () => {
+  it('keeps a modern salted hash intact', () => {
     const m = migrate({ version: 2, settings: { onboarded: true, pinHash: 'h', pinSalt: 's' }, habits: [], logs: {}, days: {} })
     expect(m.settings.pinHash).toBe('h')
     expect(m.settings.pinSalt).toBe('s')
@@ -50,11 +50,11 @@ describe('day rollover during an open session (3am boundary)', () => {
   })
 })
 
-describe('faith toggle edge: urge prompts', () => {
+describe('faith toggle edge: rotating prompts', () => {
   it('never returns an empty rotation, even if every prompt were faith-tagged', () => {
     // Defensive: with the layer on, all indices are returned regardless.
-    expect(urgePromptIndices(1, true)).toEqual([0])
+    expect(promptIndices(1, true)).toEqual([0])
     // With it off, faith indices drop; a tiny list still yields a valid array.
-    expect(Array.isArray(urgePromptIndices(2, false))).toBe(true)
+    expect(Array.isArray(promptIndices(2, false))).toBe(true)
   })
 })

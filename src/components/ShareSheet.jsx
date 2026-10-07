@@ -12,7 +12,7 @@ import { useT } from '../i18n.jsx'
  * A bottom sheet that turns the week into something you can send a friend:
  * a plain-text version for iMessage and an ivory/gold image card (drawn on a
  * canvas, no external services). You add one optional line yourself. It only
- * ever touches habits, never the private or food logs.
+ * ever touches habits and their logs.
  */
 export default function ShareSheet({ onClose }) {
   const { state, today } = useStore()

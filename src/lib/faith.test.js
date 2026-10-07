@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { freshState } from './seed.js'
 import { activeHabits } from './logic.js'
-import { isFaithHabit, isFaithQuote, urgePromptIndices, FAITH_HABIT_IDS, FAITH_URGE_INDICES } from './faith.js'
-import { URGE_PROMPTS } from './seed.js'
+import { isFaithHabit, isFaithQuote, promptIndices, FAITH_HABIT_IDS, FAITH_PROMPT_INDICES } from './faith.js'
+import { PROMPT_COUNT } from './seed.js'
+import en from './i18n/en.js'
+import ar from './i18n/ar.js'
 import { CURATED } from './quotes.js'
 
 // The registry is the single source of truth for what's Islamic. These lock in
@@ -33,17 +35,30 @@ describe('faith registry — habits', () => {
   })
 })
 
-describe('faith registry — urge prompts', () => {
+// The rotating prompts live only in the string tables, keyed 0..PROMPT_COUNT-1.
+const PROMPT_KEY = /^priv\.urge\.(\d+)$/
+const promptKeys = (table) => Object.keys(table).filter((k) => PROMPT_KEY.test(k))
+
+describe('faith registry — rotating prompts', () => {
   it('drops the faith prompts (make wudu) when off, keeps all when on', () => {
-    const on = urgePromptIndices(URGE_PROMPTS.length, true)
-    const off = urgePromptIndices(URGE_PROMPTS.length, false)
-    expect(on).toHaveLength(URGE_PROMPTS.length)
-    for (const i of FAITH_URGE_INDICES) {
+    const on = promptIndices(PROMPT_COUNT, true)
+    const off = promptIndices(PROMPT_COUNT, false)
+    expect(on).toHaveLength(PROMPT_COUNT)
+    for (const i of FAITH_PROMPT_INDICES) {
       expect(on).toContain(i)
       expect(off).not.toContain(i)
     }
     // the wudu line really is the one at the registered index
-    expect(URGE_PROMPTS[3].toLowerCase()).toContain('wudu')
+    expect(en['priv.urge.3'].toLowerCase()).toContain('wudu')
+  })
+
+  it('the count matches the prompt strings in en.js and in ar.js', () => {
+    for (const table of [en, ar]) {
+      const keys = promptKeys(table)
+      expect(keys).toHaveLength(PROMPT_COUNT)
+      const idx = keys.map((k) => Number(PROMPT_KEY.exec(k)[1])).sort((a, b) => a - b)
+      expect(idx).toEqual(Array.from({ length: PROMPT_COUNT }, (_, i) => i))
+    }
   })
 })
 

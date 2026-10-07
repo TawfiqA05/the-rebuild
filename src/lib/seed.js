@@ -156,19 +156,8 @@ export const SEED_HABITS = [
   },
 ]
 
-// Rotating supportive prompts for the 20-minute urge timer.
-export const URGE_PROMPTS = [
-  'Urges peak and pass. This one will too.',
-  'Breathe. In for 4, hold for 4, out for 6.',
-  '20 pushups. Right now. Move the energy.',
-  'Make wudu. Reset the moment.',
-  'Open the editor. Write one line instead.',
-  'You are not the urge. You are the one watching it.',
-  'Drink a full glass of water. Slowly.',
-  'Step outside. Even for 60 seconds.',
-  'The wave is cresting. Ride it, don’t fight it.',
-  'Every minute you wait, it gets weaker.',
-]
+// How many rotating prompts the string tables hold (en.js / ar.js, index 0..N-1).
+export const PROMPT_COUNT = 10
 
 // Default fresh-install state.
 export function freshState() {
@@ -196,9 +185,8 @@ export function freshState() {
       foodCollapsed: true,
       collapseDefaultsApplied: true,
       tourSeen: false,           // first-run coach tour; existing devices skip it
-      // Single-owner private-log PIN. Salt is random per-device (never in code);
-      // there's no reset except wiping all data. Fails/lock enforce a 1-hour
-      // lockout after 5 wrong attempts, persisted so a reload can't bypass it.
+      // PIN hash and per-device salt (see lib/crypto.js). Fails/lock enforce a
+      // 1-hour lockout after 5 wrong attempts, persisted so a reload can't bypass it.
       pinHash: null,
       pinSalt: null,
       pinFails: 0,

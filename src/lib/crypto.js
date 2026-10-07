@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// crypto.js — owner PIN hashing for the private log.
+// crypto.js — PIN hashing.
 //
-// Single-owner model: there is exactly one PIN, chosen by the owner on first
-// use. We NEVER store it in plain text and we NEVER bake a secret into the code.
+// There is exactly one PIN, chosen on first use. We NEVER store it in plain
+// text and we NEVER bake a secret into the code.
 //
 //   • A random 16-byte SALT is generated on THIS device the first time the PIN
 //     is set, and stored on-device alongside the hash. Because the salt is

@@ -26,15 +26,15 @@ export function isFaithQuote(quote) {
   return !!quote && quote.faith === 'islam'
 }
 
-// Indices into the urge-timer prompt list (priv.urge.N / seed.URGE_PROMPTS) that
+// Indices into the rotating prompt list (string tables, seed.PROMPT_COUNT) that
 // are Islamic — currently just "Make wudu. Reset the moment." at index 3.
-export const FAITH_URGE_INDICES = new Set([3])
+export const FAITH_PROMPT_INDICES = new Set([3])
 
 /**
- * The urge-prompt indices to rotate through, given the toggle. With the Islamic
- * layer off, the faith prompts drop out so the timer never says "make wudu".
+ * The prompt indices to rotate through, given the toggle. With the Islamic
+ * layer off, the faith prompts drop out so it never says "make wudu".
  */
-export function urgePromptIndices(count, includeIslamic = true) {
+export function promptIndices(count, includeIslamic = true) {
   const all = Array.from({ length: count }, (_, i) => i)
-  return includeIslamic ? all : all.filter((i) => !FAITH_URGE_INDICES.has(i))
+  return includeIslamic ? all : all.filter((i) => !FAITH_PROMPT_INDICES.has(i))
 }

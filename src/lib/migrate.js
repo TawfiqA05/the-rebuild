@@ -21,9 +21,9 @@ export function migrate(state) {
   // Any state we're migrating already belongs to a real user — never show them
   // onboarding. Only a truly fresh install (which skips migrate) starts false.
   merged.settings.onboarded = state.settings?.onboarded ?? true
-  // A PIN from the old static-salt scheme has no per-device salt and can't be
-  // verified anymore. Clear it (private-log entries are kept) so the owner is
-  // re-prompted to set a fresh PIN instead of being locked out with no reset.
+  // A hash from the old static-salt scheme has no per-device salt and can't be
+  // verified anymore. Clear it (saved entries are kept) so a fresh one is set
+  // instead of being locked out with no reset.
   if (merged.settings.pinHash && !merged.settings.pinSalt) {
     merged.settings.pinHash = null
     merged.settings.pinFails = 0

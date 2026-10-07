@@ -3,8 +3,8 @@
 //
 // Builds a clean, shareable snapshot of the week: each habit's score, its
 // current streak, an overall number, and one optional line you type yourself.
-// It reads ONLY habits/logs — never the private log, never the food log — so
-// nothing sensitive can leak into a text you send a friend. share.test.js pins
+// It reads ONLY habits/logs, nothing else in the save, so nothing sensitive
+// can leak into a text you send a friend. share.test.js pins
 // that down.
 // ---------------------------------------------------------------------------
 

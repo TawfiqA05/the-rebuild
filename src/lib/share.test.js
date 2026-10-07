@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { buildShareSummary, shareSummaryToText, scoreLabel } from './share.js'
 
-// The one rule that matters for a share you send someone: nothing private gets
-// in. These build a state stuffed with private-log entries and food, then prove
-// none of it reaches the summary or its text.
+// The one rule that matters for a share you send someone: nothing but habits
+// gets in. These build a state stuffed with other saved entries and food, then
+// prove none of it reaches the summary or its text.
 
 const habit = (id, over = {}) => ({ id, name: id, emoji: '📖', phase: 1, type: 'standard', frequency: { kind: 'daily' }, ...over })
 
@@ -22,7 +22,7 @@ function makeState() {
     days: {}, votes: 99,
     // sensitive stuff that must NEVER surface:
     privateLog: {
-      entries: [{ id: 'p1', at: 1, trigger: 'stress', note: 'SECRET_PRIVATE_NOTE' }],
+      entries: [{ id: 'p1', at: 1, trigger: 'stress', note: 'SECRET_NOTE' }],
       waves: [{ id: 'w1', at: 1 }],
     },
     food: [
@@ -42,10 +42,10 @@ describe('accountability summary', () => {
     expect(s.note).toBe('holding the line')
   })
 
-  it('never leaks anything from the private log or the food log', () => {
+  it('never leaks any other saved entries or the food log', () => {
     const summary = buildShareSummary(makeState(), '2026-08-15', { note: 'week done' })
     const blob = JSON.stringify(summary) + '\n' + shareSummaryToText(summary)
-    for (const secret of ['SECRET_PRIVATE_NOTE', 'stress', 'SECRET_BURRITO', 'SECRET_COFFEE']) {
+    for (const secret of ['SECRET_NOTE', 'stress', 'SECRET_BURRITO', 'SECRET_COFFEE']) {
       expect(blob).not.toContain(secret)
     }
   })

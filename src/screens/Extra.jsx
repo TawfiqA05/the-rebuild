@@ -1,29 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { generateSalt, hashPin, verifyPin } from '../lib/crypto.js'
-import { URGE_PROMPTS } from '../lib/seed.js'
-import { urgePromptIndices } from '../lib/faith.js'
+import { PROMPT_COUNT } from '../lib/seed.js'
+import { promptIndices } from '../lib/faith.js'
 import { Screen, Card, SectionLabel, Button, TextInput, TextArea } from '../components/ui.jsx'
 import { useT } from '../i18n.jsx'
 
 const MAX_PIN_FAILS = 5
 
 /**
- * The private log is a single-owner space: exactly one PIN, set by the owner on
- * first use, stored as a salted SHA-256 hash on this device only (see
- * lib/crypto.js — the salt is random per install, never in the code). There is
- * no change-PIN and no reset; the only way to clear it is wiping all app data.
- * Five wrong attempts locks the tab for an hour (enforced in the store, and
- * persisted so a reload can't bypass it). Unlock state lives in component memory
- * only, so it re-locks on reload.
+ * One PIN, set on first use and stored as a salted SHA-256 hash on this device
+ * only (see lib/crypto.js; the salt is random per install, never in the code).
+ * There is no change-PIN and no reset; the only way to clear it is wiping all
+ * app data. Five wrong attempts lock it for an hour (enforced in the store, and
+ * persisted so a reload can't bypass it). Unlock state lives in component
+ * memory only, so it re-locks on reload.
  */
-export default function Private() {
+export default function Extra() {
   const { state } = useStore()
   const [unlocked, setUnlocked] = useState(false)
 
   if (!state.settings.pinHash) return <CreatePin onCreated={() => setUnlocked(true)} />
   if (!unlocked) return <UnlockPin onUnlock={() => setUnlocked(true)} />
-  return <PrivateDashboard onLock={() => setUnlocked(false)} />
+  return <Dashboard onLock={() => setUnlocked(false)} />
 }
 
 // --- PIN screens ------------------------------------------------------------
@@ -145,7 +144,7 @@ function PinField({ label, value, onChange, autoFocus, onEnter }) {
 
 // --- Dashboard --------------------------------------------------------------
 
-function PrivateDashboard({ onLock }) {
+function Dashboard({ onLock }) {
   const { state } = useStore()
   const { t } = useT()
   const [view, setView] = useState('timer') // 'timer' | 'log' | 'stats'
@@ -182,7 +181,7 @@ function UrgeTimer() {
   const { state, addWaveSurvived, addPrivateEntry } = useStore()
   const { t } = useT()
   // With the Islamic layer off, the faith prompts (e.g. "make wudu") drop out.
-  const promptIdx = urgePromptIndices(URGE_PROMPTS.length, state.settings.includeIslamic !== false)
+  const promptIdx = promptIndices(PROMPT_COUNT, state.settings.includeIslamic !== false)
   const [running, setRunning] = useState(false)
   const [left, setLeft] = useState(URGE_SECONDS)
   const [outcome, setOutcome] = useState(null) // 'survived' | 'slipped'

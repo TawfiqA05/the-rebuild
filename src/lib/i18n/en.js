@@ -386,7 +386,6 @@ export default {
   'bk.yesterday': 'yesterday',
   'bk.daysAgo': '{n} days ago',
   'bk.version': 'The Rebuild · v{v} · everything stays on this device',
-  'bk.privateRevealed': 'Private tab revealed',
 
   // share sheet
   'share.eyebrow': 'Share your week',
@@ -396,14 +395,13 @@ export default {
   'share.share': 'Share',
   'share.copy': 'Copy text',
   'share.saveImage': 'Save image',
-  'share.note': 'Only your habits and streaks. Nothing from the private log or food.',
+  'share.note': 'Only your habits and streaks.',
   'share.copied': 'Copied. Paste it wherever.',
   'share.copyFail': 'Could not copy. Select the text and copy it.',
   'share.card.thisWeek': 'this week · {date}',
   'share.card.votes': '{votes} votes for who I’m becoming',
   'share.card.footer': 'Never miss twice.',
 
-  // private tab
   'priv.setPin': 'Set your PIN',
   'priv.setPinSub': 'This device is now the owner. Choose one PIN.',
   'priv.choosePin': 'Choose a PIN',
