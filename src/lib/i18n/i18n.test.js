@@ -56,6 +56,27 @@ describe('Arabic catalog parity', () => {
     const untranslated = Object.keys(en).filter((k) => k in ar && ar[k] === en[k] && !SHARED.has(k))
     expect(untranslated, `still English in ar.js: ${untranslated.join(', ')}`).toEqual([])
   })
+
+  // translate() fills {name} placeholders by name. If Arabic drops one, or
+  // spells it differently, the number or name it carries never shows up and
+  // the raw {name} can leak onto the screen.
+  const placeholders = (s) => [...new Set(String(s).match(/\{\w+\}/g) || [])].sort().join(' ')
+  const placeholderMismatches = (base, overlay) =>
+    Object.keys(base).filter((k) => k in overlay && placeholders(base[k]) !== placeholders(overlay[k]))
+
+  it('the placeholder check catches a dropped or renamed placeholder', () => {
+    const base = { a: '{n} days', b: 'Hi {name}', c: 'no vars' }
+    expect(placeholderMismatches(base, { a: 'days', b: 'hello {name}', c: 'x' })).toEqual(['a'])
+    expect(placeholderMismatches(base, { a: '{n} days', b: 'hello {nam}', c: 'x' })).toEqual(['b'])
+    // Word order may change between languages; only the set of names matters.
+    expect(placeholderMismatches(base, { a: 'days {n}', b: '{name} hello', c: 'x' })).toEqual([])
+  })
+
+  it('every Arabic string has the same {placeholders} as its English one', () => {
+    const mismatched = placeholderMismatches(en, ar)
+      .map((k) => `${k} (en: ${placeholders(en[k]) || 'none'}, ar: ${placeholders(ar[k]) || 'none'})`)
+    expect(mismatched, `placeholders differ: ${mismatched.join('; ')}`).toEqual([])
+  })
 })
 
 describe('RTL flags', () => {
