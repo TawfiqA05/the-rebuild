@@ -246,6 +246,9 @@ Honest list, for future-me:
   original is copied byte for byte to its own `the-rebuild:rescue:<time>` key
   and read back. If storage won't keep the copy, nothing is saved until you
   export it or tap Start fresh. Reset everything removes the copies.
+- **A crash shows a way out, not a blank page.** An error boundary at the top
+  of the app shows a plain line with Reload and Export my data. The export is
+  read from storage, not from the state that crashed.
 - **Two open tabs stay in step.** When one tab saves, the other takes that
   state instead of writing its older copy back over it.
 - **`votes`** (the "who I'm becoming" counter) is a monotonic counter incremented
