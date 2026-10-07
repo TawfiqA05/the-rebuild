@@ -186,6 +186,8 @@ src/
     logic.js    # pure rules engine: streaks, never-miss-twice, phase %, MVD
     faith.js    # registry of the Islamic habits, prompts and quotes
     migrate.js  # forward-migrate any saved state into the current shape
+    repair.js   # fix or set aside saved shapes the app can't use
+    rescue.js   # rescue copies of saved data, and the export read from storage
     backup.js   # versioned JSON export/import envelope
     anchor.js, quotes.js, share.js, prayerTimes.js, tasks.js, food.js, …
     i18n/       # en/ar string tables + stock-habit name resolver
@@ -197,7 +199,8 @@ src/
   App.jsx       # shell + bottom nav
 scripts/
   e2e/viewport.mjs   # the headless layout / no-leak pass
-  upgrade-check.mjs  # opens an old build's saved data in a new build and back
+  upgrade-check.mjs  # opens an old build's saved data in a new build and back,
+                     # and damaged saves in the new build
   readme-shots.mjs   # retakes the README screenshots from made-up data
   gen-icons.mjs      # turns the icon SVGs into the PNG sizes
   deploy.sh          # manual deploy: tests, build, upload

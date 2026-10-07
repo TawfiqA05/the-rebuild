@@ -38,8 +38,19 @@
 // the old build on every habit, log, streak, percent and label on Today and
 // Stats, and in the export apart from exportedAt and lastExportAt. Then the
 // old build opens what the new one saved, with nothing lost.
+// Healthy data loads exactly as before: in every state above, the new build
+// writes no rescue copy.
+//
+// Damaged saves, all hand-made and opened by the new build: text that isn't
+// JSON; habits saved as an object of habits; habits that can't be read; a
+// habit with no schedule; a second failure with a copy already kept; a
+// repairable habit with a copy already kept; and a copy that storage refuses.
+// For each, storage before and after is printed, the original is kept where
+// the rules say, and a habit logged afterwards is saved. The old build then
+// opens what the new one saved after each repair, with no habit, log or day lost.
+//
 // Reset: on the new build, Reset everything must leave the app's key holding
-// only a fresh state, and the prayer cache key must be gone.
+// only a fresh state, and the prayer cache key and every rescue copy must be gone.
 //
 // Run:  npm run build
 //       node scripts/upgrade-check.mjs --old <old dist folder> --new dist
@@ -62,6 +73,7 @@ if (!OLD || !existsSync(join(OLD, 'index.html')) || !existsSync(join(NEW, 'index
 }
 
 const STORAGE_KEY = 'the-rebuild:v1'
+const RESCUE = 'the-rebuild:rescue:'
 const PRAYER_CACHE_KEY = 'rebuild:prayer-cache:v2'
 const TODAY = '2026-10-05'
 const PINNED = new Date('2026-10-05T19:30:00-05:00') // a Monday evening in Chicago
@@ -209,6 +221,16 @@ await context.route('**/*', (route) => {
   return route.abort() // fonts and anything else: never sent
 })
 
+// Storage refuses rescue copies only while this tab's session says so.
+await context.addInitScript((prefix) => {
+  if (!sessionStorage.getItem('__refuseRescue')) return
+  const real = Storage.prototype.setItem
+  Storage.prototype.setItem = function (k, v) {
+    if (String(k).startsWith(prefix)) throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    return real.call(this, k, v)
+  }
+}, RESCUE)
+
 const page = context.pages()[0] || await context.newPage()
 const consoleErrors = []
 page.on('pageerror', (e) => consoleErrors.push(e.message))
@@ -226,7 +248,19 @@ async function openApp(which, { waitForNav = true } = {}) {
 
 async function resetStorage(save) {
   await page.goto(`${ORIGIN}/__blank`)
-  await page.evaluate(([k, v]) => { localStorage.clear(); if (v) localStorage.setItem(k, v) }, [STORAGE_KEY, save ? JSON.stringify(save) : null])
+  await page.evaluate(([k, v]) => { localStorage.clear(); sessionStorage.clear(); if (v) localStorage.setItem(k, v) }, [STORAGE_KEY, save ? JSON.stringify(save) : null])
+}
+
+// Every key the app holds, as raw text.
+const storageNow = () => page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)])))
+const rescueKeys = (all) => Object.keys(all).filter((k) => k.startsWith(RESCUE))
+
+// Healthy data: no rescue copy, ever.
+async function noRescue(label) {
+  const keys = rescueKeys(await storageNow())
+  if (!keys.length) return true
+  console.log(`✗ ${label}: the new build wrote a rescue copy for healthy data`)
+  return false
 }
 
 const saved = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), STORAGE_KEY)
@@ -546,6 +580,170 @@ const NEW_STATES = [
   { n: 7, name: 'Islamic practices off', make: islamicOffSave, base: dayOneSave },
 ]
 
+// --- damaged saves --------------------------------------------------------------
+
+// One key's content in a line: never the text itself, only what it is.
+function describeKey(k, v, originals) {
+  for (const [name, raw] of Object.entries(originals)) if (v === raw) return `${k}: the ${name}, byte for byte (${v.length} chars)`
+  let parsed
+  try { parsed = JSON.parse(v) } catch { return `${k}: text that isn't JSON (${v.length} chars)` }
+  if (k === STORAGE_KEY && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const days = Object.keys(parsed.logs || {}).length
+    const habits = Array.isArray(parsed.habits) ? parsed.habits.length : typeof parsed.habits
+    return `${k}: a save, onboarded ${parsed.settings?.onboarded}, ${habits} habits, ${days} logged days (${v.length} chars)`
+  }
+  return `${k}: ${v.length} chars`
+}
+function printStorage(title, all, originals) {
+  console.log(`    ${title}:`)
+  const keys = Object.keys(all).filter((k) => k === STORAGE_KEY || k.startsWith(RESCUE))
+  if (!keys.length) console.log('      (nothing)')
+  for (const k of keys) console.log(`      ${describeKey(k, all[k], originals)}`)
+}
+
+// Through the first-run screens with Islamic practices off, then past the tour.
+async function onboard() {
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.getByRole('button', { name: 'Not for me' }).click()
+  await page.getByRole('button', { name: 'Get started' }).click()
+  await page.getByRole('button', { name: /^Continue with/ }).click()
+  await page.locator('nav button').first().waitFor()
+  // The tour opens a moment after Today draws.
+  await page.locator('[data-testid="tutorial-skip"]').click({ timeout: 5000 })
+  await page.locator('[data-testid="tutorial-overlay"]').waitFor({ state: 'detached' })
+}
+
+// Tap the first plain habit on Today and confirm the save holds it.
+async function logAndCheck(failures) {
+  await tab('Today')
+  const btn = page.locator('[data-testid="habit-list"] button[aria-pressed]').first()
+  await btn.click()
+  await page.waitForTimeout(300)
+  const st = await saved()
+  if (!st?.logs?.[TODAY] || !Object.values(st.logs[TODAY]).some((e) => e?.status === 'full')) failures.push('a habit logged afterwards was not saved')
+}
+
+const OLD_COPY_KEY = `${RESCUE}2026-10-01T09:00:00.000Z`
+const OLD_COPY = '{"habits":"made-up earlier copy"'
+
+async function checkDamaged(habits) {
+  const healthy = () => islamicOffSave(habits)
+  const noFreq = () => { const s = healthy(); s.habits = s.habits.map((h) => (h.id === 'bed' ? { ...h, frequency: undefined } : h)); return s }
+  const CASES = [
+    {
+      name: 'text that is not JSON', raw: () => '{"settings":{"onboarded":true,"theme":"sa',
+      expect: 'kept',
+    },
+    {
+      name: 'habits saved as an object of habits', raw: () => { const s = healthy(); s.habits = Object.fromEntries(s.habits.map((h) => [h.id, h])); return JSON.stringify(s) },
+      expect: 'repaired', keepsLogs: true,
+    },
+    {
+      name: 'habits that are not a list and cannot be read', raw: () => JSON.stringify({ ...healthy(), habits: 'made-up broken habits' }),
+      expect: 'repaired', keepsLogs: true,
+    },
+    {
+      name: 'a habit with no frequency', raw: () => JSON.stringify(noFreq()),
+      expect: 'repaired', keepsLogs: true, daily: '“Make the bed” had no schedule saved, so it’s set to daily for now. You can change it in Settings.',
+    },
+    {
+      name: 'a second failure with a copy already kept', raw: () => '[1,2,3]', withCopy: true,
+      expect: 'kept',
+    },
+    {
+      name: 'a repairable habit with a copy already kept', raw: () => JSON.stringify(noFreq()), withCopy: true,
+      expect: 'repaired', keepsLogs: true,
+    },
+    {
+      name: 'a copy that storage refuses', raw: () => 'made-up text that is not JSON', refuse: true,
+      expect: 'refused',
+    },
+  ]
+  let problems = 0
+  for (const c of CASES) {
+    const label = `damaged: ${c.name}`
+    const failures = []
+    try {
+      const raw = c.raw()
+      await page.goto(`${ORIGIN}/__blank`)
+      await page.evaluate(([k, v, copyKey, copy, withCopy, refuse]) => {
+        localStorage.clear(); sessionStorage.clear()
+        localStorage.setItem(k, v)
+        if (withCopy) localStorage.setItem(copyKey, copy)
+        if (refuse) sessionStorage.setItem('__refuseRescue', '1')
+      }, [STORAGE_KEY, raw, OLD_COPY_KEY, OLD_COPY, Boolean(c.withCopy), Boolean(c.refuse)])
+      const before = await storageNow()
+      const originals = { original: raw, 'earlier copy': OLD_COPY }
+      console.log(`- ${label}`)
+      printStorage('before', before, originals)
+      await openApp('new', { waitForNav: false })
+      const after = await storageNow()
+      printStorage('after opening', after, originals)
+      const copies = rescueKeys(after)
+      const newCopies = copies.filter((k) => k !== OLD_COPY_KEY)
+      if (c.withCopy && after[OLD_COPY_KEY] !== OLD_COPY) failures.push('the earlier copy changed')
+
+      if (c.expect === 'kept') {
+        await page.locator('[data-testid="rescue-kept"]').waitFor({ timeout: 3000 })
+        if (newCopies.length !== 1 || after[newCopies[0]] !== raw) failures.push('the original was not kept under a new key')
+        if (after[STORAGE_KEY] === raw) failures.push('saving did not go on after the copy was kept')
+        await page.locator('[data-testid="rescue-continue"]').click()
+        await onboard()
+        await logAndCheck(failures)
+      } else if (c.expect === 'repaired') {
+        await page.locator('[data-testid="rescue-notice"]').waitFor({ timeout: 3000 })
+        if (newCopies.length !== 1 || after[newCopies[0]] !== raw) failures.push('the original was not kept under a new key')
+        const st = JSON.parse(after[STORAGE_KEY])
+        const orig = JSON.parse(raw)
+        if (c.keepsLogs && !isDeepStrictEqual(st.logs, orig.logs)) failures.push('logs changed')
+        if (!isDeepStrictEqual(st.days, orig.days)) failures.push('days changed')
+        if (Array.isArray(orig.habits) || (orig.habits && typeof orig.habits === 'object')) {
+          const ids = (Array.isArray(orig.habits) ? orig.habits : Object.values(orig.habits)).map((h) => h.id)
+          const kept = new Set(st.habits.map((h) => h.id))
+          if (!ids.every((id) => kept.has(id))) failures.push('a habit was dropped')
+        }
+        if (st.habits.some((h) => !h.frequency)) failures.push('a habit still has no schedule')
+        if (c.daily) {
+          const lines = await page.locator('[data-testid="rescue-daily"]').allInnerTexts()
+          if (!lines.includes(c.daily)) failures.push(`daily line: ${JSON.stringify(lines)}`)
+        }
+        await page.locator('[data-testid="rescue-notice-ok"]').click()
+        await logAndCheck(failures)
+        // The old build opens what the new one saved, with nothing lost.
+        const repairedSave = await saved()
+        await openApp('old')
+        const oldView = await saved()
+        if (!isDeepStrictEqual(oldView.habits, repairedSave.habits) || !isDeepStrictEqual(oldView.logs, repairedSave.logs) || !isDeepStrictEqual(oldView.days, repairedSave.days)) failures.push('the old build lost something from the repaired save')
+      } else if (c.expect === 'refused') {
+        const screen = page.locator('[data-testid="rescue-refused"]')
+        await screen.waitFor({ timeout: 3000 })
+        if (copies.length) failures.push('a copy was written although storage refused it')
+        if (after[STORAGE_KEY] !== raw) failures.push('the original changed')
+        await tab('Today').catch(() => {})
+        await page.waitForTimeout(300)
+        if ((await storageNow())[STORAGE_KEY] !== raw) failures.push('something was saved before Start fresh')
+        await page.locator('[data-testid="rescue-start-fresh"]').click()
+        await page.locator('[data-testid="rescue-fresh-yes"]').click()
+        await screen.waitFor({ state: 'detached' })
+        printStorage('after Start fresh', await storageNow(), originals)
+        await onboard()
+        await logAndCheck(failures)
+      }
+      printStorage('after logging a habit', await storageNow(), originals)
+    } catch (err) {
+      failures.push(`threw: ${err.message}`)
+    }
+    if (failures.length) {
+      console.log(`✗ ${label}`)
+      for (const f of failures) console.log(`    · ${f}`)
+      problems++
+    } else {
+      console.log(`✓ ${label}`)
+    }
+  }
+  return problems
+}
+
 let failed = 0
 const fwd = { checked: 0, skipped: 0 }
 const rev = { checked: 0, skipped: 0 }
@@ -576,6 +774,7 @@ try {
       const callsBefore = prayerCalls
       await openApp('new')
       const after = await snapshot()
+      if (!(await noRescue(label))) failed++
       if (location === 'empty' && prayerCalls !== callsBefore) {
         console.log(`✗ ${label}: the new build asked for prayer times with no location set`)
         failed++
@@ -619,6 +818,7 @@ try {
       // The new build opens what the old one saved.
       await openApp('new')
       const opened = await snapshot()
+      if (!(await noRescue(label))) failed++
       if (compare(`forward ${label}`, before, opened)) fwd.checked++
       else failed++
       await openApp('old')
@@ -630,6 +830,7 @@ try {
       await openApp('new')
       await importFile(oldExport)
       const imported = await snapshot()
+      if (!(await noRescue(`import ${label}`))) failed++
       if (compare(`import ${label}`, before, imported)) fwd.checked++
       else failed++
       await openApp('old')
@@ -648,6 +849,10 @@ try {
     for (const k of ['old', 'new', 'imported', 'reverted']) console.log(`  ${row.state.padEnd(26)} ${k.padEnd(9)} ${JSON.stringify(row[k])}`)
   }
 
+  // Damaged saves on the new build. Before and after are printed per key.
+  const damagedResults = await checkDamaged(habits)
+  failed += damagedResults
+
   // Reset everything on the new build: the app's key holds only a fresh state
   // and the prayer cache key is gone.
   try {
@@ -656,6 +861,7 @@ try {
     await page.waitForFunction((k) => localStorage.getItem(k) !== null, STORAGE_KEY)
     const fresh = await saved()
     await resetStorage(sampleSave({ mode: 'coords', lat: CHICAGO.latitude, lng: CHICAGO.longitude }))
+    await page.evaluate((k) => { localStorage.setItem(`${k}2026-10-01T09:00:00.000Z`, 'not json'); localStorage.setItem(`${k}2026-10-02T09:00:00.000Z`, '[1,2]') }, RESCUE)
     await openApp('new')
     await waitForSavedMonth()
     await tab('Settings')
@@ -671,8 +877,9 @@ try {
     const problems = []
     if (!isDeepStrictEqual(strip(after), strip(fresh))) problems.push('the app key does not hold a fresh state')
     if (cacheLeft !== null) problems.push('the prayer cache key is still there')
+    if (keysLeft.some((k) => k.startsWith(RESCUE))) problems.push('a rescue copy is still there')
     if (problems.length) { console.log('✗ reset'); for (const p of problems) console.log(`    · ${p}`); failed++ }
-    else console.log(`✓ reset: fresh state only, prayer cache gone (keys left: ${keysLeft.join(', ')})`)
+    else console.log(`✓ reset: fresh state only, prayer cache and both rescue copies gone (keys left: ${keysLeft.join(', ')})`)
   } catch (err) {
     console.log(`✗ reset: threw: ${err.message}`)
     failed++
