@@ -1,8 +1,8 @@
 // Rasterise the icon SVGs to the PNG sizes iOS/Android actually use.
 // Run locally after changing the SVGs:  node scripts/gen-icons.mjs
-// Requires a local Chrome (uses playwright-core's `channel: 'chrome'`).
+// Requires a local Chrome (uses Playwright's `channel: 'chrome'`).
 import { readFileSync } from 'node:fs'
-import { chromium } from 'playwright-core'
+import { chromium } from 'playwright'
 
 const base = readFileSync(new URL('../public/icon.svg', import.meta.url), 'utf8')
 const maskable = readFileSync(new URL('../public/icon-maskable.svg', import.meta.url), 'utf8')
