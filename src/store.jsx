@@ -39,6 +39,10 @@ export const storageAvailable = (() => {
   }
 })()
 
+// Ids for wins, quotes and entries. Same guard as tasks.js and food.js:
+// crypto.randomUUID is missing on plain http and in older browsers.
+const newId = () => globalThis.crypto?.randomUUID?.() || String(Date.now() + Math.random())
+
 // Lockout policy.
 const MAX_PIN_FAILS = 5
 const PIN_LOCK_MS = 60 * 60 * 1000 // 1 hour
@@ -327,7 +331,7 @@ function makeActions(setState, stateRef) {
       if (!t) return
       setState((prev) => ({
         ...prev,
-        wins: [{ id: crypto.randomUUID(), at: Date.now(), text: t }, ...prev.wins],
+        wins: [{ id: newId(), at: Date.now(), text: t }, ...prev.wins],
       }))
     },
     removeWin(id) {
@@ -487,7 +491,7 @@ function makeActions(setState, stateRef) {
       if (!t) return
       setState((prev) => ({
         ...prev,
-        myQuotes: [{ id: crypto.randomUUID(), at: Date.now(), text: t }, ...(prev.myQuotes || [])],
+        myQuotes: [{ id: newId(), at: Date.now(), text: t }, ...(prev.myQuotes || [])],
       }))
     },
     removeMyQuote(id) {
@@ -507,7 +511,7 @@ function makeActions(setState, stateRef) {
         ...prev,
         privateLog: {
           ...prev.privateLog,
-          entries: [{ id: crypto.randomUUID(), at: Date.now(), ...entry }, ...prev.privateLog.entries],
+          entries: [{ id: newId(), at: Date.now(), ...entry }, ...prev.privateLog.entries],
         },
       }))
     },
@@ -516,7 +520,7 @@ function makeActions(setState, stateRef) {
         ...prev,
         privateLog: {
           ...prev.privateLog,
-          waves: [{ id: crypto.randomUUID(), at: Date.now(), ...meta }, ...prev.privateLog.waves],
+          waves: [{ id: newId(), at: Date.now(), ...meta }, ...prev.privateLog.waves],
         },
       }))
     },

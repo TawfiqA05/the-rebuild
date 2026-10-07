@@ -136,9 +136,9 @@ npm run preview  # serve the production build locally
 
 The dev server only answers on this computer, so a phone can't open it as is.
 Exposing it with `npm run dev -- --host` doesn't fix that: the phone gets it
-over plain http, where the browser hides `crypto.randomUUID` and
-`crypto.subtle`, and parts of the app need them. To use it on a phone, open
-the live site and choose "Add to Home Screen".
+over plain http, where the browser hides `crypto.subtle`, and part of the
+app needs it. To use it on a phone, open the live site and choose "Add to Home
+Screen".
 
 ## What's built
 

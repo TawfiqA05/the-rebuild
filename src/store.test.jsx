@@ -172,3 +172,20 @@ describe('two tabs open at once', () => {
     expect(a.store().state).toBe(before)
   })
 })
+
+describe('ids without crypto.randomUUID', () => {
+  it('every action that makes an id still works', () => {
+    vi.stubGlobal('crypto', { getRandomValues: (a) => a })
+    const app = mount()
+    act(() => {
+      app.store().addWin('Walked after lunch')
+      app.store().addMyQuote('Small steps every day.')
+      app.store().addPrivateEntry({ note: 'made-up note' })
+      app.store().addWaveSurvived({ seconds: 30 })
+    })
+    const s = app.store().state
+    const ids = [s.wins[0].id, s.myQuotes[0].id, s.privateLog.entries[0].id, s.privateLog.waves[0].id]
+    for (const id of ids) expect(typeof id).toBe('string')
+    expect(new Set(ids).size).toBe(4)
+  })
+})
