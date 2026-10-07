@@ -121,6 +121,9 @@ const APP_VERSION = '0.1.0'
 /** The app version line. */
 function VersionTapper({ onReveal }) {
   const { t: T } = useT()
+  const { state } = useStore()
+  // With Islamic practices on, the line also names the prayer times lookup.
+  const versionKey = state.settings.includeIslamic !== false ? 'bk.versionPrayer' : 'bk.version'
   const [count, setCount] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const timer = useRef(null)
@@ -143,7 +146,7 @@ function VersionTapper({ onReveal }) {
   return (
     <button onClick={tap} className="w-full text-center mt-8 select-none">
       <div className="text-[11px] text-[var(--color-faint)]">
-        {T('bk.version', { v: APP_VERSION })}
+        {T(versionKey, { v: APP_VERSION })}
       </div>
     </button>
   )

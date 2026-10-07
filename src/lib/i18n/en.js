@@ -388,6 +388,7 @@ export default {
   'bk.yesterday': 'yesterday',
   'bk.daysAgo': '{n} days ago',
   'bk.version': 'The Rebuild · v{v} · What you log is saved only on this device. The fonts load from Google, and a task’s calendar link sends its title and due date to Google when you tap it.',
+  'bk.versionPrayer': 'The Rebuild · v{v} · What you log is saved only on this device. The fonts load from Google, prayer times come from AlAdhan using the place you set, and a task’s calendar link sends its title and due date to Google when you tap it.',
 
   // share sheet
   'share.eyebrow': 'Share your week',

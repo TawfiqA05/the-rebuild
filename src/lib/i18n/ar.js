@@ -361,6 +361,7 @@ export default {
   'bk.yesterday': 'أمس',
   'bk.daysAgo': 'قبل {n} يوم',
   'bk.version': 'The Rebuild · إصدار {v} · ما تسجّله محفوظ على هذا الجهاز فقط. الخطوط تُحمَّل من Google، ورابط التقويم لمهمة يرسل عنوانها وتاريخ استحقاقها إلى Google عند الضغط عليه.', // REVIEW: new wording, please check
+  'bk.versionPrayer': 'The Rebuild · إصدار {v} · ما تسجّله محفوظ على هذا الجهاز فقط. الخطوط تُحمَّل من Google، وأوقات الصلاة تأتي من AlAdhan حسب المكان الذي تحدّده، ورابط التقويم لمهمة يرسل عنوانها وتاريخ استحقاقها إلى Google عند الضغط عليه.', // REVIEW: new line, please check
 
   'share.eyebrow': 'شارك أسبوعك',
   'share.title': 'أرسله لشخص',
