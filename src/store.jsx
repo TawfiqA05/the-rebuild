@@ -22,8 +22,10 @@ import {
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
 import { serializeBackup, parseBackup, BackupError } from './lib/backup.js'
 import { clearPrayerCache } from './lib/prayerTimes.js'
+import { repair } from './lib/repair.js'
+import { keepRescueCopy, clearRescueCopies, savedDataExport } from './lib/rescue.js'
 
-const STORAGE_KEY = 'the-rebuild:v1'
+export const STORAGE_KEY = 'the-rebuild:v1'
 
 // Some browsers (private mode, storage disabled) throw on any localStorage
 // access. Detect it once so the app can run in-memory and warn instead of
@@ -49,16 +51,47 @@ const PIN_LOCK_MS = 60 * 60 * 1000 // 1 hour
 
 // --- persistence ------------------------------------------------------------
 
+// Returns { state, rescue }. `rescue` is null for healthy data (loaded exactly
+// as before), or says what happened to a save the app couldn't use as it was:
+//   kept      it couldn't be read; a copy is kept and the app starts fresh
+//   refused   it (or a part that had to be set aside) couldn't be read, and
+//             storage wouldn't keep a copy, so nothing is saved until the
+//             person taps Start fresh
+//   repaired  it was repaired by the rules in lib/repair.js; `copy` is the
+//             key of the original, or null when storage wouldn't keep one
+//             and nothing had to be set aside
+// The copy is written and read back here, before the first save can write
+// over the original.
 function loadState() {
+  let raw
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return freshState()
-    const parsed = JSON.parse(raw)
-    return migrate(parsed)
-  } catch (err) {
-    console.warn('Failed to load state, starting fresh:', err)
-    return freshState()
+    raw = localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return { state: freshState(), rescue: null }
   }
+  if (!raw) return { state: freshState(), rescue: null }
+
+  let report = null
+  let state = null
+  try {
+    report = repair(JSON.parse(raw))
+    state = migrate(report.state)
+  } catch (err) {
+    console.warn('Saved data could not be read:', err)
+  }
+
+  if (state && !report.fixes.length && !report.setAside.length) return { state, rescue: null }
+  // Blocked storage: nothing can be kept or saved, and the banner says so.
+  if (!storageAvailable) return { state: state || freshState(), rescue: null }
+
+  const copy = keepRescueCopy(raw)
+  if (!state) {
+    return { state: freshState(), rescue: { kind: copy ? 'kept' : 'refused', copy } }
+  }
+  if (!copy && report.setAside.length) {
+    return { state: freshState(), rescue: { kind: 'refused', copy: null } }
+  }
+  return { state, rescue: { kind: 'repaired', copy, fixes: report.fixes, setAside: report.setAside } }
 }
 
 // Returns the JSON it wrote, or null when the save failed (storage full,
@@ -79,7 +112,12 @@ function saveState(state) {
 const StoreContext = createContext(null)
 
 export function StoreProvider({ children }) {
-  const [state, setState] = useState(loadState)
+  const [boot] = useState(loadState)
+  const [state, setState] = useState(boot.state)
+  // What happened to a save that couldn't be used as it was (see loadState).
+  // Not saved itself. While it's 'refused', nothing is written to storage.
+  const [rescue, setRescue] = useState(boot.rescue)
+  const refused = useRef(boot.rescue?.kind === 'refused')
   // True while the last save failed. Not saved itself; the next change tries
   // again and clears it once a save works.
   const [saveFailed, setSaveFailed] = useState(false)
@@ -90,7 +128,7 @@ export function StoreProvider({ children }) {
 
   // Persist on every change.
   useEffect(() => {
-    if (state === adopted.current) return
+    if (refused.current || state === adopted.current) return
     const raw = saveState(state)
     if (raw !== null) lastRaw.current = raw
     setSaveFailed(raw === null)
@@ -101,6 +139,7 @@ export function StoreProvider({ children }) {
   // ignored, and this tab's next change saves as usual.
   useEffect(() => {
     const onStorage = (e) => {
+      if (refused.current) return
       if (e.key !== STORAGE_KEY || e.newValue == null || e.newValue === lastRaw.current) return
       let next
       try {
@@ -136,12 +175,27 @@ export function StoreProvider({ children }) {
 
   const actions = useMemo(() => makeActions(setState, stateRef), [])
 
+  const rescueActions = useMemo(() => ({
+    // The saved data and every rescue copy, read from storage, as a file.
+    exportSaved: () => savedDataExport(STORAGE_KEY),
+    dismissRescue: () => setRescue(null),
+    // Erase what couldn't be read and start saving again, from a fresh state.
+    startFresh: () => {
+      refused.current = false
+      setRescue(null)
+      setState(freshState())
+    },
+  }), [])
+
   // On load and at every 3am rollover, sweep finished tasks into the archive and
   // purge anything archived over 90 days ago. Idempotent, so it no-ops when
   // there's nothing to move.
   useEffect(() => { actions.reconcileTasks(today) }, [today, actions])
 
-  const value = useMemo(() => ({ state, today, saveFailed, ...actions }), [state, today, saveFailed, actions])
+  const value = useMemo(
+    () => ({ state, today, saveFailed, rescue, ...actions, ...rescueActions }),
+    [state, today, saveFailed, rescue, actions, rescueActions],
+  )
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
 
@@ -582,8 +636,10 @@ function makeActions(setState, stateRef) {
     },
     resetAll() {
       // The prayer cache lives under its own key and holds the place, so it
-      // goes too. Done here, not inside the state update.
+      // goes too, and so does every rescue copy. Done here, not inside the
+      // state update.
       clearPrayerCache()
+      clearRescueCopies()
       setState(() => freshState())
     },
   }

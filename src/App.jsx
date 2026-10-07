@@ -11,6 +11,7 @@ import Shutdown from './screens/Shutdown.jsx'
 import WeeklyReview from './screens/WeeklyReview.jsx'
 import Extra from './screens/Extra.jsx'
 import Settings from './screens/Settings.jsx'
+import { RescueKept, RescueRefused, RescueNotice } from './components/RescueScreens.jsx'
 
 // Bottom-nav tabs. "weekly" is a screen reachable from Today/Stats but not a tab
 // of its own. Tabs marked hidden stay out of the nav until revealed for the
@@ -42,7 +43,7 @@ function I18nBridge({ children }) {
 }
 
 function AppShell() {
-  const { state } = useStore()
+  const { state, rescue } = useStore()
   const themeChoice = state.settings.theme || 'system'
 
   // Apply the theme whenever the choice changes, and — when on System — follow
@@ -64,6 +65,11 @@ function AppShell() {
 
   const revealExtra = () => { setExtraRevealed(true); setScreen('extra') }
 
+  // Saved data that couldn't be read. Refused: nothing saves until Start
+  // fresh. Kept: a calm word before onboarding starts.
+  if (rescue?.kind === 'refused') return <RescueRefused />
+  if (rescue?.kind === 'kept') return <RescueKept />
+
   // First run only. Existing devices are marked onboarded by migrate().
   if (!state.settings.onboarded) return <><SaveNotice /><Welcome /></>
 
@@ -84,6 +90,7 @@ function AppShell() {
           </div>
         )}
         <SaveNotice />
+        <RescueNotice />
         <main>
           {activeScreen === 'today' && <Today navigate={navigate} />}
           {activeScreen === 'stats' && <Stats navigate={navigate} />}

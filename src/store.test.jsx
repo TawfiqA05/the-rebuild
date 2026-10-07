@@ -189,3 +189,258 @@ describe('ids without crypto.randomUUID', () => {
     expect(new Set(ids).size).toBe(4)
   })
 })
+
+// --- saved data that can't be read, rescue copies and repairs ---------------
+
+const RESCUE = 'the-rebuild:rescue:'
+const rescueKeys = () => Object.keys(localStorage).filter((k) => k.startsWith(RESCUE)).sort()
+const saved = () => JSON.parse(localStorage.getItem(KEY))
+// Refuse every write to a rescue key, the way a full storage would.
+function refuseRescueWrites() {
+  const realSet = Storage.prototype.setItem
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  return vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (k, v) {
+    if (String(k).startsWith(RESCUE)) throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    return realSet.call(this, k, v)
+  })
+}
+const quiet = () => vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+describe('saved data that can not be read', () => {
+  const unreadable = {
+    'text that is not JSON': '{"settings":{"onboarded":tr',
+    'a list': '[1,2]',
+    'a number': '5',
+    'settings that are not an object': JSON.stringify({ ...sampleSave(), settings: 'x' }),
+  }
+  for (const [name, raw] of Object.entries(unreadable)) {
+    it(`keeps ${name} under a rescue key, reads it back, then starts fresh and saves`, () => {
+      quiet()
+      localStorage.setItem(KEY, raw)
+      const app = mount()
+      const keys = rescueKeys()
+      expect(keys).toHaveLength(1)
+      expect(localStorage.getItem(keys[0])).toBe(raw)
+      expect(app.store().rescue).toMatchObject({ kind: 'kept', copy: keys[0] })
+      expect(app.store().state.settings.onboarded).toBe(false)
+      // Saving goes on: the fresh state is saved and the next change too.
+      expect(saved().settings.onboarded).toBe(false)
+      act(() => app.store().toggleHabit('2026-10-05', 'bed'))
+      expect(saved().logs['2026-10-05'].bed.status).toBe('full')
+      expect(localStorage.getItem(keys[0])).toBe(raw)
+    })
+  }
+
+  it('loads healthy data exactly as before and writes no rescue copy', () => {
+    const app = mount()
+    expect(rescueKeys()).toEqual([])
+    expect(app.store().rescue).toBe(null)
+    expect(saved().wins[0].text).toBe('Cooked at home all week')
+  })
+
+  it('does not keep a second copy of the same original when it loads twice', () => {
+    quiet()
+    localStorage.setItem(KEY, 'not json')
+    const before = localStorage.getItem.bind(localStorage)
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((k) => (k === KEY ? 'not json' : before(k)))
+    mount()
+    mount()
+    expect(rescueKeys()).toHaveLength(1)
+  })
+})
+
+describe('a rescue copy that storage refuses', () => {
+  it('leaves the original untouched and saves nothing until Start fresh', () => {
+    const raw = '{"settings":{"onboarded":tr'
+    localStorage.setItem(KEY, raw)
+    refuseRescueWrites()
+    const app = mount()
+    expect(rescueKeys()).toEqual([])
+    expect(app.store().rescue).toMatchObject({ kind: 'refused', copy: null })
+    expect(localStorage.getItem(KEY)).toBe(raw)
+    // Changes are not saved while the screen is up.
+    act(() => app.store().toggleHabit('2026-10-05', 'bed'))
+    expect(localStorage.getItem(KEY)).toBe(raw)
+    // Export reads what is saved, and the screen stays.
+    const file = JSON.parse(app.store().exportSaved())
+    expect(file.savedText).toBe(raw)
+    expect(app.store().rescue.kind).toBe('refused')
+    // Start fresh erases it and saving starts again.
+    act(() => app.store().startFresh())
+    expect(app.store().rescue).toBe(null)
+    expect(saved().settings.onboarded).toBe(false)
+    act(() => app.store().toggleHabit('2026-10-05', 'bed'))
+    expect(saved().logs['2026-10-05'].bed.status).toBe('full')
+  })
+
+  it('treats a copy that reads back different as refused, and removes it', () => {
+    const raw = 'not json at all'
+    localStorage.setItem(KEY, raw)
+    quiet()
+    const realGet = Storage.prototype.getItem
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (k) {
+      const v = realGet.call(this, k)
+      return String(k).startsWith(RESCUE) && v != null ? v.slice(0, 3) : v
+    })
+    const app = mount()
+    expect(app.store().rescue.kind).toBe('refused')
+    expect(rescueKeys()).toEqual([])
+    expect(realGet.call(localStorage, KEY)).toBe(raw)
+  })
+
+  it('also stops a set-aside repair, since that needs the copy', () => {
+    const raw = JSON.stringify({ ...sampleSave(), habits: 'oops' })
+    localStorage.setItem(KEY, raw)
+    refuseRescueWrites()
+    const app = mount()
+    expect(app.store().rescue.kind).toBe('refused')
+    expect(localStorage.getItem(KEY)).toBe(raw)
+  })
+
+  it('still saves a fix that sets nothing aside, and does not claim a copy', () => {
+    const s = sampleSave()
+    delete s.habits[0].frequency
+    localStorage.setItem(KEY, JSON.stringify(s))
+    refuseRescueWrites()
+    const app = mount()
+    expect(app.store().rescue).toMatchObject({ kind: 'repaired', copy: null })
+    expect(saved().habits[0].frequency).toEqual({ kind: 'daily' })
+  })
+})
+
+describe('repairs on load', () => {
+  it('a habit with no frequency becomes daily, is named in the report, saved, and the original is kept', () => {
+    const s = sampleSave()
+    delete s.habits[0].frequency
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    const app = mount()
+    const r = app.store().rescue
+    expect(r.kind).toBe('repaired')
+    expect(r.fixes).toEqual([{ type: 'daily', habitId: 'walk-x1' }])
+    expect(localStorage.getItem(r.copy)).toBe(raw)
+    expect(saved().habits[0].frequency).toEqual({ kind: 'daily' })
+    expect(saved().logs).toEqual(s.logs)
+    act(() => app.store().toggleHabit('2026-10-05', 'walk-x1'))
+    expect(saved().logs['2026-10-05']['walk-x1'].status).toBe('full')
+  })
+
+  it('habits saved as an object are read out, and nothing else changes', () => {
+    const s = sampleSave()
+    s.habits = { 'walk-x1': s.habits[0] }
+    localStorage.setItem(KEY, JSON.stringify(s))
+    const app = mount()
+    expect(app.store().rescue.fixes).toEqual([{ type: 'readOut', field: 'habits' }])
+    expect(saved().habits[0].id).toBe('walk-x1')
+    expect(saved().logs).toEqual(sampleSave().logs)
+    expect(saved().votes).toBe(3)
+  })
+
+  it('habits that cannot be read are set aside in the copy and every log and day is kept', () => {
+    const s = { ...sampleSave(), habits: 'oops', days: { '2026-09-28': { roughDay: true } } }
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    const app = mount()
+    const r = app.store().rescue
+    expect(r.kind).toBe('repaired')
+    expect(r.setAside).toEqual([{ field: 'habits' }])
+    expect(localStorage.getItem(r.copy)).toBe(raw)
+    expect(saved().logs).toEqual(s.logs)
+    expect(saved().days).toEqual(s.days)
+    expect(Array.isArray(saved().habits)).toBe(true)
+  })
+
+  it('a repaired save loads clean the next time, with no second copy', () => {
+    const s = sampleSave()
+    delete s.habits[0].frequency
+    localStorage.setItem(KEY, JSON.stringify(s))
+    const first = mount()
+    first.unmount()
+    mounted.pop()
+    const again = mount()
+    expect(again.store().rescue).toBe(null)
+    expect(rescueKeys()).toHaveLength(1)
+  })
+
+  it('an imported file is repaired as it is read, with no rescue copy', () => {
+    const app = mount()
+    const s = sampleSave()
+    delete s.habits[0].frequency
+    act(() => app.store().importJSON(serializeBackup(s)))
+    expect(app.store().state.habits[0].frequency).toEqual({ kind: 'daily' })
+    expect(saved().habits[0].frequency).toEqual({ kind: 'daily' })
+    expect(rescueKeys()).toEqual([])
+  })
+})
+
+describe('when a rescue copy already exists', () => {
+  const OLD_KEY = `${RESCUE}2026-10-01T09:00:00.000Z`
+  const OLD_COPY = '{"habits":"oops"'
+
+  it('a second failure gets a new dated copy and the old one is untouched', () => {
+    quiet()
+    localStorage.setItem(OLD_KEY, OLD_COPY)
+    localStorage.setItem(KEY, '{"settings":{"onbo')
+    const app = mount()
+    const keys = rescueKeys()
+    expect(keys).toHaveLength(2)
+    expect(localStorage.getItem(OLD_KEY)).toBe(OLD_COPY)
+    expect(localStorage.getItem(app.store().rescue.copy)).toBe('{"settings":{"onbo')
+    expect(app.store().rescue.kind).toBe('kept')
+  })
+
+  it('a repairable habit gets a new dated copy too, and the repaired data is saved', () => {
+    localStorage.setItem(OLD_KEY, OLD_COPY)
+    const s = sampleSave()
+    delete s.habits[0].frequency
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    const app = mount()
+    expect(rescueKeys()).toHaveLength(2)
+    expect(localStorage.getItem(OLD_KEY)).toBe(OLD_COPY)
+    expect(localStorage.getItem(app.store().rescue.copy)).toBe(raw)
+    expect(saved().habits[0].frequency).toEqual({ kind: 'daily' })
+  })
+
+  it('Reset everything removes every rescue copy', () => {
+    localStorage.setItem(OLD_KEY, OLD_COPY)
+    localStorage.setItem(`${RESCUE}2026-10-02T09:00:00.000Z`, 'x')
+    const app = mount()
+    act(() => app.store().resetAll())
+    expect(rescueKeys()).toEqual([])
+    expect(saved().settings.onboarded).toBe(false)
+  })
+
+  it('the saved-data export holds the save and every copy, read from storage', () => {
+    localStorage.setItem(OLD_KEY, OLD_COPY)
+    const app = mount()
+    act(() => app.store().addWin('Only in memory for a moment'))
+    localStorage.setItem(KEY, JSON.stringify(sampleSave()))
+    const file = JSON.parse(app.store().exportSaved())
+    expect(file.app).toBe('the-rebuild')
+    expect(file.state.wins.map((w) => w.text)).toEqual(['Cooked at home all week'])
+    expect(file.rescueCopies).toEqual([{ key: OLD_KEY, text: OLD_COPY }])
+  })
+})
+
+describe('storage blocked outright', () => {
+  it('keeps no rescue copy and starts in memory, as before', async () => {
+    vi.resetModules()
+    localStorage.setItem(KEY, 'not json')
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('blocked', 'SecurityError') })
+    quiet()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const mod = await import('./store.jsx')
+    expect(mod.storageAvailable).toBe(false)
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const ref = { current: null }
+    function Probe() { ref.current = mod.useStore(); return null }
+    act(() => root.render(<mod.StoreProvider><Probe /></mod.StoreProvider>))
+    expect(ref.current.rescue).toBe(null)
+    expect(rescueKeys()).toEqual([])
+    expect(localStorage.getItem(KEY)).toBe('not json')
+    act(() => root.unmount())
+  })
+})

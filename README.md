@@ -239,6 +239,13 @@ Honest list, for future-me:
   through `migrate()` so newly-shipped seed habits merge into old saves. If a
   save fails (storage full or blocked), a calm line says so and the next change
   tries again.
+- **Saved data the app can't use is kept, not written over.** `lib/repair.js`
+  fixes what it safely can (a habit with no schedule becomes daily and is
+  named on screen) and sets aside what it can't read, without dropping a
+  habit, log or day. Before anything is saved over a save like that, the
+  original is copied byte for byte to its own `the-rebuild:rescue:<time>` key
+  and read back. If storage won't keep the copy, nothing is saved until you
+  export it or tap Start fresh. Reset everything removes the copies.
 - **Two open tabs stay in step.** When one tab saves, the other takes that
   state instead of writing its older copy back over it.
 - **`votes`** (the "who I'm becoming" counter) is a monotonic counter incremented

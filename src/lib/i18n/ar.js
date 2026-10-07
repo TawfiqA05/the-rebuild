@@ -368,6 +368,21 @@ export default {
   'bk.replaceNote': 'سيُستبدل كل ما على هذا الجهاز بالنسخة الاحتياطية. صدّر نسخة أولًا إن أردت الاحتفاظ بما هنا.', // REVIEW: new line, please check
   'bk.replace': 'استبدال', // REVIEW: new line, please check
   'save.failed': 'لم يُحفظ آخر تغيير على هذا الجهاز. ستتم المحاولة مرة أخرى مع تغييرك التالي.', // REVIEW: new line, please check
+  'rescue.title': 'تعذّرت قراءة بياناتك المحفوظة', // REVIEW: new line, please check
+  'rescue.keptBody': 'شيء مما حُفظ على هذا الجهاز تعذّر فتحه، لذلك يبدأ التطبيق من جديد. نسخة من البيانات القديمة محفوظة على هذا الجهاز، ويمكنك حفظها كملف من الزر أدناه.', // REVIEW: new line, please check
+  'rescue.refusedBody': 'تعذّر الاحتفاظ بنسخة منها على هذا الجهاز، لذلك لا يمكن حفظ أي شيء جديد بعد. صدّرها إذا أردت الاحتفاظ بها كملف.', // REVIEW: new line, please check
+  'rescue.export': 'تصدير بياناتي', // REVIEW: new line, please check
+  'rescue.continue': 'متابعة', // REVIEW: new line, please check
+  'rescue.startFresh': 'البدء من جديد', // REVIEW: new line, please check
+  'rescue.freshNote': '«البدء من جديد» يمحو ما تعذّرت قراءته، ثم يعود التطبيق إلى الحفظ.', // REVIEW: new line, please check
+  'rescue.freshConfirm': 'محو ما تعذّرت قراءته والبدء من جديد؟', // REVIEW: new line, please check
+  'rescue.freshYes': 'امحُ وابدأ من جديد', // REVIEW: new line, please check
+  'rescue.fixed': 'بعض بياناتك المحفوظة كانت بشكل لا يستطيع التطبيق استخدامه، فتم إصلاحها. لم يُحذف شيء.', // REVIEW: new line, please check
+  'rescue.part': 'تعذّرت قراءة جزء من بياناتك المحفوظة، فوُضع جانبًا. كل الباقي موجود هنا.', // REVIEW: new line, please check
+  'rescue.copyKept': 'نسخة من بياناتك كما كانت محفوظة على هذا الجهاز.', // REVIEW: new line, please check
+  'rescue.daily': 'لم يكن لـ«{name}» جدول محفوظ، لذلك صار يوميًا الآن. يمكنك تغييره من الإعدادات.', // REVIEW: new line, please check
+  'crash.body': 'حدث خطأ أثناء عرض هذه الشاشة. ما حفظته ما زال على هذا الجهاز.', // REVIEW: new line, please check
+  'crash.reload': 'إعادة التحميل', // REVIEW: new line, please check
   'bk.today': 'اليوم',
   'bk.yesterday': 'أمس',
   'bk.daysAgo': 'قبل {n} يوم',
