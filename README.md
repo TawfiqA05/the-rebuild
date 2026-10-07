@@ -169,7 +169,9 @@ pass on the built app at 390px: the share sheet and day editor fit the screen,
 the Daily anchor stays put, no Islamic term shows in No mode, "use my
 location" only reaches AlAdhan, the calendar buttons send nothing until you tap
 them, the first-run tour works, a wrong backup file changes nothing, a failed
-save shows its line, and two open tabs don't overwrite each other. The e2e
+save shows its line, two open tabs don't overwrite each other, a crash shows
+the error screen, and saved data the app can't read is copied before anything
+is saved over it (including when storage refuses the copy). The e2e
 runs with the network closed: only the local preview server answers, service
 workers are blocked, AlAdhan gets a made-up reply, and the run fails if any
 other address gets through. Both run in CI before every deploy.
@@ -222,8 +224,9 @@ Honest list, for future-me:
   offsets in Settings can nudge each one.
 - **The E2E is layout/leak-focused, not a full functional suite.** It guards
   viewport fit, anchor position, the faith no-leak rule, what the location and
-  calendar buttons send, the first-run tour, importing, a failed save and two
-  open tabs; it doesn't yet assert every interaction.
+  calendar buttons send, the first-run tour, importing, a failed save, two
+  open tabs, the error screen and saved data that can't be read; it doesn't
+  yet assert every interaction.
 - **Cache bloat over time.** The service worker keeps old fingerprinted assets in
   its runtime cache across many deploys (correctness is fine because HTML is
   network-first, but Cache Storage grows slowly).
@@ -282,7 +285,14 @@ Import checks the whole file before anything changes. A file that's cut off,
 comes from another app, or is missing its settings or habits is turned away
 with a plain message, and nothing on the device is touched. A good file opens a
 sheet showing how many habits and days of logs are on the device and in the
-file, and only Replace swaps them.
+file, and only Replace swaps them. A file that passes is repaired as it's read
+by the same rules as saved data (a habit with no schedule becomes daily), with
+no copy kept, since the file itself is the copy.
+
+The Export my data button on the error screen and on the "couldn't be read"
+screens is different from Export JSON: it reads straight from storage and
+hands over the save plus every rescue copy as they are. A copy that couldn't be
+read won't restore through Import.
 
 ## Deploying (Cloudflare Pages)
 

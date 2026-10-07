@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // viewport.mjs — the E2E pass. A real headless Chromium loads the built app
-// at 390px (iPhone 12/13/14 width) with made-up saved data and runs 15 checks.
+// at 390px (iPhone 12/13/14 width) with made-up saved data and runs 20 checks.
 //
 // Share sheet (5 checks). Opened from the Stats button and from the Sunday
 // weekly-review path, across a few themes, a long typed-in line, and
@@ -11,7 +11,7 @@
 //   - Share / Copy / Save are all on-screen, reachable without scrolling
 //   - nothing inside the sheet actually needs scrolling to reach them
 //
-// Then ten more:
+// Then fifteen more:
 //   - day editor: the "fix a past day" panel fits the screen
 //   - daily anchor: it sits under the score card and above the habits
 //   - no faith leak: with Islamic practices off, no Islamic term shows on any
@@ -28,6 +28,16 @@
 //     line goes once a save works
 //   - two tabs: a change in one tab reaches the other with no repeated
 //     writes, and neither tab's change is lost
+//   - crash: a crash while drawing shows a plain screen with Reload and
+//     Export my data, and the export is read from storage
+//   - unreadable save: a copy is kept and read back before anything is
+//     saved over it, and a calm screen says so before onboarding
+//   - refused copy: when storage won't keep the copy, the original stays,
+//     nothing saves until Start fresh, and Export leaves the screen up
+//   - repaired save: a habit with no schedule is named and set to daily, the
+//     original is kept under a new key, and saving goes on
+//   - second failure: with a copy already kept, a new one gets its own key
+//   No copy's content ever shows on screen in these.
 //   - network: no service worker registers, the fonts were blocked, and no
 //     request anywhere in the run got past the allow-list
 //
@@ -851,6 +861,201 @@ async function checkTwoTabs(browser, url) {
   return 1
 }
 
+// --- saved data the app can't use, rescue copies, a crash -------------------
+
+const RESCUE = 'the-rebuild:rescue:'
+// Made-up text inside every damaged save and copy below. It must never show on
+// screen: a copy can hold what the hidden tab saved.
+const MARKER = 'made-up-marker-7Q2'
+const storageNow = (page) => page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])))
+const rescueIn = (all) => Object.keys(all).filter((k) => k.startsWith(RESCUE)).sort()
+// Refuse every write to a rescue key, the way a full storage would.
+const REFUSE_RESCUE = (prefix) => {
+  const real = Storage.prototype.setItem
+  Storage.prototype.setItem = function (k, v) {
+    if (String(k).startsWith(prefix)) throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    return real.call(this, k, v)
+  }
+}
+const seedOnce = (context, entries) => context.addInitScript((pairs) => {
+  if (sessionStorage.getItem('__seeded')) return
+  sessionStorage.setItem('__seeded', '1')
+  for (const [k, v] of pairs) localStorage.setItem(k, v)
+}, entries)
+
+// Click Export my data and read the file it hands over.
+async function exportFile(page, testid) {
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator(`[data-testid="${testid}"]`).first().click()])
+  return JSON.parse(readFileSync(await download.path(), 'utf8'))
+}
+
+async function rescueCheck(browser, url, name, body) {
+  const context = await newContext(browser)
+  const failures = []
+  try {
+    await body(context, failures)
+  } catch (err) {
+    failures.push(`threw: ${err.message}`)
+  } finally {
+    await context.close()
+  }
+  if (failures.length === 0) return 0
+  console.log(`✗ ${name}:`)
+  for (const f of failures) console.log(`    · ${f}`)
+  return 1
+}
+
+async function noMarker(page, failures, where) {
+  if ((await page.locator('body').innerText()).includes(MARKER)) failures.push(`a copy's content shows on screen (${where})`)
+}
+
+// A crash while drawing: the error screen with Reload and Export my data. A
+// null in the wins list is a shape the repair rules leave as it is, and it
+// throws when the wins draw, so it stands in for any crash.
+async function checkCrash(browser, url) {
+  const save = { ...plainSave(), wins: [null] }
+  const copyKey = `${RESCUE}2026-10-01T09:00:00.000Z`
+  const r = await rescueCheck(browser, url, 'crash · en', async (context, failures) => {
+    await seedOnce(context, [[KEY, JSON.stringify(save)], [copyKey, `{"note":"${MARKER}"`]])
+    const page = await context.newPage()
+    page.on('pageerror', () => {})
+    await page.goto(url, { waitUntil: 'networkidle' })
+    for (const tab of ['stats', 'shutdown', 'settings']) {
+      if (await page.locator('[data-testid="crash-body"]').count()) break
+      await page.locator(`[data-testid="nav-${tab}"]`).click({ timeout: 2000 }).catch(() => {})
+    }
+    await page.locator('[data-testid="crash-body"]').waitFor({ timeout: 5000 })
+    const text = await page.locator('[data-testid="crash-body"]').innerText()
+    if (text !== 'Something went wrong while showing this screen. What you’ve saved is still on this device.') failures.push(`crash line says "${text}"`)
+    if (!(await page.locator('[data-testid="crash-reload"]').isVisible())) failures.push('no Reload button')
+    await page.screenshot({ path: resolve(artifacts, 'crash.png') })
+    const savedNow = (await storageNow(page))[KEY]
+    const file = await exportFile(page, 'crash-export')
+    if (JSON.stringify(file.state) !== JSON.stringify(JSON.parse(savedNow)) || file.state.wins[0] !== null) failures.push('the export does not hold what is saved')
+    if (file.rescueCopies?.length !== 1 || file.rescueCopies[0].text !== `{"note":"${MARKER}"`) failures.push('the export does not hold the rescue copy')
+    if (!(await page.locator('[data-testid="crash-body"]').isVisible())) failures.push('the screen went after Export')
+    await noMarker(page, failures, 'crash')
+  })
+  if (!r) console.log('✓ crash · en — error screen with Reload and Export; the export is the saved data and every copy')
+  return r
+}
+
+// Text that isn't JSON: a copy is kept and read back before anything is
+// saved, a calm screen says so before onboarding, then saving goes on.
+async function checkUnreadable(browser, url) {
+  const raw = `{"settings":{"note":"${MARKER}","onboarded":tr`
+  const r = await rescueCheck(browser, url, 'unreadable save · en', async (context, failures) => {
+    await seedOnce(context, [[KEY, raw]])
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.locator('[data-testid="rescue-kept"]').waitFor({ timeout: 5000 })
+    const all = await storageNow(page)
+    const keys = rescueIn(all)
+    if (keys.length !== 1 || all[keys[0]] !== raw) failures.push(`rescue keys ${JSON.stringify(keys)} do not hold the original`)
+    if (all[KEY] === raw) failures.push('the app key still holds the original, so saving did not go on')
+    const text = await page.locator('[data-testid="rescue-kept"]').innerText()
+    if (!text.includes('A copy of the old data is kept on this device')) failures.push(`screen says "${text.replace(/\s+/g, ' ')}"`)
+    await noMarker(page, failures, 'kept screen')
+    await page.locator('[data-testid="rescue-continue"]').click()
+    await page.getByText('Welcome', { exact: false }).first().waitFor({ timeout: 3000 }).catch(() => {})
+    if (await page.locator('[data-testid="rescue-kept"]').count()) failures.push('Continue did not lead on to onboarding')
+    if ((await storageNow(page))[keys[0]] !== raw) failures.push('the copy changed')
+  })
+  if (!r) console.log('✓ unreadable save · en — copy kept and read back, calm screen before onboarding, saving goes on')
+  return r
+}
+
+// Storage refuses the copy: the original stays, the screen says nothing new
+// can be saved, Export leaves it up, and only Start fresh saves again.
+async function checkRefused(browser, url) {
+  const raw = `not json ${MARKER}`
+  const r = await rescueCheck(browser, url, 'refused copy · en', async (context, failures) => {
+    await seedOnce(context, [[KEY, raw]])
+    await context.addInitScript(REFUSE_RESCUE, RESCUE)
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle' })
+    const screen = page.locator('[data-testid="rescue-refused"]')
+    await screen.waitFor({ timeout: 5000 })
+    const text = await screen.innerText()
+    if (!text.includes('nothing new can be saved yet')) failures.push(`screen says "${text.replace(/\s+/g, ' ')}"`)
+    if (text.includes('copy of the old data is kept')) failures.push('it claims a copy was kept')
+    if (!text.includes('Start fresh erases what couldn’t be read')) failures.push('Start fresh does not say it erases')
+    let all = await storageNow(page)
+    if (all[KEY] !== raw || rescueIn(all).length) failures.push('storage changed before Start fresh')
+    const file = await exportFile(page, 'rescue-export')
+    if (file.savedText !== raw) failures.push('the export does not hold the original')
+    if (!(await screen.isVisible())) failures.push('Export closed the screen')
+    await noMarker(page, failures, 'refused screen')
+    await page.locator('[data-testid="rescue-start-fresh"]').click()
+    if ((await storageNow(page))[KEY] !== raw) failures.push('the first tap on Start fresh erased it without asking')
+    await page.locator('[data-testid="rescue-fresh-yes"]').click()
+    await screen.waitFor({ state: 'detached', timeout: 3000 })
+    all = await storageNow(page)
+    if (all[KEY] === raw) failures.push('Start fresh did not start saving again')
+    else if (JSON.parse(all[KEY]).settings.onboarded !== false) failures.push('Start fresh did not save a fresh state')
+  })
+  if (!r) console.log('✓ refused copy · en — original kept as it was, nothing saved until Start fresh, Export leaves the screen up')
+  return r
+}
+
+// A habit with no schedule: set to daily and named, the original kept, the
+// repaired data saved; with an older copy already there it gets a new key.
+async function checkRepaired(browser, url) {
+  const save = plainSave()
+  delete save.habits[1].frequency
+  save.wins[0].text = MARKER
+  const raw = JSON.stringify(save)
+  const oldKey = `${RESCUE}2026-10-01T09:00:00.000Z`
+  const oldCopy = `{"habits":"${MARKER}"`
+  const r = await rescueCheck(browser, url, 'repaired save · en', async (context, failures) => {
+    await seedOnce(context, [[KEY, raw], [oldKey, oldCopy]])
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle' })
+    const notice = page.locator('[data-testid="rescue-notice"]')
+    await notice.waitFor({ timeout: 5000 })
+    const daily = await page.locator('[data-testid="rescue-daily"]').allInnerTexts()
+    if (daily.length !== 1 || daily[0] !== '“Evening walk” had no schedule saved, so it’s set to daily for now. You can change it in Settings.') failures.push(`daily line: ${JSON.stringify(daily)}`)
+    const all = await storageNow(page)
+    const keys = rescueIn(all)
+    if (keys.length !== 2 || all[oldKey] !== oldCopy) failures.push('the older copy was not left as it was')
+    const newKey = keys.find((k) => k !== oldKey)
+    if (all[newKey] !== raw) failures.push('the new copy does not hold the original')
+    if (JSON.parse(all[KEY]).habits.find((h) => h.id === 'walk-x1')?.frequency?.kind !== 'daily') failures.push('the repaired data was not saved')
+    // The win shows on Today as usual; the copies never do.
+    const shown = (await page.locator('body').innerText()).split(MARKER).length - 1
+    if (shown > 1) failures.push(`marker shows ${shown} times`)
+    await page.locator('[data-testid="rescue-notice-ok"]').click()
+    await notice.waitFor({ state: 'detached', timeout: 3000 })
+    await habitButton(page, 1).click()
+    await page.waitForTimeout(200)
+    const after = JSON.parse((await storageNow(page))[KEY])
+    if (!Object.values(after.logs).some((d) => d['walk-x1'])) failures.push('a habit logged afterwards was not saved')
+  })
+  if (!r) console.log('✓ repaired save · en — habit named and set to daily, original kept under a new key, older copy untouched, saving goes on')
+  return r
+}
+
+// A second failure with a copy already kept: a new dated copy, the old one
+// untouched, and the screen says only what happened.
+async function checkSecondFailure(browser, url) {
+  const oldKey = `${RESCUE}2026-10-01T09:00:00.000Z`
+  const oldCopy = `{"habits":"${MARKER}"`
+  const raw = `{"settings":{"onbo ${MARKER}`
+  const r = await rescueCheck(browser, url, 'second failure · en', async (context, failures) => {
+    await seedOnce(context, [[KEY, raw], [oldKey, oldCopy]])
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.locator('[data-testid="rescue-kept"]').waitFor({ timeout: 5000 })
+    const all = await storageNow(page)
+    const keys = rescueIn(all)
+    if (keys.length !== 2 || all[oldKey] !== oldCopy) failures.push('the older copy was not left as it was')
+    if (all[keys.find((k) => k !== oldKey)] !== raw) failures.push('the new copy does not hold the original')
+    await noMarker(page, failures, 'kept screen')
+  })
+  if (!r) console.log('✓ second failure · en — a new dated copy, the older one untouched, calm screen')
+  return r
+}
+
 // The app registers a service worker and loads its fonts from Google. In this
 // run neither may happen: the worker is blocked and the fonts are aborted
 // (that they show up as blocked also proves the allow-list is in force).
@@ -953,13 +1158,19 @@ async function run() {
   failed += await checkImport(browser, url)
   failed += await checkSaveFailure(browser, url)
   failed += await checkTwoTabs(browser, url)
+  // And saved data that can't be used as it was, and a crash while drawing.
+  failed += await checkCrash(browser, url)
+  failed += await checkUnreadable(browser, url)
+  failed += await checkRefused(browser, url)
+  failed += await checkRepaired(browser, url)
+  failed += await checkSecondFailure(browser, url)
   // Last, so it covers every request the run made.
   failed += await checkNetworkClosed(browser, url)
 
   await browser.close()
   await server.close()
 
-  const total = SCENARIOS.length + 10
+  const total = SCENARIOS.length + 15
   if (failed) {
     console.log(`\nviewport-fit E2E: ${failed} of ${total} check(s) failed.`)
     process.exit(1)
