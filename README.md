@@ -241,8 +241,9 @@ There are two ways to ship, and both are set up:
 npm run deploy
 ```
 
-Builds the app and uploads `dist/` to the `the-rebuild` Pages project via
-Wrangler (`scripts/deploy.sh`). Requires a one-time `wrangler login`.
+Runs the unit tests, builds the app, and uploads `dist/` to the `the-rebuild`
+Pages project with a pinned Wrangler version (`scripts/deploy.sh`). If a test
+fails, nothing is uploaded. Requires a one-time `wrangler login`.
 
 ### 2. Automatic on every push (GitHub Actions)
 
