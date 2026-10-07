@@ -163,7 +163,8 @@ Quality gates: `npm test` runs the unit suite (Vitest). It covers the rules
 engine and streaks, migrations, backup and import, both string tables (Arabic
 must have every English key, with the same placeholders), tasks and the
 archive, the food log, prayer times, themes and their contrast, sharing, the
-Daily anchor, and the faith registry. `npm run e2e` is a headless-Chromium
+Daily anchor, the faith registry, and the store itself, mounted in jsdom.
+`npm run e2e` is a headless-Chromium
 pass on the built app at 390px: the share sheet and day editor fit the screen,
 the Daily anchor stays put, no Islamic term shows in No mode, "use my
 location" only reaches AlAdhan, the calendar buttons send nothing until you tap
@@ -253,11 +254,17 @@ Honest list, for future-me:
 ## Backup
 
 Settings → Export downloads a JSON snapshot of everything, wrapped in a small
-versioned envelope (`schemaVersion` + `exportedAt` + the state). Import unwraps
-any envelope (or a legacy bare-state export) and runs it through `migrate()`,
-so a backup taken today still restores cleanly after future format or data-model
-changes. Restores on any device. That's your whole backup story: no cloud
-required.
+versioned envelope (`schemaVersion`, `app`, `exportedAt` and the state). Import
+unwraps any envelope (or a legacy bare-state export) and runs it through
+`migrate()`, so a backup taken today still restores cleanly after future format
+or data-model changes. Restores on any device. That's your whole backup story:
+no cloud required.
+
+Import checks the whole file before anything changes. A file that's cut off,
+comes from another app, or is missing its settings or habits is turned away
+with a plain message, and nothing on the device is touched. A good file opens a
+sheet showing how many habits and days of logs are on the device and in the
+file, and only Replace swaps them.
 
 ## Deploying (Cloudflare Pages)
 

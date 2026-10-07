@@ -20,7 +20,7 @@ import {
   archiveTaskById, sweepArchivable, purgeArchive, reviveArchived, deleteArchivedById,
 } from './lib/tasks.js'
 import { makeFoodEntry, resolveEntryTime, updateFoodText, setFoodEntryTime, deleteFoodById, insertFood } from './lib/food.js'
-import { serializeBackup, parseBackup } from './lib/backup.js'
+import { serializeBackup, parseBackup, BackupError } from './lib/backup.js'
 import { clearPrayerCache } from './lib/prayerTimes.js'
 
 const STORAGE_KEY = 'the-rebuild:v1'
@@ -123,6 +123,19 @@ function makeActions(setState, stateRef) {
     // votes only ever grow: +1 on a fresh completion, never subtracted.
     const votes = !wasDone && nowDone ? prev.votes + 1 : prev.votes
     return { ...prev, logs, votes }
+  }
+
+  /**
+   * Parse, check and migrate a backup without touching anything. Throws a
+   * BackupError for a file that isn't one of ours.
+   */
+  function readBackup(json) {
+    const parsed = parseBackup(json)
+    try {
+      return migrate(parsed)
+    } catch {
+      throw new BackupError('not-backup', 'backup could not be read')
+    }
   }
 
   return {
@@ -519,8 +532,11 @@ function makeActions(setState, stateRef) {
     exportJSON() {
       return serializeBackup(stateRef.current)
     },
+    readBackup,
+    /** Replace everything with a backup. A bad file throws here, before any change. */
     importJSON(json) {
-      setState(() => migrate(parseBackup(json)))
+      const next = readBackup(json)
+      setState(() => next)
     },
     resetAll() {
       // The prayer cache lives under its own key and holds the place, so it

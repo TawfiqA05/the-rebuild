@@ -8,29 +8,58 @@
 // the file format or the data model.
 // ---------------------------------------------------------------------------
 
+import { activeHabits } from './logic.js'
+
 // Bump when the ENVELOPE shape changes (not when the app data model changes —
 // that's `state.version`, handled by migrate.js). Add a case to upgradeEnvelope.
 export const BACKUP_SCHEMA = 1
+
+// Every export names its app, so a file from another app can be told apart.
+export const APP_NAME = 'the-rebuild'
 
 /** Wrap the app state in the current backup envelope, as pretty JSON. */
 export function serializeBackup(state) {
   return JSON.stringify({
     schemaVersion: BACKUP_SCHEMA,
-    app: 'the-rebuild',
+    app: APP_NAME,
     exportedAt: new Date().toISOString(),
     state,
   }, null, 2)
 }
 
+// Why a file was refused. The screen turns `reason` into a plain message.
+export class BackupError extends Error {
+  constructor(reason, message) {
+    super(message)
+    this.name = 'BackupError'
+    this.reason = reason // 'unreadable' | 'other-app' | 'not-backup'
+  }
+}
+
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+
 /**
  * Normalize any backup — the current envelope, a future/older envelope, or a
  * legacy bare-state export (pre-schemaVersion) — into a plain state object.
- * Throws on something that isn't a recognizable backup. The data-model
- * migration (migrate.js) runs on the result afterward, in the store.
+ * Throws a BackupError on anything that isn't one of ours: a file that won't
+ * parse (cut off, not JSON), a file that names another app, or a state with no
+ * settings object and habits list. The data-model migration (migrate.js) runs
+ * on the result afterward, in the store, still before anything is replaced.
  */
 export function parseBackup(json) {
-  const parsed = typeof json === 'string' ? JSON.parse(json) : json
-  if (!parsed || typeof parsed !== 'object') throw new Error('not a valid backup file')
+  let parsed = json
+  if (typeof json === 'string') {
+    try {
+      parsed = JSON.parse(json)
+    } catch {
+      throw new BackupError('unreadable', 'the file is not complete JSON')
+    }
+  }
+  if (!isPlainObject(parsed)) throw new BackupError('not-backup', 'not a valid backup file')
+  // An export names its app. A file with no name is fine if the state passes.
+  if (typeof parsed.app === 'string' && parsed.app !== APP_NAME) {
+    throw new BackupError('other-app', 'the file is from another app')
+  }
 
   // A bare state export from before the envelope existed: it has the state
   // fields directly (settings/habits) and no schemaVersion. Treat it as v0.
@@ -38,9 +67,21 @@ export function parseBackup(json) {
     ? parsed
     : { schemaVersion: 0, state: parsed }
 
-  const upgraded = upgradeEnvelope(envelope)
-  if (!upgraded.state || typeof upgraded.state !== 'object') throw new Error('backup has no state')
-  return upgraded.state
+  const { state } = upgradeEnvelope(envelope)
+  if (!isPlainObject(state) || !isPlainObject(state.settings) || !Array.isArray(state.habits)) {
+    throw new BackupError('not-backup', 'backup has no settings and habits')
+  }
+  return state
+}
+
+/**
+ * What a state holds, in the terms the restore sheet uses: the habits that
+ * show on Today and the days with anything logged.
+ */
+export function backupCounts(state) {
+  const days = Object.values(state.logs || {})
+    .filter((day) => isPlainObject(day) && Object.keys(day).length > 0).length
+  return { habits: activeHabits(state).length, days }
 }
 
 /** Forward-migrate the envelope shape across schema versions. */

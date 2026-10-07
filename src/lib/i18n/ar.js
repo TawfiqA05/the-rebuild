@@ -357,6 +357,16 @@ export default {
   'bk.confirmReset': 'محو كل البيانات والبدء من جديد؟ صدّر نسخة أولًا.',
   'bk.restored': 'استُعيدت النسخة.',
   'bk.badFile': 'لا يبدو هذا الملف نسخة صالحة.',
+  'bk.cutOff': 'تعذّرت قراءة هذا الملف. ربما هو ناقص، أو ليس نسخة احتياطية.', // REVIEW: new line, please check
+  'bk.otherApp': 'هذا الملف من تطبيق آخر، وليس من The Rebuild.', // REVIEW: new line, please check
+  'bk.refusedTitle': 'لم يتغيّر شيء', // REVIEW: new line, please check
+  'bk.replaceTitle': 'استبدال ما على هذا الجهاز؟', // REVIEW: new line, please check
+  'bk.replaceNow': 'على هذا الجهاز', // REVIEW: new line, please check
+  'bk.replaceFile': 'في الملف', // REVIEW: new line, please check
+  'bk.habits': 'العادات', // REVIEW: new line, please check
+  'bk.daysLogged': 'أيام مسجّلة', // REVIEW: new line, please check
+  'bk.replaceNote': 'سيُستبدل كل ما على هذا الجهاز بالنسخة الاحتياطية. صدّر نسخة أولًا إن أردت الاحتفاظ بما هنا.', // REVIEW: new line, please check
+  'bk.replace': 'استبدال', // REVIEW: new line, please check
   'bk.today': 'اليوم',
   'bk.yesterday': 'أمس',
   'bk.daysAgo': 'قبل {n} يوم',

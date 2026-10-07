@@ -1,12 +1,14 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { PHASES, phaseMeta } from '../lib/seed.js'
 import { isFaithHabit } from '../lib/faith.js'
 import { Screen, Card, SectionLabel, Button, TextInput } from '../components/ui.jsx'
 import { usePrayerTimes } from '../hooks/usePrayerTimes.js'
-import { downloadBackup } from '../lib/backup.js'
+import { downloadBackup, backupCounts } from '../lib/backup.js'
 import { PRAYER_KEYS, fmt12 } from '../lib/prayerTimes.js'
 import PrayerLocationPicker from '../components/PrayerLocationPicker.jsx'
+import RestoreSheet from '../components/RestoreSheet.jsx'
+import { useToast } from '../components/Toast.jsx'
 import { THEMES } from '../lib/themes.js'
 import { LANGUAGES } from '../lib/i18n/index.js'
 import { habitDisplayName, habitDisplayMin, stockHabitLabel } from '../lib/i18n/seedHabits.js'
@@ -646,30 +648,49 @@ function agoLabel(T, ts) {
 // --- Backup controls --------------------------------------------------------
 
 function BackupControls({ exportJSON, importJSON, resetAll }) {
-  const { markExported, state } = useStore()
+  const { markExported, readBackup, state } = useStore()
   const { t: T } = useT()
+  const toast = useToast()
   const fileRef = useRef(null)
   const lastExport = state.settings.lastExportAt
+  // The file waiting on the restore sheet: { text, now, file } to ask before
+  // replacing, or { reason } when it was refused.
+  const [pending, setPending] = useState(null)
+  const closeSheet = useCallback(() => setPending(null), [])
 
   const doExport = () => {
     downloadBackup(exportJSON())
     markExported()
   }
 
+  // Read and check the whole file first. Nothing changes until Replace.
   const doImport = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
+      const text = String(reader.result)
       try {
-        importJSON(String(reader.result))
-        alert(T('bk.restored'))
-      } catch {
-        alert(T('bk.badFile'))
+        const next = readBackup(text)
+        setPending({ text, now: backupCounts(state), file: backupCounts(next) })
+      } catch (err) {
+        setPending({ reason: err?.reason || 'not-backup' })
       }
     }
+    reader.onerror = () => setPending({ reason: 'unreadable' })
     reader.readAsText(file)
     e.target.value = ''
+  }
+
+  const doReplace = () => {
+    try {
+      importJSON(pending.text)
+    } catch (err) {
+      setPending({ reason: err?.reason || 'not-backup' })
+      return
+    }
+    setPending(null)
+    toast(T('bk.restored'))
   }
 
   return (
@@ -686,6 +707,7 @@ function BackupControls({ exportJSON, importJSON, resetAll }) {
         onClick={() => { if (confirm(T('bk.confirmReset'))) resetAll() }}>
         {T('bk.reset')}
       </Button>
+      {pending && <RestoreSheet pending={pending} onReplace={doReplace} onClose={closeSheet} />}
     </Card>
   )
 }
