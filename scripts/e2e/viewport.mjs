@@ -264,10 +264,12 @@ async function checkNoFaithLeak(browser, url) {
       // Reveal + open the extra tab (its first screen)
       await page.locator('nav button').nth(3).click()
       await page.waitForTimeout(150)
-      const ver = page.getByText(/v0\.1\.0/)
-      for (let i = 0; i < 5; i++) { await ver.click().catch(() => {}); await page.waitForTimeout(50) }
+      // Both found by test id. If either is missing, the click throws and the
+      // check fails, so this scan can never be skipped without a failure.
+      const ver = page.locator('[data-testid="app-version"]')
+      for (let i = 0; i < 5; i++) { await ver.click({ timeout: 5000 }); await page.waitForTimeout(50) }
       await page.waitForTimeout(150)
-      await page.getByText('🔒', { exact: false }).click().catch(() => {})
+      await page.locator('[data-testid="nav-extra"]').click({ timeout: 5000 })
       await page.waitForTimeout(200)
       await scanForTerms(page, `${label}·extra`, () => (failed++))
     } catch (err) {

@@ -145,7 +145,7 @@ function VersionTapper({ onReveal }) {
   }
 
   return (
-    <button onClick={tap} className="w-full text-center mt-8 select-none">
+    <button onClick={tap} data-testid="app-version" className="w-full text-center mt-8 select-none">
       <div className="text-[11px] text-[var(--color-faint)]">
         {T(versionKey, { v: APP_VERSION })}
       </div>

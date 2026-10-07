@@ -114,6 +114,7 @@ function BottomNav({ screen, setScreen, extraRevealed }) {
         {tabs.map((t) => (
           <button
             key={t.id}
+            data-testid={`nav-${t.id}`}
             onClick={() => setScreen(t.id)}
             className={`press py-2.5 flex flex-col items-center gap-1 text-[10px] whitespace-nowrap transition ${
               active === t.id ? 'text-[var(--color-accent-ink)]' : 'text-[var(--color-faint)]'
