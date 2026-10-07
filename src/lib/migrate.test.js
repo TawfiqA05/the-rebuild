@@ -138,3 +138,79 @@ describe('backup roundtrip preserves food', () => {
     expect(restored.food).toEqual(state.food)
   })
 })
+
+// Damaged saves. migrate() repairs what it can by the rules in repair.js and
+// never drops a habit, a log or a day. What it can't read at all throws, so the
+// store keeps a copy before starting fresh.
+describe('damaged saves', () => {
+  const walk = { id: 'walk-x1', name: 'Evening walk', phase: 1, type: 'standard', frequency: { kind: 'daily' } }
+  const logs = { '2026-09-28': { 'walk-x1': { status: 'full', at: 1 } }, '2026-09-29': { 'walk-x1': { status: 'min', at: 2 } } }
+  const days = { '2026-09-28': { roughDay: true } }
+  const save = (patch) => ({ version: 2, settings: { onboarded: true }, habits: [walk], logs, days, votes: 3, ...patch })
+
+  it('throws on a save that is not an object, or whose settings are not an object', () => {
+    for (const bad of [null, 5, 'hello', [1, 2], true, save({ settings: 'x' }), save({ settings: [] })]) {
+      expect(() => migrate(bad)).toThrow()
+    }
+  })
+
+  it('reads habits saved as an object of objects back into a list, taking a missing id from its key', () => {
+    const m = migrate(save({ habits: { 'walk-x1': { ...walk, id: undefined }, 'read-x2': { id: 'read-x2', name: 'Read', phase: 1, frequency: { kind: 'daily' } } } }))
+    expect(m.habits.slice(0, 2).map((h) => h.id)).toEqual(['walk-x1', 'read-x2'])
+    expect(m.logs).toEqual(logs)
+  })
+
+  it('sets aside a habits value it cannot read and keeps every log and day', () => {
+    for (const bad of ['oops', 7, true, { a: 'x' }]) {
+      const m = migrate(save({ habits: bad }))
+      expect(Array.isArray(m.habits)).toBe(true)
+      expect(m.logs).toEqual(logs)
+      expect(m.days).toEqual(days)
+      expect(m.votes).toBe(3)
+    }
+  })
+
+  it('leaves out habit entries that are not objects and keeps every habit that is', () => {
+    const m = migrate(save({ habits: [null, 'x', walk, 4] }))
+    expect(m.habits.filter((h) => h.id === 'walk-x1')).toHaveLength(1)
+    expect(m.habits.every((h) => h && typeof h === 'object' && h.frequency)).toBe(true)
+  })
+
+  it('makes a habit with no usable schedule daily', () => {
+    const cases = [{ ...walk, frequency: undefined }, { ...walk, frequency: 'perWeek' }, { ...walk, frequency: { kind: 'weekdays' } }, { ...walk, frequency: { kind: 'weekdays', days: 'mon' } }]
+    for (const h of cases) {
+      const m = migrate(save({ habits: [h] }))
+      expect(m.habits.find((x) => x.id === 'walk-x1').frequency).toEqual({ kind: 'daily' })
+      expect(m.logs).toEqual(logs)
+    }
+  })
+
+  it('keeps a good schedule exactly as it is', () => {
+    const weekly = { ...walk, frequency: { kind: 'weekdays', days: [1, 3] } }
+    expect(migrate(save({ habits: [weekly] })).habits[0].frequency).toEqual({ kind: 'weekdays', days: [1, 3] })
+  })
+
+  it('sets aside logs or days that are not objects instead of keeping them as they are', () => {
+    const m = migrate(save({ logs: 'abc', days: [1, 2] }))
+    expect(m.logs).toEqual({})
+    expect(m.days).toEqual({})
+    expect(m.habits.find((h) => h.id === 'walk-x1')).toBeTruthy()
+  })
+
+  it('reads lists saved as objects of objects back into lists', () => {
+    const m = migrate(save({ wins: { a: { id: 'w1', at: 1, text: 'Cooked at home' } } }))
+    expect(m.wins).toEqual([{ id: 'w1', at: 1, text: 'Cooked at home' }])
+  })
+
+  it('treats a missing or null value as missing, as before', () => {
+    const m = migrate(save({ habits: null, logs: null, days: undefined, votes: null }))
+    expect(m.logs).toEqual({})
+    expect(m.days).toEqual({})
+    expect(m.votes).toBe(0)
+  })
+
+  it('a repaired save passes through again with nothing left to repair', () => {
+    const once = migrate(save({ habits: { w: { ...walk, frequency: undefined } }, logs: 'abc' }))
+    expect(migrate(once)).toEqual(once)
+  })
+})

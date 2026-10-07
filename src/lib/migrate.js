@@ -8,13 +8,18 @@
 //
 // Kept out of store.jsx (and free of React) so the migration guarantees can be
 // unit-tested directly.
+//
+// A save in a shape the app can't use goes through repair() first (see
+// repair.js). One that can't be read at all throws UnreadableSave.
 // ---------------------------------------------------------------------------
 
 import { freshState, SEED_HABITS } from './seed.js'
 import { STOCK_NAME_TO_KEY } from './i18n/seedHabits.js'
+import { repair } from './repair.js'
 
 /** Merge any newly-shipped seed habits / settings into an older saved state. */
-export function migrate(state) {
+export function migrate(saved) {
+  const { state } = repair(saved)
   const base = freshState()
   const merged = { ...base, ...state }
   merged.settings = { ...base.settings, ...(state.settings || {}) }
