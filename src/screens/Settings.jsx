@@ -116,7 +116,8 @@ export default function Settings({ navigate, onReveal }) {
   )
 }
 
-const APP_VERSION = '0.1.0'
+// Set at build time from package.json (see vite.config.js).
+const APP_VERSION = __APP_VERSION__
 
 /** The app version line. */
 function VersionTapper({ onReveal }) {
