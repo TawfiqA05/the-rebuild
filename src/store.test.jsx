@@ -351,6 +351,33 @@ describe('repairs on load', () => {
     expect(Array.isArray(saved().habits)).toBe(true)
   })
 
+  it('habit entries that are not objects are set aside in the copy and every habit that is stays', () => {
+    const s = { ...sampleSave() }
+    s.habits = [null, s.habits[0], 'x']
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    const app = mount()
+    const r = app.store().rescue
+    expect(r.setAside).toEqual([{ field: 'habits', entries: 2 }])
+    expect(localStorage.getItem(r.copy)).toBe(raw)
+    expect(saved().habits.filter((h) => h.id === 'walk-x1')).toHaveLength(1)
+    expect(saved().habits.every((h) => h && typeof h === 'object')).toBe(true)
+    expect(saved().logs).toEqual(sampleSave().logs)
+  })
+
+  it('what the rules leave as it is loads with no repair and no copy', () => {
+    const s = sampleSave()
+    s.logs['2026-09-30'] = null
+    s.days = { '2026-09-28': 'x' }
+    s.habits.push({ ...s.habits[0], id: 'odd-x2', frequency: { kind: 'monthly' } })
+    localStorage.setItem(KEY, JSON.stringify(s))
+    const app = mount()
+    expect(app.store().rescue).toBe(null)
+    expect(rescueKeys()).toEqual([])
+    expect(saved().logs['2026-09-30']).toBe(null)
+    expect(saved().days).toEqual({ '2026-09-28': 'x' })
+  })
+
   it('a repaired save loads clean the next time, with no second copy', () => {
     const s = sampleSave()
     delete s.habits[0].frequency
