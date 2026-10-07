@@ -768,6 +768,10 @@ async function checkSaveFailure(browser, url) {
     await line.waitFor({ timeout: 3000 })
     const text = await line.innerText()
     if (text !== 'Your last change didn’t save on this device. It will try again with your next change.') failures.push(`line says "${text}"`)
+    // Headless Chromium has no safe area, so check the rule itself: the line
+    // sticks below the status bar, not at the very top.
+    const sticky = await line.evaluate((el) => ({ position: getComputedStyle(el).position, top: el.style.top }))
+    if (sticky.position !== 'sticky' || sticky.top !== 'env(safe-area-inset-top)') failures.push(`line sticks at ${JSON.stringify(sticky)}`)
     await page.screenshot({ path: resolve(artifacts, 'save-failed.png') })
     if ((await raw()) !== before) failures.push('storage changed while saves were failing')
 

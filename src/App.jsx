@@ -100,7 +100,8 @@ function AppShell() {
 
 // A calm line while the last save failed. The store tries again on the next
 // change and the line goes once a save works. When storage is blocked outright,
-// the banner above already says so.
+// the banner above already says so. It sticks below the safe area: dark themes
+// make the Home Screen status bar translucent, and top-0 would sit under it.
 function SaveNotice() {
   const { saveFailed } = useStore()
   const { t: T } = useT()
@@ -109,7 +110,8 @@ function SaveNotice() {
     <div
       role="status"
       data-testid="save-failed"
-      className="sticky top-0 z-30 bg-[var(--color-min-soft)] text-[var(--color-min)] text-[12.5px] text-center px-4 py-2 leading-snug"
+      className="sticky z-30 bg-[var(--color-min-soft)] text-[var(--color-min)] text-[12.5px] text-center px-4 py-2 leading-snug"
+      style={{ top: 'env(safe-area-inset-top)' }}
     >
       {T('save.failed')}
     </div>
