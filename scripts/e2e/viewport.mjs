@@ -910,10 +910,11 @@ async function noMarker(page, failures, where) {
 }
 
 // A crash while drawing: the error screen with Reload and Export my data. A
-// null in the wins list is a shape the repair rules leave as it is, and it
-// throws when the wins draw, so it stands in for any crash.
+// habit whose name is an object is a shape the repair rules leave as it is,
+// and it throws when Today draws the habit, so it stands in for any crash.
 async function checkCrash(browser, url) {
-  const save = { ...plainSave(), wins: [null] }
+  const save = plainSave()
+  save.habits[0] = { ...save.habits[0], name: { made: 'up' } }
   const copyKey = `${RESCUE}2026-10-01T09:00:00.000Z`
   const r = await rescueCheck(browser, url, 'crash · en', async (context, failures) => {
     await seedOnce(context, [[KEY, JSON.stringify(save)], [copyKey, `{"note":"${MARKER}"`]])
@@ -931,7 +932,7 @@ async function checkCrash(browser, url) {
     await page.screenshot({ path: resolve(artifacts, 'crash.png') })
     const savedNow = (await storageNow(page))[KEY]
     const file = await exportFile(page, 'crash-export')
-    if (JSON.stringify(file.state) !== JSON.stringify(JSON.parse(savedNow)) || file.state.wins[0] !== null) failures.push('the export does not hold what is saved')
+    if (JSON.stringify(file.state) !== JSON.stringify(JSON.parse(savedNow)) || typeof file.state.habits[0].name !== 'object') failures.push('the export does not hold what is saved')
     if (file.rescueCopies?.length !== 1 || file.rescueCopies[0].text !== `{"note":"${MARKER}"`) failures.push('the export does not hold the rescue copy')
     if (!(await page.locator('[data-testid="crash-body"]').isVisible())) failures.push('the screen went after Export')
     await noMarker(page, failures, 'crash')

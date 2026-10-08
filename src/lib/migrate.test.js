@@ -202,6 +202,16 @@ describe('damaged saves', () => {
     expect(m.wins).toEqual([{ id: 'w1', at: 1, text: 'Cooked at home' }])
   })
 
+  it('leaves out null entries in wins, tasks, food and quotes and keeps every real one', () => {
+    const w = { id: 'w1', at: 1, text: 'Cooked at home' }
+    const m = migrate(save({ wins: [null, w], tasks: [null], food: ['x'], myQuotes: [7] }))
+    expect(m.wins).toEqual([w])
+    expect(m.tasks).toEqual([])
+    expect(m.food).toEqual([])
+    expect(m.myQuotes).toEqual([])
+    expect(m.logs).toEqual(logs)
+  })
+
   it('treats a missing or null value as missing, as before', () => {
     const m = migrate(save({ habits: null, logs: null, days: undefined, votes: null }))
     expect(m.logs).toEqual({})

@@ -41,6 +41,22 @@ describe('repair()', () => {
     expect(r.state.habits).toEqual([walk])
   })
 
+  it('rule 4 for lists: sets aside entries in wins, tasks, food and myQuotes that are not objects', () => {
+    const w = { id: 'w1', at: 1, text: 'Cooked at home' }
+    const t = { id: 't1', text: 'Call the bank', dueDay: '2026-10-05' }
+    const f = { id: 'f1', text: 'Oatmeal', at: 1, day: '2026-10-05' }
+    const q = { id: 'q1', at: 1, text: 'Small steps.' }
+    const r = repair(save({ wins: [null, w, 'x'], tasks: [t, 4], food: [f, null], myQuotes: [[], q] }))
+    expect(r.state.wins).toEqual([w])
+    expect(r.state.tasks).toEqual([t])
+    expect(r.state.food).toEqual([f])
+    expect(r.state.myQuotes).toEqual([q])
+    expect(r.setAside).toEqual([
+      { field: 'wins', entries: 2 }, { field: 'tasks', entries: 1 }, { field: 'myQuotes', entries: 1 }, { field: 'food', entries: 1 },
+    ])
+    expect(r.fixes).toEqual([])
+  })
+
   it('rule 5: names each habit it set to daily', () => {
     const r = repair(save({ habits: [{ ...walk, frequency: undefined }, { ...walk, id: 'gym-x', frequency: { kind: 'weekdays' } }] }))
     expect(r.fixes).toEqual([{ type: 'daily', habitId: 'walk-x1' }, { type: 'daily', habitId: 'gym-x' }])

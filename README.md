@@ -247,8 +247,8 @@ Honest list, for future-me:
   tries again.
 - **Saved data the app can't use is kept, not written over.** `lib/repair.js`
   fixes what it safely can (a habit with no schedule becomes daily and is
-  named on screen) and sets aside what it can't read, without dropping a
-  habit, log or day. Before anything is saved over a save like that, the
+  named on screen) and sets aside what it can't read, like a blank entry in a
+  list, without dropping a habit, log or day. Before anything is saved over a save like that, the
   original is copied byte for byte to its own `the-rebuild:rescue:<time>` key
   and read back. If storage won't keep the copy, nothing is saved until you
   export it or tap Start fresh. Reset everything removes the copies.
