@@ -245,15 +245,22 @@ Honest list, for future-me:
   through `migrate()` so newly-shipped seed habits merge into old saves. If a
   save fails (storage full or blocked), a calm line says so and the next change
   tries again.
-- **Saved data the app can't use is kept, not written over.** `lib/repair.js`
-  fixes what it safely can (a habit with no schedule becomes daily and is
-  named on screen) and sets aside what it can't read, like a blank entry in a
-  list, without dropping a habit, log or day. Before anything is saved over a save like that, the
-  original is copied byte for byte to its own `the-rebuild:rescue:<time>` key
-  and read back. If storage won't keep the copy, nothing is saved until you
-  tap Start fresh, which keeps whatever could be read. Export my data hands
-  the save over as a file but doesn't turn saving back on. Reset everything
-  removes the copies.
+- **Saved data the app can't use gets a rescue copy when storage allows.**
+  `lib/repair.js` fixes what it safely can (a habit with no schedule becomes
+  daily and is named on screen) and sets aside what it can't read, like a
+  blank entry in a list, without dropping a habit, log or day. Before saving
+  over a save like that, the app copies the original byte for byte to its own
+  `the-rebuild:rescue:<time>` key and reads it back. If storage won't keep the
+  copy, it depends on what the repair did:
+  - When the save couldn't be read at all, or something had to be set aside,
+    nothing is saved until you tap Start fresh, which keeps whatever could be
+    read. Export my data hands the save over as a file but doesn't turn
+    saving back on.
+  - When the repair only fixed something, like a habit set to daily, the
+    repaired data is still saved, with no copy, and the app doesn't say a copy
+    was kept.
+
+  Reset everything removes the copies.
 - **A crash shows a way out, not a blank page.** An error boundary at the top
   of the app shows a plain line with Reload and Export my data. The export is
   read from storage, not from the state that crashed.
