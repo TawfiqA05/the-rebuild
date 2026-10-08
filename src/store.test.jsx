@@ -409,6 +409,20 @@ describe('repairs on load', () => {
     expect(saved().logs).toEqual(sampleSave().logs)
   })
 
+  it('a null in the task archive is set aside in the copy, and the load no longer crashes', () => {
+    const entry = { id: 'a1', text: 'Renew the car tag', reason: 'completed', archivedAt: Date.now() }
+    const s = { ...sampleSave(), taskArchive: [null, entry] }
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    const app = mount()
+    const r = app.store().rescue
+    expect(r.kind).toBe('repaired')
+    expect(r.setAside).toEqual([{ field: 'taskArchive', entries: 1 }])
+    expect(localStorage.getItem(r.copy)).toBe(raw)
+    expect(saved().taskArchive).toEqual([entry])
+    expect(saved().logs).toEqual(sampleSave().logs)
+  })
+
   it('what the rules leave as it is loads with no repair and no copy', () => {
     const s = sampleSave()
     s.logs['2026-09-30'] = null

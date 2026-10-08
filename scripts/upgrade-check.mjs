@@ -44,7 +44,7 @@
 // Damaged saves, all hand-made and opened by the new build: text that isn't
 // JSON; habits saved as an object of habits; habits that can't be read; a
 // habit with no schedule; null entries in the wins, tasks, food and quotes
-// lists; a second failure with a copy already kept; a repairable habit with a
+// lists; a null in the task archive; a second failure with a copy already kept; a repairable habit with a
 // copy already kept; a copy that storage refuses; and a set-aside whose copy
 // storage refuses, where Start fresh must keep everything that was read.
 // For each, storage before and after is printed, the original is kept where
@@ -651,6 +651,10 @@ async function checkDamaged(habits) {
     {
       name: 'null entries in the wins, tasks, food and quotes lists', raw: () => JSON.stringify({ ...healthy(), wins: [null, ...healthy().wins], tasks: [null], food: [...healthy().food, 'x'], myQuotes: [4] }),
       expect: 'repaired', keepsLogs: true, lists: { wins: 1, food: 1 },
+    },
+    {
+      name: 'a null in the task archive', raw: () => JSON.stringify({ ...healthy(), taskArchive: [null, { id: 'ta1', text: 'Renew the car tag', createdAt: at(addDays(TODAY, -6), '09:00'), createdDay: addDays(TODAY, -6), dueDay: addDays(TODAY, -5), doneDay: addDays(TODAY, -5), doneAt: at(addDays(TODAY, -5), '10:00'), source: 'manual', reason: 'completed', archivedAt: at(addDays(TODAY, -4), '03:10'), archivedDay: addDays(TODAY, -4) }] }),
+      expect: 'repaired', keepsLogs: true, lists: { taskArchive: 1 },
     },
     {
       name: 'a second failure with a copy already kept', raw: () => '[1,2,3]', withCopy: true,

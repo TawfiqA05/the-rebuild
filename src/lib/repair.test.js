@@ -57,6 +57,13 @@ describe('repair()', () => {
     expect(r.fixes).toEqual([])
   })
 
+  it('rule 4 for the task archive: sets aside entries that are not objects', () => {
+    const e = { id: 'a1', text: 'Renew the car tag', reason: 'completed', archivedAt: 1 }
+    const r = repair(save({ taskArchive: [null, e, 'x'] }))
+    expect(r.state.taskArchive).toEqual([e])
+    expect(r.setAside).toEqual([{ field: 'taskArchive', entries: 2 }])
+  })
+
   it('rule 5: names each habit it set to daily', () => {
     const r = repair(save({ habits: [{ ...walk, frequency: undefined }, { ...walk, id: 'gym-x', frequency: { kind: 'weekdays' } }] }))
     expect(r.fixes).toEqual([{ type: 'daily', habitId: 'walk-x1' }, { type: 'daily', habitId: 'gym-x' }])

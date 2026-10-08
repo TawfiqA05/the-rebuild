@@ -11,8 +11,9 @@
 //   3. Any other value in the wrong shape is set aside: it's left out here and
 //      treated as missing, and the store must keep a copy of the original
 //      first. A null or missing value is just missing, as before.
-//   4. Entries that aren't objects in habits, wins, tasks, food and myQuotes
-//      are set aside the same way. Every entry that is an object is kept.
+//   4. Entries that aren't objects in habits, wins, tasks, taskArchive,
+//      myQuotes and food are set aside the same way. Every entry that is an
+//      object is kept.
 //   5. A habit with no usable schedule becomes daily, and is named in the
 //      report so the person can see it was a guess. (a fix)
 //   6. Anything else is kept as it is.
@@ -32,9 +33,9 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
 const isMissing = (v) => v === undefined || v === null
 
 const LISTS = ['habits', 'wins', 'tasks', 'taskArchive', 'myQuotes', 'food']
-// Lists whose entries are drawn one by one, so a single null in them crashes
-// the screen (rule 4).
-const ENTRY_LISTS = ['habits', 'wins', 'tasks', 'myQuotes', 'food']
+// Lists whose entries are read one by one when the app loads or draws, so a
+// single null in them crashes it (rule 4).
+const ENTRY_LISTS = ['habits', 'wins', 'tasks', 'taskArchive', 'myQuotes', 'food']
 const MAPS = ['logs', 'days']
 
 /**
