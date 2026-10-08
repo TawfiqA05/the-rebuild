@@ -251,7 +251,8 @@ Honest list, for future-me:
   list, without dropping a habit, log or day. Before anything is saved over a save like that, the
   original is copied byte for byte to its own `the-rebuild:rescue:<time>` key
   and read back. If storage won't keep the copy, nothing is saved until you
-  export it or tap Start fresh. Reset everything removes the copies.
+  export it or tap Start fresh, which keeps whatever could be read. Reset
+  everything removes the copies.
 - **A crash shows a way out, not a blank page.** An error boundary at the top
   of the app shows a plain line with Reload and Export my data. The export is
   read from storage, not from the state that crashed.

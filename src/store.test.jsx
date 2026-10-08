@@ -298,6 +298,36 @@ describe('a rescue copy that storage refuses', () => {
     expect(localStorage.getItem(KEY)).toBe(raw)
   })
 
+  it('stops a list entry set-aside too, and Start fresh then keeps everything that could be read', () => {
+    const s = { ...sampleSave(), wins: [null, ...sampleSave().wins], days: { '2026-09-28': { roughDay: true } } }
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    refuseRescueWrites()
+    const app = mount()
+    expect(app.store().rescue.kind).toBe('refused')
+    expect(localStorage.getItem(KEY)).toBe(raw)
+    act(() => app.store().startFresh())
+    expect(app.store().rescue).toBe(null)
+    expect(saved().settings.onboarded).toBe(true)
+    expect(saved().habits.find((h) => h.id === 'walk-x1')).toBeTruthy()
+    expect(saved().logs).toEqual(sampleSave().logs)
+    expect(saved().days).toEqual(s.days)
+    expect(saved().wins.map((w) => w.text)).toEqual(['Cooked at home all week'])
+    act(() => app.store().toggleHabit('2026-10-05', 'walk-x1'))
+    expect(saved().logs['2026-10-05']['walk-x1'].status).toBe('full')
+  })
+
+  it('Start fresh after a set-aside of habits keeps every log and day', () => {
+    const s = { ...sampleSave(), habits: 'oops' }
+    localStorage.setItem(KEY, JSON.stringify(s))
+    refuseRescueWrites()
+    const app = mount()
+    expect(app.store().rescue.kind).toBe('refused')
+    act(() => app.store().startFresh())
+    expect(saved().logs).toEqual(sampleSave().logs)
+    expect(saved().votes).toBe(3)
+  })
+
   it('still saves a fix that sets nothing aside, and does not claim a copy', () => {
     const s = sampleSave()
     delete s.habits[0].frequency
@@ -362,6 +392,20 @@ describe('repairs on load', () => {
     expect(localStorage.getItem(r.copy)).toBe(raw)
     expect(saved().habits.filter((h) => h.id === 'walk-x1')).toHaveLength(1)
     expect(saved().habits.every((h) => h && typeof h === 'object')).toBe(true)
+    expect(saved().logs).toEqual(sampleSave().logs)
+  })
+
+  it('null entries in wins, tasks, food and quotes are set aside in the copy and every real entry stays', () => {
+    const s = { ...sampleSave(), wins: [null, ...sampleSave().wins], tasks: ['x'], food: [null], myQuotes: [3] }
+    const raw = JSON.stringify(s)
+    localStorage.setItem(KEY, raw)
+    const app = mount()
+    const r = app.store().rescue
+    expect(r.kind).toBe('repaired')
+    expect(r.setAside.map((x) => x.field).sort()).toEqual(['food', 'myQuotes', 'tasks', 'wins'])
+    expect(localStorage.getItem(r.copy)).toBe(raw)
+    expect(saved().wins.map((w) => w.text)).toEqual(['Cooked at home all week'])
+    expect(saved().tasks).toEqual([])
     expect(saved().logs).toEqual(sampleSave().logs)
   })
 

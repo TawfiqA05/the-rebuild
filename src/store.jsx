@@ -56,7 +56,8 @@ const PIN_LOCK_MS = 60 * 60 * 1000 // 1 hour
 //   kept      it couldn't be read; a copy is kept and the app starts fresh
 //   refused   it (or a part that had to be set aside) couldn't be read, and
 //             storage wouldn't keep a copy, so nothing is saved until the
-//             person taps Start fresh
+//             person taps Start fresh. `keepsRead` is true when the rest
+//             could be read: Start fresh then saves that, not a blank state
 //   repaired  it was repaired by the rules in lib/repair.js; `copy` is the
 //             key of the original, or null when storage wouldn't keep one
 //             and nothing had to be set aside
@@ -89,7 +90,7 @@ function loadState() {
     return { state: freshState(), rescue: { kind: copy ? 'kept' : 'refused', copy } }
   }
   if (!copy && report.setAside.length) {
-    return { state: freshState(), rescue: { kind: 'refused', copy: null } }
+    return { state, rescue: { kind: 'refused', copy: null, keepsRead: true } }
   }
   return { state, rescue: { kind: 'repaired', copy, fixes: report.fixes, setAside: report.setAside } }
 }
@@ -189,13 +190,14 @@ export function StoreProvider({ children }) {
       setRescue(null)
     },
     dismissRescue: () => setRescue(null),
-    // Erase what couldn't be read and start saving again, from a fresh state.
+    // Erase what couldn't be read and start saving again: from what could be
+    // read after a set-aside, or from a fresh state when nothing could be.
     startFresh: () => {
       refused.current = false
       setRescue(null)
-      setState(freshState())
+      setState(boot.rescue?.keepsRead ? (prev) => ({ ...prev }) : freshState())
     },
-  }), [actions])
+  }), [actions, boot])
 
   // On load and at every 3am rollover, sweep finished tasks into the archive and
   // purge anything archived over 90 days ago. Idempotent, so it no-ops when
