@@ -43,8 +43,10 @@
 //
 // Damaged saves, all hand-made and opened by the new build: text that isn't
 // JSON; habits saved as an object of habits; habits that can't be read; a
-// habit with no schedule; a second failure with a copy already kept; a
-// repairable habit with a copy already kept; and a copy that storage refuses.
+// habit with no schedule; null entries in the wins, tasks, food and quotes
+// lists; a second failure with a copy already kept; a repairable habit with a
+// copy already kept; a copy that storage refuses; and a set-aside whose copy
+// storage refuses, where Start fresh must keep everything that was read.
 // For each, storage before and after is printed, the original is kept where
 // the rules say, and a habit logged afterwards is saved. The old build then
 // opens what the new one saved after each repair, with no habit, log or day lost.
@@ -647,6 +649,10 @@ async function checkDamaged(habits) {
       expect: 'repaired', keepsLogs: true, daily: '“Make the bed” had no schedule saved, so it’s set to daily for now. You can change it in Settings.',
     },
     {
+      name: 'null entries in the wins, tasks, food and quotes lists', raw: () => JSON.stringify({ ...healthy(), wins: [null, ...healthy().wins], tasks: [null], food: [...healthy().food, 'x'], myQuotes: [4] }),
+      expect: 'repaired', keepsLogs: true, lists: { wins: 1, food: 1 },
+    },
+    {
       name: 'a second failure with a copy already kept', raw: () => '[1,2,3]', withCopy: true,
       expect: 'kept',
     },
@@ -657,6 +663,10 @@ async function checkDamaged(habits) {
     {
       name: 'a copy that storage refuses', raw: () => 'made-up text that is not JSON', refuse: true,
       expect: 'refused',
+    },
+    {
+      name: 'a set-aside whose copy storage refuses', raw: () => JSON.stringify({ ...healthy(), wins: [null, ...healthy().wins] }), refuse: true,
+      expect: 'refused', keepsRead: true,
     },
   ]
   let problems = 0
@@ -703,6 +713,9 @@ async function checkDamaged(habits) {
           if (!ids.every((id) => kept.has(id))) failures.push('a habit was dropped')
         }
         if (st.habits.some((h) => !h.frequency)) failures.push('a habit still has no schedule')
+        for (const [field, n] of Object.entries(c.lists || {})) {
+          if (st[field].length !== n || st[field].some((e) => !e || typeof e !== 'object')) failures.push(`${field}: ${JSON.stringify(st[field].length)} entries kept, expected ${n}`)
+        }
         if (c.daily) {
           const lines = await page.locator('[data-testid="rescue-daily"]').allInnerTexts()
           if (!lines.includes(c.daily)) failures.push(`daily line: ${JSON.stringify(lines)}`)
@@ -725,8 +738,20 @@ async function checkDamaged(habits) {
         await page.locator('[data-testid="rescue-start-fresh"]').click()
         await page.locator('[data-testid="rescue-fresh-yes"]').click()
         await screen.waitFor({ state: 'detached' })
-        printStorage('after Start fresh', await storageNow(), originals)
-        await onboard()
+        const fresh = await storageNow()
+        printStorage('after Start fresh', fresh, originals)
+        if (c.keepsRead) {
+          // Everything that could be read is kept: no onboarding, same habits, logs and days.
+          const st = JSON.parse(fresh[STORAGE_KEY])
+          const orig = JSON.parse(raw)
+          if (!st.settings.onboarded) failures.push('Start fresh threw away what could be read')
+          if (!isDeepStrictEqual(st.logs, orig.logs) || !isDeepStrictEqual(st.days, orig.days)) failures.push('logs or days changed')
+          if (!orig.habits.every((h) => st.habits.some((x) => x.id === h.id))) failures.push('a habit was dropped')
+          if (st.wins.length !== orig.wins.length - 1) failures.push('the wins that could be read were not all kept')
+          await page.locator('nav button').first().waitFor()
+        } else {
+          await onboard()
+        }
         await logAndCheck(failures)
       }
       printStorage('after logging a habit', await storageNow(), originals)
